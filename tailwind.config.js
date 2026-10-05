@@ -9,7 +9,7 @@ export default {
     theme: {
         extend: {
             colors: {
-                // PNJ Prime brand palette — premium, professional
+                // PNJ Prime brand palette ï¿½ premium, professional
                 prime: {
                     50:  '#f0f4ff',
                     100: '#dce6fd',
@@ -45,7 +45,7 @@ export default {
 
             fontFamily: {
                 sans: ['Inter', 'ui-sans-serif', 'system-ui', 'sans-serif'],
-                display: ['Inter', 'ui-sans-serif', 'sans-serif'],
+                display: ['Sora', 'Inter', 'ui-sans-serif', 'sans-serif'],
             },
 
             borderRadius: {

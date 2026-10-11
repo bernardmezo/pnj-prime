@@ -6,6 +6,7 @@ import DeleteUserForm from './Partials/DeleteUserForm';
 import UpdatePasswordForm from './Partials/UpdatePasswordForm';
 import UpdateProfileInformationForm from './Partials/UpdateProfileInformationForm';
 
+// TODO(backend): not in use-case diagram; remove profile routes when backend migrates
 export default function Edit({ auth, mustVerifyEmail, status }) {
     const internal = isInternalRole(auth?.user?.role);
 

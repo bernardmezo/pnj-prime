@@ -3,11 +3,12 @@ import { Landmark, UploadCloud } from 'lucide-react';
 import PublicLayout from '@/Layouts/PublicLayout';
 import { Card } from '@/Components/ui';
 
+// TODO(backend): superseded by Customer/Pembayaran; remove transactions.checkout route when backend migrates
 export default function Checkout({ auth, payment_info }) {
     const info = payment_info ?? {};
     return (
         <PublicLayout auth={auth}>
-            <Head title="Checkout — PNJ Prime" />
+            <Head title="Checkout · PNJ Prime" />
             <div className="mx-auto w-full max-w-2xl px-4 py-10 sm:px-6">
                 <p className="mb-2 text-sm font-semibold" style={{ color: 'var(--color-accent)' }}>Checkout</p>
                 <h1 className="font-display text-2xl font-bold sm:text-3xl" style={{ color: 'var(--color-ink)' }}>
@@ -27,17 +28,17 @@ export default function Checkout({ auth, payment_info }) {
                     <div className="mt-5 space-y-3 rounded-2xl p-5" style={{ background: 'var(--color-surface)' }}>
                         <div className="flex items-center justify-between gap-4">
                             <span className="text-sm" style={{ color: 'var(--color-muted)' }}>Bank</span>
-                            <span className="font-semibold" style={{ color: 'var(--color-ink)' }}>{info.bank ?? '—'}</span>
+                            <span className="font-semibold" style={{ color: 'var(--color-ink)' }}>{info.bank ?? '-'}</span>
                         </div>
                         <div className="flex items-center justify-between gap-4">
                             <span className="text-sm" style={{ color: 'var(--color-muted)' }}>No. Rekening</span>
                             <span className="font-mono text-lg font-bold" style={{ color: 'var(--color-ink)' }}>
-                                {info.account || '— (belum dikonfigurasi)'}
+                                {info.account || '- (belum dikonfigurasi)'}
                             </span>
                         </div>
                         <div className="flex items-center justify-between gap-4">
                             <span className="text-sm" style={{ color: 'var(--color-muted)' }}>Atas Nama</span>
-                            <span className="font-semibold" style={{ color: 'var(--color-ink)' }}>{info.holder ?? '—'}</span>
+                            <span className="font-semibold" style={{ color: 'var(--color-ink)' }}>{info.holder ?? '-'}</span>
                         </div>
                     </div>
                 </Card>

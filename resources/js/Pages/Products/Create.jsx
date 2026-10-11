@@ -16,6 +16,7 @@ function Section({ title, desc, children }) {
     );
 }
 
+// TODO(backend): superseded by Rtpu/Layanan/Form + P3M/ProdukUnggulan/Create; remove products.create/store routes when backend migrates
 export default function ProductCreate({ categories = [] }) {
     const { data, setData, post, processing, errors } = useForm({
         name: '',
@@ -34,7 +35,7 @@ export default function ProductCreate({ categories = [] }) {
 
     return (
         <DashboardLayout title="Tambah Produk" breadcrumb="PNJ Prime / Produk / Tambah">
-            <Head title="Tambah Produk — PNJ Prime" />
+            <Head title="Tambah Produk · PNJ Prime" />
             <FadeIn>
                 <PageHeader
                     eyebrow="Admin P3M"

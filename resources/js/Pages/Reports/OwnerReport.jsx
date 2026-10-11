@@ -4,13 +4,14 @@ import { useState } from 'react';
 import DashboardLayout from '@/Layouts/DashboardLayout';
 import { Card, FadeIn, PageHeader, SecondaryButton, StatCard, inputClass, inputStyleProps } from '@/Components/ui';
 
+// TODO(backend): not in use-case diagram; remove reports routes when backend migrates
 export default function OwnerReport({ summary = {} }) {
     const [dateFrom, setDateFrom] = useState('');
     const [dateTo, setDateTo] = useState('');
 
     return (
         <DashboardLayout title="Laporan Saya" breadcrumb="PNJ Prime / Laporan">
-            <Head title="Laporan — PNJ Prime" />
+            <Head title="Laporan · PNJ Prime" />
             <FadeIn>
                 <PageHeader
                     eyebrow="Admin P3M"

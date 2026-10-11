@@ -1,6 +1,7 @@
 import { Link } from '@inertiajs/react';
 import { AtSign, Globe, Mail, MapPin, MessageCircle, Phone, Rss } from 'lucide-react';
 import Logo from '@/Components/Logo';
+import { href as navHref } from '@/lib/nav';
 
 const SOCIALS = [
     { icon: Globe, label: 'Website' },
@@ -21,7 +22,7 @@ export default function PublicFooter({ auth }) {
                 <div>
                     <Logo onDark />
                     <p className="mt-4 max-w-xs leading-relaxed text-white/65">
-                        Wadah resmi hilirisasi inovasi Politeknik Negeri Jakarta — produk, jasa
+                        Wadah resmi hilirisasi inovasi Politeknik Negeri Jakarta, produk, jasa
                         pengujian, dan fasilitas unggulan hasil riset kampus untuk masyarakat dan
                         industri.
                     </p>
@@ -45,8 +46,7 @@ export default function PublicFooter({ auth }) {
                         {[
                             ['Beranda', '/'],
                             ['Katalog', '/katalog'],
-                            ['Tentang Kami', '/#tentang'],
-                            ['Layanan', '/katalog'],
+                            ['Tentang', '/#tentang'],
                         ].map(([label, href]) => (
                             <li key={label}>
                                 <a href={href} className="footer-link hover:text-white">
@@ -63,14 +63,14 @@ export default function PublicFooter({ auth }) {
                         {auth?.user ? (
                             <>
                                 <li>
-                                    <Link href={route('dashboard')} className="footer-link hover:text-white">
-                                        Dashboard
-                                    </Link>
+                                    <a href={navHref('customer.pengajuan.index', {}, auth.user.role)} className="footer-link hover:text-white">
+                                        Pengajuan Saya
+                                    </a>
                                 </li>
                                 <li>
-                                    <Link href={route('profile.edit')} className="footer-link hover:text-white">
-                                        Profil
-                                    </Link>
+                                    <a href={navHref('customer.riwayat', {}, auth.user.role)} className="footer-link hover:text-white">
+                                        Riwayat
+                                    </a>
                                 </li>
                             </>
                         ) : (
@@ -114,7 +114,7 @@ export default function PublicFooter({ auth }) {
             </div>
             <div className="border-t border-white/10">
                 <div className="landing-container flex flex-wrap items-center justify-between gap-2 py-5 text-[13px] text-white/55">
-                    <span>© 2026 PNJ Prime — UPA RTPU Politeknik Negeri Jakarta.</span>
+                    <span>© 2026 PNJ Prime, UPA RTPU Politeknik Negeri Jakarta.</span>
                     <span>Pembayaran ke rekening resmi PNJ.</span>
                 </div>
             </div>

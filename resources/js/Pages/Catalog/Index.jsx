@@ -38,16 +38,16 @@ const LANDING_SAMPLES = [
 
 const BENEFITS = [
     {
-        title: 'Diajukan Admin P3M',
-        text: 'Produk dan inovasi didaftarkan oleh Admin P3M sebagai pengelola riset dan produk unggulan kampus.',
+        title: '01 Pengajuan produk unggulan oleh Admin P3M',
+        text: 'Produk unggulan hasil riset diajukan oleh Admin P3M beserta dokumen pendukungnya.',
     },
     {
-        title: 'Dikurasi Admin RTPU',
-        text: 'Setiap pengajuan ditinjau dan dikelola oleh Admin RTPU sebelum tayang dan dapat dibeli publik.',
+        title: '02 Verifikasi oleh Pimpinan RTPU',
+        text: 'Setiap pengajuan produk unggulan diverifikasi Pimpinan RTPU sebelum lanjut ke katalog.',
     },
     {
-        title: 'Pembayaran resmi ke rekening PNJ',
-        text: 'Dana pelanggan masuk langsung ke rekening resmi PNJ dengan verifikasi manual yang transparan.',
+        title: '03 Layanan dikelola Admin RTPU dan diajukan Customer',
+        text: 'Layanan jasa, ruangan, dan produk dikelola Admin RTPU dan dapat diajukan oleh Customer.',
     },
 ];
 
@@ -158,7 +158,7 @@ export default function CatalogIndex({ auth, categories = [], featured_products 
 
     return (
         <>
-            <Head title="PNJ Prime — Marketplace Inovasi Politeknik Negeri Jakarta" />
+            <Head title="PNJ Prime, Marketplace Inovasi Politeknik Negeri Jakarta" />
 
             {/* Header */}
             <PublicHeader auth={auth} />
@@ -203,16 +203,7 @@ export default function CatalogIndex({ auth, categories = [], featured_products 
                             Rekayasa Teknologi &amp; Produk Unggulan PNJ
                         </motion.p>
                         <motion.h1 {...heroStagger(1)} className="landing-h1 font-display text-white">
-                            Inovasi PNJ, kini{' '}
-                            <span
-                                className="whitespace-nowrap"
-                                style={{
-                                    background: 'linear-gradient(180deg, transparent 64%, var(--color-gold) 64%, var(--color-gold) 96%, transparent 96%)',
-                                }}
-                            >
-                                siap dipakai
-                            </span>{' '}
-                            siapa saja
+                            Inovasi PNJ, kini siap dipakai siapa saja
                         </motion.h1>
                         <motion.p {...heroStagger(2)} className="mt-6 max-w-xl text-[17px] leading-relaxed text-white/80">
                             PNJ Prime mempertemukan produk, jasa pengujian, dan fasilitas unggulan
@@ -252,7 +243,7 @@ export default function CatalogIndex({ auth, categories = [], featured_products 
                         </motion.div>
                     </div>
 
-                    {/* Hero visual — clean picture placeholder, swappable via heroImage */}
+                    {/* Hero visual, clean picture placeholder, swappable via heroImage */}
                     <HeroVisual reduce={reduce} style={isDesktop ? { y: visualY } : undefined} />
                 </div>
             </section>
@@ -269,7 +260,7 @@ export default function CatalogIndex({ auth, categories = [], featured_products 
                                 Produk, jasa, dan fasilitas unggulan
                             </h2>
                             <p className="mt-3 text-[15px] leading-relaxed" style={{ color: 'var(--color-muted)' }}>
-                                Pilihan terkurasi dari riset dan fasilitas PNJ — klik
+                                Pilihan terkurasi dari riset dan fasilitas PNJ, klik
                                 kartu untuk detail dan pemesanan.
                             </p>
                         </div>

@@ -5,13 +5,14 @@ import { Card, EmptyState, FadeIn, PageHeader, PrimaryButton, StatusBadge, Table
 
 const CURATION_LABEL = { draft: 'Draft', pending: 'Menunggu', approved: 'Disetujui', rejected: 'Ditolak' };
 
+// TODO(backend): superseded by Rtpu/Layanan + P3M pages; remove products.* routes when backend migrates
 export default function ProductIndex({ auth, products }) {
     const canCreate = isInternalRole(auth.user.role);
     const rows = products?.data ?? [];
 
     return (
         <DashboardLayout title="Pengajuan Inovasi" breadcrumb="PNJ Prime / Produk">
-            <Head title="Produk — PNJ Prime" />
+            <Head title="Produk · PNJ Prime" />
             <FadeIn>
                 <PageHeader
                     eyebrow="Admin P3M"
@@ -40,7 +41,7 @@ export default function ProductIndex({ auth, products }) {
                             {rows.map((product) => (
                                 <tr key={product.id} className="transition-colors hover:bg-[var(--color-surface)]">
                                     <Td strong>{product.name}</Td>
-                                    <Td><span style={{ color: 'var(--color-muted)' }}>{product.category?.name ?? '—'}</span></Td>
+                                    <Td><span style={{ color: 'var(--color-muted)' }}>{product.category?.name ?? '-'}</span></Td>
                                     <Td>Rp {Number(product.final_price ?? 0).toLocaleString('id-ID')}</Td>
                                     <Td>
                                         <StatusBadge status={product.curation_status} label={CURATION_LABEL[product.curation_status] ?? product.curation_status} />

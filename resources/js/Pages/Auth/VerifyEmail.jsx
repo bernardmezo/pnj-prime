@@ -2,6 +2,7 @@ import PrimaryButton from '@/Components/PrimaryButton';
 import AuthLayout from '@/Layouts/AuthLayout';
 import { Head, Link, useForm } from '@inertiajs/react';
 
+// TODO(backend): not in use-case diagram; remove verification routes when backend migrates
 export default function VerifyEmail({ status }) {
     const { post, processing } = useForm({});
     const submit = (e) => { e.preventDefault(); post(route('verification.send')); };

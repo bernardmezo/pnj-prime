@@ -22,7 +22,7 @@ export function formatRp(value) {
 }
 
 /**
- * Catalog card — single design used by the landing preview and the full
+ * Catalog card, single design used by the landing preview and the full
  * catalog page: image placeholder area, small type label, title, price.
  * Hover lift + image zoom; scroll-reveal stagger (index * 70ms).
  */
@@ -47,22 +47,27 @@ export default function CatalogCard({ item, index = 0, className = '' }) {
                 className="group flex h-full flex-col overflow-hidden rounded-[22px] border bg-white transition-all duration-300 hover:-translate-y-1.5 hover:shadow-card-hover"
                 style={{ borderColor: 'var(--color-border)' }}
             >
-                <div className="relative overflow-hidden">
-                    {item.image ? (
-                        <img src={item.image} alt="" loading="lazy" className="catalog-card-img aspect-[4/3] w-full object-cover" />
-                    ) : (
-                        <div
-                            className="relative flex aspect-[4/3] w-full items-center justify-center overflow-hidden"
-                            style={{ background: 'linear-gradient(135deg, var(--color-accent-tint) 0%, var(--color-bg) 60%, var(--color-accent-tint) 130%)' }}
+                <div className="relative aspect-[4/3] w-full overflow-hidden">
+                    <div
+                        className="absolute inset-0 flex items-center justify-center"
+                        style={{ background: 'linear-gradient(135deg, var(--color-accent-tint) 0%, var(--color-bg) 60%, var(--color-accent-tint) 130%)' }}
+                    >
+                        <div className="dot-pattern-dark absolute inset-0" />
+                        <span
+                            className="catalog-card-img relative flex h-14 w-14 items-center justify-center rounded-2xl border bg-white"
+                            style={{ borderColor: 'var(--color-border)', color: 'var(--color-accent)' }}
                         >
-                            <div className="dot-pattern-dark absolute inset-0" />
-                            <span
-                                className="catalog-card-img relative flex h-14 w-14 items-center justify-center rounded-2xl border bg-white"
-                                style={{ borderColor: 'var(--color-border)', color: 'var(--color-accent)' }}
-                            >
-                                <TypeIcon className="h-6 w-6" />
-                            </span>
-                        </div>
+                            <TypeIcon className="h-6 w-6" />
+                        </span>
+                    </div>
+                    {item.image && (
+                        <img
+                            src={item.image}
+                            alt=""
+                            loading="lazy"
+                            onError={(e) => { e.currentTarget.style.display = 'none'; }}
+                            className="catalog-card-img absolute inset-0 h-full w-full object-cover"
+                        />
                     )}
                 </div>
                 <div className="flex flex-1 flex-col p-5">

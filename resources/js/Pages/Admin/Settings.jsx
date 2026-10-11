@@ -7,6 +7,7 @@ import TextInput from '@/Components/TextInput';
 import DashboardLayout from '@/Layouts/DashboardLayout';
 import { Card, FadeIn, PageHeader } from '@/Components/ui';
 
+// TODO(backend): not in use-case diagram; remove admin.settings routes when backend migrates
 export default function AdminSettings({ settings }) {
     const { data, setData, patch, processing, errors } = useForm({
         settings: {
@@ -29,7 +30,7 @@ export default function AdminSettings({ settings }) {
 
     return (
         <DashboardLayout title="Pengaturan Platform" breadcrumb="PNJ Prime / Pengaturan">
-            <Head title="Pengaturan — PNJ Prime" />
+            <Head title="Pengaturan · PNJ Prime" />
             <FadeIn>
                 <PageHeader
                     eyebrow="Super Admin"
@@ -67,7 +68,7 @@ export default function AdminSettings({ settings }) {
                     <Card className="p-6 sm:p-8">
                         <h3 className="font-display text-base font-bold" style={{ color: 'var(--color-ink)' }}>Rekening Pembayaran Resmi PNJ</h3>
                         <p className="mb-5 mt-1 text-[13px]" style={{ color: 'var(--color-muted)' }}>
-                            Semua pembayaran masuk ke satu rekening resmi PNJ — tidak ada split payment.
+                            Semua pembayaran masuk ke satu rekening resmi PNJ, tidak ada split payment.
                         </p>
                         <div className="space-y-5">
                             <div>

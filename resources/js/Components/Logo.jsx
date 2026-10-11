@@ -1,7 +1,7 @@
 import { Link } from '@inertiajs/react';
 
 /**
- * Shared logo component — single source of truth.
+ * Shared logo component, single source of truth.
  *
  * Logo file: public/assets/logo.PNG (469 x 531 px, ratio 0.88).
  * Ratio < 1.6, so it is treated as a SYMBOL only: the "PNJ Prime" wordmark
@@ -21,7 +21,7 @@ export default function Logo({ onDark = false, height = 38 }) {
     );
 
     return (
-        <Link href={route('home')} className="flex shrink-0 items-center gap-2.5" aria-label="PNJ Prime — Beranda">
+        <Link href={route('home')} className="flex shrink-0 items-center gap-2.5" aria-label="PNJ Prime, Beranda">
             {onDark ? (
                 <span
                     className="flex items-center justify-center"

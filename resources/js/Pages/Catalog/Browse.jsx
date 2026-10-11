@@ -92,7 +92,7 @@ function FilterPanel({ filters, categories, draft, setDraft, onApply, onReset })
                 </button>
             </div>
             {filters.category || filters.min_price || filters.max_price || filters.q ? (
-                <p className="text-xs" style={{ color: 'var(--color-muted)' }}>Filter aktif — hasil diperbarui dari server.</p>
+                <p className="text-xs" style={{ color: 'var(--color-muted)' }}>Filter aktif, hasil diperbarui dari server.</p>
             ) : null}
         </div>
     );
@@ -131,7 +131,7 @@ export default function CatalogBrowse({ auth, products, categories = [], filters
 
     return (
         <PublicLayout auth={auth}>
-            <Head title="Katalog — PNJ Prime" />
+            <Head title="Katalog · PNJ Prime" />
 
             {/* Light page header band (not a dark hero) */}
             <div className="border-b" style={{ borderColor: 'var(--color-border)', background: 'var(--color-surface)' }}>
@@ -141,7 +141,7 @@ export default function CatalogBrowse({ auth, products, categories = [], filters
                         Jelajahi seluruh katalog
                     </h1>
                     <p className="mt-2 max-w-xl text-[15px]" style={{ color: 'var(--color-muted)' }}>
-                        Produk fisik, jasa pengujian, dan sewa fasilitas hasil riset PNJ — terkurasi Admin RTPU.
+                        Produk fisik, jasa pengujian, dan sewa fasilitas hasil riset PNJ, terkurasi Admin RTPU.
                     </p>
                     <form
                         className="relative mt-6 max-w-xl"

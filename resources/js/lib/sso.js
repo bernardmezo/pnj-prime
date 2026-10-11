@@ -1,7 +1,7 @@
 /**
  * PNJ SSO entry point (frontend only).
  *
- * TODO(backend): wire SSO redirect — no named SSO route exists yet
+ * TODO(backend): wire SSO redirect, no named SSO route exists yet
  * (checked routes/web.php + routes/auth.php). When the backend adds one
  * (e.g. `sso.login`), this function will navigate to it with no UI changes.
  */

@@ -46,6 +46,7 @@ function OrderTable({ orders }) {
     );
 }
 
+// TODO(backend): superseded by Customer/Pengajuan + Rtpu pages; remove transactions.index route when backend migrates
 export default function TransactionIndex({ auth, orders }) {
     const [filter, setFilter] = useState('all');
     const rows = orders?.data ?? [];
@@ -85,14 +86,14 @@ export default function TransactionIndex({ auth, orders }) {
     if (!isInternalRole(auth.user.role)) {
         return (
             <PublicLayout auth={auth}>
-                <Head title="Transaksi — PNJ Prime" />
+                <Head title="Transaksi · PNJ Prime" />
                 <div className="mx-auto w-full max-w-[1240px] px-4 py-10 sm:px-6">{content}</div>
             </PublicLayout>
         );
     }
     return (
         <DashboardLayout title="Transaksi" breadcrumb="PNJ Prime / Transaksi">
-            <Head title="Transaksi — PNJ Prime" />
+            <Head title="Transaksi · PNJ Prime" />
             <FadeIn>{content}</FadeIn>
         </DashboardLayout>
     );

@@ -3,10 +3,11 @@ import { Link2 } from 'lucide-react';
 import DashboardLayout from '@/Layouts/DashboardLayout';
 import { EmptyState, FadeIn, PageHeader, StatusBadge, Table, Td } from '@/Components/ui';
 
+// TODO(backend): not in use-case diagram; remove admin.external-links routes when backend migrates
 export default function AdminExternalLinks({ links = [] }) {
     return (
         <DashboardLayout title="Tautan Eksternal" breadcrumb="PNJ Prime / Tautan Eksternal">
-            <Head title="Tautan Eksternal — PNJ Prime" />
+            <Head title="Tautan Eksternal · PNJ Prime" />
             <FadeIn>
                 <PageHeader
                     eyebrow="Admin RTPU"

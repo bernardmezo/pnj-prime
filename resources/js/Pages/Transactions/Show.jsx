@@ -24,6 +24,7 @@ function stepIndex(status) {
     }
 }
 
+// TODO(backend): superseded by Customer/Pengajuan/Show + Rtpu pages; remove transactions.show route when backend migrates
 export default function TransactionShow({ auth, order }) {
     const proofs = order?.paymentProofs ?? order?.payment_proofs ?? [];
     const items = order?.items ?? [];
@@ -42,7 +43,7 @@ export default function TransactionShow({ auth, order }) {
                     <StatusBadge status={order?.status} label={STATUS_LABEL[order?.status] ?? order?.status} />
                 </div>
                 <p className="mt-1 text-sm" style={{ color: 'var(--color-muted)' }}>
-                    Dibuat {order?.created_at ? new Date(order.created_at).toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' }) : '—'}
+                    Dibuat {order?.created_at ? new Date(order.created_at).toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' }) : '-'}
                     {order?.buyer ? ` · oleh ${order.buyer.name}` : ''}
                 </p>
             </div>
@@ -116,14 +117,14 @@ export default function TransactionShow({ auth, order }) {
     if (!isInternalRole(auth?.user?.role)) {
         return (
             <PublicLayout auth={auth}>
-                <Head title="Detail Pesanan — PNJ Prime" />
+                <Head title="Detail Pesanan · PNJ Prime" />
                 <div className="mx-auto w-full max-w-[1240px] px-4 py-10 sm:px-6">{content}</div>
             </PublicLayout>
         );
     }
     return (
         <DashboardLayout title="Detail Pesanan" breadcrumb="PNJ Prime / Transaksi / Detail">
-            <Head title="Detail Pesanan — PNJ Prime" />
+            <Head title="Detail Pesanan · PNJ Prime" />
             <FadeIn>{content}</FadeIn>
         </DashboardLayout>
     );

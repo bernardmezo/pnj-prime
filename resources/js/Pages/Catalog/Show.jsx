@@ -5,21 +5,48 @@ import { useState } from 'react';
 import PublicLayout from '@/Layouts/PublicLayout';
 import { VisualPlaceholder } from '@/Components/Public/shared';
 import { Card, EASE, StatusBadge } from '@/Components/ui';
+import { href as navHref } from '@/lib/nav';
+
+const TYPE_LABEL = { jasa: 'Jasa', ruangan: 'Ruangan', produk: 'Produk' };
+
+function typeFromSlug(slug) {
+    const s = String(slug ?? '');
+    if (s.includes('jasa')) return 'jasa';
+    if (s.includes('sewa') || s.includes('fasilitas')) return 'ruangan';
+    return 'produk';
+}
 
 export default function CatalogShow({ auth, product }) {
     const reduce = useReducedMotion();
     const [tab, setTab] = useState('deskripsi');
+    const user = auth?.user;
+    const type = typeFromSlug(product.category?.slug);
     const price = `Rp ${Number(product.final_price ?? 0).toLocaleString('id-ID')}`;
-    const specs = [
-        ['Kategori', product.category?.name ?? '—'],
-        ['Diajukan oleh', product.owner?.name ?? '—'],
-        ['Stok', product.stock ?? '—'],
-        ['Status', 'Tersedia'],
-    ];
+    const specs =
+        type === 'jasa'
+            ? [
+                ['Kategori', product.category?.name ?? '-'],
+                ['Lokasi', product.location ?? 'Gedung RTPU PNJ'],
+                ['Estimasi', product.duration ?? '-'],
+                ['Status', 'Tersedia'],
+            ]
+            : type === 'ruangan'
+              ? [
+                ['Kategori', product.category?.name ?? '-'],
+                ['Lokasi', product.location ?? 'Kampus PNJ Depok'],
+                ['Kapasitas', product.capacity ?? '-'],
+                ['Status', 'Tersedia'],
+            ]
+              : [
+                ['Kategori', product.category?.name ?? '-'],
+                ['Diajukan oleh', product.owner?.name ?? '-'],
+                ['Stok', product.stock ?? '-'],
+                ['Status', 'Tersedia'],
+            ];
 
     return (
         <PublicLayout auth={auth}>
-            <Head title={`${product.name} — PNJ Prime`} />
+            <Head title={`${product.name} · PNJ Prime`} />
 
             <div className="mx-auto w-full max-w-[1240px] px-4 py-8 sm:px-6">
                 {/* Breadcrumb */}
@@ -52,7 +79,7 @@ export default function CatalogShow({ auth, product }) {
                             <div className="flex flex-col p-6 sm:p-8 lg:pl-2">
                                 <div className="flex flex-wrap items-center gap-2">
                                     <span className="text-xs font-semibold" style={{ color: 'var(--color-accent-hover)' }}>
-                                        {product.category?.name ?? 'Produk PNJ'}
+                                        {TYPE_LABEL[type]} · {product.category?.name ?? 'Produk PNJ'}
                                     </span>
                                     <StatusBadge label="Tersedia" tone="teal" />
                                 </div>
@@ -73,16 +100,27 @@ export default function CatalogShow({ auth, product }) {
                                     Terkurasi Admin RTPU · pembayaran ke rekening resmi PNJ
                                 </div>
                                 <div className="mt-6 flex flex-wrap gap-3">
+                                    {user ? (
+                                        <a
+                                            href={navHref('customer.pengajuan.create', { tipe: type }, user.role)}
+                                            className="group inline-flex items-center gap-2 rounded-full px-7 py-3 text-sm font-semibold text-white transition hover:-translate-y-px active:scale-[0.98]"
+                                            style={{ background: 'var(--color-accent)' }}
+                                        >
+                                            Ajukan Layanan
+                                            <ArrowRight className="h-4 w-4 transition-transform duration-300 group-hover:translate-x-1" />
+                                        </a>
+                                    ) : (
+                                        <Link
+                                            href={route('login')}
+                                            className="group inline-flex items-center gap-2 rounded-full px-7 py-3 text-sm font-semibold text-white transition hover:-translate-y-px active:scale-[0.98]"
+                                            style={{ background: 'var(--color-accent)' }}
+                                        >
+                                            Masuk untuk Mengajukan
+                                            <ArrowRight className="h-4 w-4 transition-transform duration-300 group-hover:translate-x-1" />
+                                        </Link>
+                                    )}
                                     <Link
-                                        href={route('transactions.checkout')}
-                                        className="group inline-flex items-center gap-2 rounded-full px-7 py-3 text-sm font-semibold text-white transition hover:-translate-y-px active:scale-[0.98]"
-                                        style={{ background: 'var(--color-accent)' }}
-                                    >
-                                        Pesan Sekarang
-                                        <ArrowRight className="h-4 w-4 transition-transform duration-300 group-hover:translate-x-1" />
-                                    </Link>
-                                    <Link
-                                        href={route('home')}
+                                        href={route('catalog.index')}
                                         className="group inline-flex items-center gap-2 rounded-full border bg-white px-6 py-2.5 text-sm font-semibold transition hover:-translate-y-px"
                                         style={{ borderColor: 'var(--color-border)', color: 'var(--color-ink)' }}
                                     >
@@ -139,7 +177,7 @@ export default function CatalogShow({ auth, product }) {
 
                 <div className="mt-8 text-center">
                     <Link
-                        href={route('home')}
+                        href={route('catalog.index')}
                         className="group inline-flex items-center gap-2 text-sm font-semibold"
                         style={{ color: 'var(--color-accent-hover)' }}
                     >

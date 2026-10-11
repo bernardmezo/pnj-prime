@@ -15,7 +15,7 @@ function AuthTabs({ active }) {
         { key: 'register', label: 'Daftar', href: 'register' },
     ];
     return (
-        <div className="mb-6 grid grid-cols-2 gap-1 rounded-full border p-1" style={{ borderColor: 'var(--color-border)', background: 'var(--color-surface)' }} role="tablist">
+        <div className="mb-8 flex gap-7 border-b" style={{ borderColor: 'var(--color-border)' }} role="tablist">
             {tabs.map((t) => {
                 const on = active === t.key;
                 let href = '#';
@@ -26,12 +26,16 @@ function AuthTabs({ active }) {
                         href={href}
                         role="tab"
                         aria-selected={on}
-                        className="rounded-full py-2 text-center text-sm font-semibold transition"
-                        style={on
-                            ? { background: 'var(--color-accent)', color: 'var(--color-bg)' }
-                            : { color: 'var(--color-muted)' }}
+                        className="relative pb-2.5 font-display text-lg font-bold transition"
+                        style={{ color: on ? 'var(--color-ink)' : 'var(--color-muted)' }}
                     >
                         {t.label}
+                        {on && (
+                            <span
+                                className="absolute inset-x-0 -bottom-px h-[3px] rounded-full"
+                                style={{ background: 'var(--color-accent)' }}
+                            />
+                        )}
                     </Link>
                 );
             })}
@@ -55,7 +59,7 @@ export default function Register() {
 
     // Existing backend contract persists: name, email, password(+confirmed),
     // phone, institution. user_type, nik_npwp, and terms are included in the
-    // payload but NOT persisted yet — see BACKEND HANDOFF in the report.
+    // payload but NOT persisted yet, see BACKEND HANDOFF in the report.
     const { data, setData, post, processing, errors, reset } = useForm({
         name: '',
         email: '',
@@ -81,7 +85,7 @@ export default function Register() {
             <Head title="Daftar" />
             <AuthTabs active="register" />
 
-            {/* 1 — segmented control */}
+            {/* 1, segmented control */}
             <div className="mb-6 grid grid-cols-2 gap-1 rounded-2xl border p-1" style={{ borderColor: 'var(--color-border)', background: 'var(--color-surface)' }} role="tablist" aria-label="Jenis pendaftar">
                 {[
                     ['civitas', 'Civitas PNJ'],
@@ -106,7 +110,7 @@ export default function Register() {
                 })}
             </div>
 
-            {/* 2 — Civitas PNJ: no form, SSO only */}
+            {/* 2, Civitas PNJ: no form, SSO only */}
             {segment === 'civitas' && (
                 <div>
                     <div className="mb-4 rounded-2xl p-5" style={{ background: 'var(--color-accent-tint)' }}>
@@ -114,14 +118,14 @@ export default function Register() {
                             Akun civitas PNJ dibuat otomatis melalui SSO
                         </p>
                         <p className="mt-1 text-[13px] leading-relaxed" style={{ color: 'var(--color-muted)' }}>
-                            Cukup masuk dengan akun PNJ Anda — tidak perlu mengisi formulir pendaftaran.
+                            Cukup masuk dengan akun PNJ Anda, tidak perlu mengisi formulir pendaftaran.
                         </p>
                     </div>
                     <SsoButton />
                 </div>
             )}
 
-            {/* 3 — Pengguna Eksternal registration form */}
+            {/* 3, Pengguna Eksternal registration form */}
             {segment === 'external' && registered && (
                 <div className="py-2 text-center" role="status">
                     <span className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-full" style={{ background: 'var(--color-accent-tint)', color: 'var(--color-accent-hover)' }}>
@@ -154,7 +158,7 @@ export default function Register() {
                         <InputLabel htmlFor="email" value="Email" />
                         <TextInput id="email" type="email" name="email" value={data.email} className="mt-1 block w-full" autoComplete="email" onChange={(e) => setData('email', e.target.value)} required placeholder="nama@email.com" />
                         <InputError message={errors.email} className="mt-2" />
-                        {!errors.email && <p className="mt-1.5 text-xs" style={{ color: 'var(--color-muted)' }}>Gunakan email aktif — untuk masuk dan notifikasi pesanan.</p>}
+                        {!errors.email && <p className="mt-1.5 text-xs" style={{ color: 'var(--color-muted)' }}>Gunakan email aktif, untuk masuk dan notifikasi pesanan.</p>}
                     </div>
                     <div className="mt-4">
                         <InputLabel htmlFor="user_type" value="Jenis pengguna" />
@@ -232,6 +236,9 @@ export default function Register() {
                     <PrimaryButton className="mt-6 w-full" disabled={processing}>
                         {processing ? 'Memproses…' : 'Daftar'}
                     </PrimaryButton>
+                    <p className="mt-3 text-center text-xs" style={{ color: 'var(--color-muted)' }}>
+                        Pendaftaran ini khusus Customer. Akun staf dibuat oleh Super Admin.
+                    </p>
                 </form>
             )}
         </AuthLayout>

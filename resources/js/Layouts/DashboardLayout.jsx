@@ -1,21 +1,25 @@
 import { Link, usePage } from '@inertiajs/react';
 import { AnimatePresence, motion, useReducedMotion } from 'framer-motion';
 import {
-    BarChart3,
-    Bell,
+    Activity,
+    Award,
     ClipboardCheck,
+    Eye,
+    FilePlus2,
+    History,
     Home,
-    Link2,
+    KeyRound,
+    LayoutGrid,
     Menu,
     Package,
-    Settings,
-    ShoppingCart,
     Users,
+    Wallet,
     X,
 } from 'lucide-react';
 import { useState } from 'react';
 import Logo from '@/Components/Logo';
 import { EASE, menuForRole, roleLabel } from '@/Components/ui';
+import { href as navHref } from '@/lib/nav';
 
 function initials(name) {
     return String(name ?? '?')
@@ -26,71 +30,73 @@ function initials(name) {
         .toUpperCase();
 }
 
-// Central menu map lives in ui.jsx (MENU_BY_ROLE); keys resolved here.
+// Icon keys from lib/roles.js resolved to lucide components.
 const MENU_ICONS = {
     home: Home,
+    verify: ClipboardCheck,
+    pay: Wallet,
+    status: Activity,
+    box: Package,
+    wallet: Wallet,
+    history: History,
+    plus: FilePlus2,
+    eye: Eye,
+    award: Award,
+    users: Users,
+    key: KeyRound,
+    grid: LayoutGrid,
     curation: ClipboardCheck,
     products: Package,
-    transactions: ShoppingCart,
-    reports: BarChart3,
-    users: Users,
-    links: Link2,
-    settings: Settings,
+    transactions: Activity,
+    reports: Activity,
+    links: LayoutGrid,
+    settings: LayoutGrid,
 };
 const menuFor = (role) =>
     menuForRole(role).map((item) => ({ ...item, icon: MENU_ICONS[item.icon] ?? Home }));
 
-// Route-name prefix that marks a menu item active.
+// Route-name prefix that marks a menu item active (real routes only).
 function activeFor(href) {
-    const base = href.split('.')[0];
-    if (href === 'dashboard') return route().current('dashboard');
-    if (href.startsWith('admin.curation')) return route().current('admin.curation.*');
-    if (href.startsWith('admin.users')) return route().current('admin.users.*');
-    if (href.startsWith('admin.external-links')) return route().current('admin.external-links.*');
-    if (href === 'admin.settings.index') return route().current('admin.settings.*');
-    if (href.startsWith('products')) return route().current('products.*');
-    if (href.startsWith('transactions')) return route().current('transactions.*');
-    if (href.startsWith('reports')) return route().current('reports.*');
     try {
-        return route().current(`${base}.*`);
+        if (href === 'dashboard') return route().current('dashboard');
+        return route().current(`${String(href).split('.')[0]}.*`);
     } catch {
         return false;
     }
 }
 
-function SidebarBody({ user, menu, onNavigate }) {
+function SidebarBody({ user, menu, activeKey, onNavigate }) {
+    const role = user?.role;
     return (
         <div className="flex h-full flex-col">
-            <div className="flex h-16 shrink-0 items-center border-b px-5" style={{ borderColor: 'var(--color-border)' }}>
+            <div className="shrink-0 border-b px-5 pb-4 pt-5" style={{ borderColor: 'var(--color-border)' }}>
                 <Logo height={34} />
+                <p className="mt-3 font-mono text-[11px] font-semibold uppercase tracking-[0.14em]" style={{ color: 'var(--color-muted)' }}>
+                    {String(roleLabel(role)).toUpperCase()}
+                </p>
             </div>
             <nav className="flex-1 overflow-y-auto p-3" aria-label="Navigasi dasbor">
                 <ul className="space-y-1">
                     {menu.map((item) => {
-                        const active = activeFor(item.href);
+                        const active = activeKey ? item.key === activeKey : activeFor(item.href);
                         const Icon = item.icon;
-                        let href = '/';
-                        try {
-                            href = route(item.href);
-                        } catch {
-                            href = '/';
-                        }
+                        const url = navHref(item.page ?? item.href, {}, role);
                         return (
-                            <li key={item.label}>
+                            <li key={item.key ?? item.label}>
                                 <Link
-                                    href={href}
+                                    href={url}
                                     onClick={onNavigate}
                                     aria-current={active ? 'page' : undefined}
                                     className="relative flex items-center gap-3 rounded-xl px-4 py-2.5 text-sm font-medium transition"
                                     style={
                                         active
-                                            ? { background: 'var(--color-accent-tint)', color: 'var(--color-accent-hover)' }
+                                            ? { color: 'var(--color-accent-hover)' }
                                             : { color: 'var(--color-muted)' }
                                     }
                                 >
                                     {active && (
                                         <span
-                                            className="absolute left-0 top-1/2 h-6 w-1 -translate-y-1/2 rounded-r-full"
+                                            className="absolute left-0 top-1/2 h-6 w-0.5 -translate-y-1/2"
                                             style={{ background: 'var(--color-accent)' }}
                                         />
                                     )}
@@ -115,7 +121,7 @@ function SidebarBody({ user, menu, onNavigate }) {
                             {user?.name}
                         </span>
                         <span className="block text-xs" style={{ color: 'var(--color-muted)' }}>
-                            {roleLabel(user?.role)}
+                            {roleLabel(role)}
                         </span>
                     </span>
                     <Link
@@ -136,11 +142,12 @@ function SidebarBody({ user, menu, onNavigate }) {
 }
 
 /**
- * DashboardLayout — Admin P3M channel, Admin RTPU, Super Admin.
- * Left sidebar on desktop, slide-in drawer on mobile. Slim top bar.
- * Calm motion only (fade 200ms); no blobs/parallax/shimmer.
+ * DashboardLayout for all five staff roles.
+ * Full left sidebar on every page; slim top bar; calm motion only.
+ * `activeKey` marks the active sidebar item when previewing pages
+ * without a backend route.
  */
-export default function DashboardLayout({ title, breadcrumb, children }) {
+export default function DashboardLayout({ title, breadcrumb, activeKey, children }) {
     const { auth } = usePage().props;
     const user = auth?.user ?? {};
     const menu = menuFor(user.role);
@@ -154,7 +161,7 @@ export default function DashboardLayout({ title, breadcrumb, children }) {
                 className="fixed inset-y-0 left-0 z-40 hidden w-64 border-r bg-white lg:block"
                 style={{ borderColor: 'var(--color-border)' }}
             >
-                <SidebarBody user={user} menu={menu} />
+                <SidebarBody user={user} menu={menu} activeKey={activeKey} />
             </aside>
 
             {/* Mobile drawer */}
@@ -185,7 +192,7 @@ export default function DashboardLayout({ title, breadcrumb, children }) {
                             >
                                 <X className="h-5 w-5" />
                             </button>
-                            <SidebarBody user={user} menu={menu} onNavigate={() => setDrawer(false)} />
+                            <SidebarBody user={user} menu={menu} activeKey={activeKey} onNavigate={() => setDrawer(false)} />
                         </motion.aside>
                     </>
                 )}
@@ -220,30 +227,20 @@ export default function DashboardLayout({ title, breadcrumb, children }) {
                             )}
                         </div>
                         <div className="ml-auto flex items-center gap-1.5">
-                            <button
-                                type="button"
-                                aria-label="Notifikasi"
-                                className="rounded-full p-2.5 transition"
-                                style={{ color: 'var(--color-muted)' }}
+                            <span
+                                className="flex h-9 w-9 items-center justify-center rounded-full font-display text-sm font-bold"
+                                style={{ background: 'var(--color-accent-tint)', color: 'var(--color-accent-hover)' }}
                             >
-                                <Bell className="h-5 w-5" />
-                            </button>
-                            <Link href={route('profile.edit')} className="flex items-center gap-2.5 rounded-full py-1 pl-1 pr-2 transition">
-                                <span
-                                    className="flex h-9 w-9 items-center justify-center rounded-full font-display text-sm font-bold"
-                                    style={{ background: 'var(--color-accent-tint)', color: 'var(--color-accent-hover)' }}
-                                >
-                                    {initials(user.name)}
+                                {initials(user.name)}
+                            </span>
+                            <span className="hidden text-left sm:block">
+                                <span className="block max-w-[140px] truncate text-sm font-semibold" style={{ color: 'var(--color-ink)' }}>
+                                    {user.name}
                                 </span>
-                                <span className="hidden text-left sm:block">
-                                    <span className="block max-w-[140px] truncate text-sm font-semibold" style={{ color: 'var(--color-ink)' }}>
-                                        {user.name}
-                                    </span>
-                                    <span className="block text-xs" style={{ color: 'var(--color-muted)' }}>
-                                        {roleLabel(user.role)}
-                                    </span>
+                                <span className="block text-xs" style={{ color: 'var(--color-muted)' }}>
+                                    {roleLabel(user.role)}
                                 </span>
-                            </Link>
+                            </span>
                         </div>
                     </div>
                 </header>
@@ -253,4 +250,3 @@ export default function DashboardLayout({ title, breadcrumb, children }) {
         </div>
     );
 }
-

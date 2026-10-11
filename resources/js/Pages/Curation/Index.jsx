@@ -4,6 +4,7 @@ import { useState } from 'react';
 import DashboardLayout from '@/Layouts/DashboardLayout';
 import { Card, ConfirmModal, FadeIn, Field, PageHeader, StatCard, StatusBadge, inputClass, inputStyleProps } from '@/Components/ui';
 
+// TODO(backend): superseded by Rtpu/Verifikasi/Layanan; remove admin.curation.* routes when backend migrates
 export default function CurationIndex({ pending_products, stats }) {
     const [rejectId, setRejectId] = useState(null);
     const [reason, setReason] = useState('');
@@ -32,7 +33,7 @@ export default function CurationIndex({ pending_products, stats }) {
 
     return (
         <DashboardLayout title="Antrian Kurasi" breadcrumb="PNJ Prime / Kurasi">
-            <Head title="Kurasi Produk — PNJ Prime" />
+            <Head title="Kurasi Produk · PNJ Prime" />
             <FadeIn>
                 <PageHeader
                     eyebrow="Admin RTPU"
@@ -62,7 +63,7 @@ export default function CurationIndex({ pending_products, stats }) {
                                 <div className="min-w-0">
                                     <p className="truncate font-semibold" style={{ color: 'var(--color-ink)' }}>{product.name}</p>
                                     <p className="mt-0.5 text-[13px]" style={{ color: 'var(--color-muted)' }}>
-                                        {product.category?.name ?? '—'} · oleh {product.owner?.name ?? '—'}
+                                        {product.category?.name ?? '-'} · oleh {product.owner?.name ?? '-'}
                                     </p>
                                     <div className="mt-1.5">
                                         <StatusBadge label="Menunggu" tone="gold" />

@@ -63,13 +63,10 @@ export function StatCounter({ value, suffix = '', className = '' }) {
 }
 
 /**
- * Tasteful CSS/SVG placeholder visual — layered teal gradients + lucide icon
+ * Tasteful CSS/SVG placeholder visual, layered teal gradients + lucide icon
  * + dot/grid pattern + soft inner glow. Swap via `image` prop when real photos exist.
  */
 export function VisualPlaceholder({ icon: Icon, image, alt = '', variant = 'light', className = '' }) {
-    if (image) {
-        return <img src={image} alt={alt} className={`object-cover ${className}`} loading="lazy" />;
-    }
     const dark = variant === 'dark';
     return (
         <div
@@ -126,6 +123,15 @@ export function VisualPlaceholder({ icon: Icon, image, alt = '', variant = 'ligh
                         style={{ color: dark ? 'var(--color-bg)' : 'var(--color-accent)' }}
                     />
                 </span>
+            )}
+            {image && (
+                <img
+                    src={image}
+                    alt={alt}
+                    loading="lazy"
+                    onError={(e) => { e.currentTarget.style.display = 'none'; }}
+                    className="absolute inset-0 h-full w-full object-cover"
+                />
             )}
         </div>
     );

@@ -1,24 +1,25 @@
 import { Link } from '@inertiajs/react';
 import { AnimatePresence, motion, useReducedMotion } from 'framer-motion';
-import { ChevronDown, LogOut, Menu, Package, Search, User, X } from 'lucide-react';
+import { ChevronDown, LogOut, Menu, X } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import Logo from '@/Components/Logo';
+import { CUSTOMER_MENU } from '@/lib/roles';
+import { href as navHref } from '@/lib/nav';
 
 const EASE = [0.22, 1, 0.36, 1];
 
 const NAV = [
     { label: 'Beranda', href: '/' },
-    { label: 'Tentang Kami', href: '#tentang' },
+    { label: 'Katalog', href: '/katalog' },
+    { label: 'Tentang', href: '/#tentang' },
     {
         label: 'Layanan',
         children: [
-            { label: 'Produk Fisik', href: '/katalog', desc: 'Alat dan produk hasil riset PNJ' },
-            { label: 'Jasa Pengujian', href: '/katalog', desc: 'Uji lab tersertifikasi' },
-            { label: 'Sewa Fasilitas', href: '/katalog', desc: 'Ruang, lab, dan peralatan' },
+            { label: 'Jasa', href: '/katalog', desc: 'Jasa pengujian dan layanan PNJ' },
+            { label: 'Ruangan', href: '/katalog', desc: 'Sewa ruangan dan fasilitas' },
+            { label: 'Produk', href: '/katalog', desc: 'Produk unggulan hasil riset' },
         ],
     },
-    { label: 'Informasi', href: '#tentang' },
-    { label: 'Panduan', href: '#tentang' },
 ];
 
 export default function PublicHeader({ auth }) {
@@ -29,6 +30,7 @@ export default function PublicHeader({ auth }) {
     const [mobileLayanan, setMobileLayanan] = useState(false);
     const reduce = useReducedMotion();
     const user = auth?.user;
+    const role = user?.role ?? 'guest';
 
     useEffect(() => {
         let raf = 0;
@@ -43,6 +45,8 @@ export default function PublicHeader({ auth }) {
             window.removeEventListener('scroll', onScroll);
         };
     }, []);
+
+    const menuUrl = (page) => navHref(page, {}, role);
 
     return (
         <header
@@ -137,24 +141,8 @@ export default function PublicHeader({ auth }) {
                     )}
                 </nav>
 
-                {/* Search */}
-                <div className="ml-auto hidden min-w-0 flex-1 max-w-[240px] items-center md:flex">
-                    <label className="relative w-full">
-                        <Search
-                            className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2"
-                            style={{ color: 'var(--color-muted)' }}
-                        />
-                        <input
-                            type="search"
-                            placeholder="Cari produk, jasa, atau fasilitas…"
-                            className="w-full rounded-full border bg-white py-2 pl-9 pr-3 text-[13px] outline-none transition placeholder:text-[13px] focus:border-[var(--color-accent)]"
-                            style={{ borderColor: 'var(--color-border)', color: 'var(--color-ink)' }}
-                        />
-                    </label>
-                </div>
-
                 {/* Auth control: one Masuk button for guests, user menu when logged in */}
-                <div className="hidden shrink-0 md:block">
+                <div className="ml-auto hidden shrink-0 md:block">
                     {user ? (
                         <div className="relative" onMouseLeave={() => setUserOpen(false)}>
                             <button
@@ -189,24 +177,18 @@ export default function PublicHeader({ auth }) {
                                             className="overflow-hidden rounded-2xl border bg-white p-2"
                                             style={{ borderColor: 'var(--color-border)', boxShadow: '0 18px 44px -12px rgba(6,59,52,0.28)' }}
                                         >
-                                            <Link
-                                                href={route('profile.edit')}
-                                                className="flex items-center gap-2.5 rounded-xl px-4 py-2.5 text-sm font-medium transition"
-                                                style={{ color: 'var(--color-ink)' }}
-                                                onMouseEnter={(e) => (e.currentTarget.style.background = 'var(--color-accent-tint)')}
-                                                onMouseLeave={(e) => (e.currentTarget.style.background = 'transparent')}
-                                            >
-                                                <User className="h-4 w-4" style={{ color: 'var(--color-muted)' }} /> Profil
-                                            </Link>
-                                            <Link
-                                                href={route('transactions.index')}
-                                                className="flex items-center gap-2.5 rounded-xl px-4 py-2.5 text-sm font-medium transition"
-                                                style={{ color: 'var(--color-ink)' }}
-                                                onMouseEnter={(e) => (e.currentTarget.style.background = 'var(--color-accent-tint)')}
-                                                onMouseLeave={(e) => (e.currentTarget.style.background = 'transparent')}
-                                            >
-                                                <Package className="h-4 w-4" style={{ color: 'var(--color-muted)' }} /> Pesanan Saya
-                                            </Link>
+                                            {CUSTOMER_MENU.map((m) => (
+                                                <a
+                                                    key={m.key}
+                                                    href={menuUrl(m.page)}
+                                                    className="block rounded-xl px-4 py-2.5 text-sm font-medium transition"
+                                                    style={{ color: 'var(--color-ink)' }}
+                                                    onMouseEnter={(e) => (e.currentTarget.style.background = 'var(--color-accent-tint)')}
+                                                    onMouseLeave={(e) => (e.currentTarget.style.background = 'transparent')}
+                                                >
+                                                    {m.label}
+                                                </a>
+                                            ))}
                                             <Link
                                                 href={route('logout')}
                                                 method="post"
@@ -240,7 +222,7 @@ export default function PublicHeader({ auth }) {
                     )}
                 </div>
 
-                {/* Hamburger */}
+                {/* Hamburger (mobile) */}
                 <button
                     type="button"
                     className="ml-auto rounded-lg p-2 lg:hidden"
@@ -269,18 +251,6 @@ export default function PublicHeader({ auth }) {
                         aria-label="Navigasi seluler"
                     >
                         <div className="space-y-1 px-5 py-4">
-                            <label className="relative mb-3 block md:hidden">
-                                <Search
-                                    className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2"
-                                    style={{ color: 'var(--color-muted)' }}
-                                />
-                                <input
-                                    type="search"
-                                    placeholder="Cari produk, jasa, atau fasilitas…"
-                                    className="w-full rounded-full border bg-white py-2.5 pl-9 pr-3 text-sm outline-none"
-                                    style={{ borderColor: 'var(--color-border)' }}
-                                />
-                            </label>
                             {NAV.map((item) =>
                                 item.children ? (
                                     <div key={item.label}>
@@ -322,22 +292,17 @@ export default function PublicHeader({ auth }) {
                             )}
                             {user ? (
                                 <>
-                                    <Link
-                                        href={route('profile.edit')}
-                                        onClick={() => setDrawer(false)}
-                                        className="block rounded-lg px-2 py-2.5 text-sm font-medium"
-                                        style={{ color: 'var(--color-ink)' }}
-                                    >
-                                        Profil
-                                    </Link>
-                                    <Link
-                                        href={route('transactions.index')}
-                                        onClick={() => setDrawer(false)}
-                                        className="block rounded-lg px-2 py-2.5 text-sm font-medium"
-                                        style={{ color: 'var(--color-ink)' }}
-                                    >
-                                        Pesanan Saya
-                                    </Link>
+                                    {CUSTOMER_MENU.map((m) => (
+                                        <a
+                                            key={m.key}
+                                            href={menuUrl(m.page)}
+                                            onClick={() => setDrawer(false)}
+                                            className="block rounded-lg px-2 py-2.5 text-sm font-medium"
+                                            style={{ color: 'var(--color-ink)' }}
+                                        >
+                                            {m.label}
+                                        </a>
+                                    ))}
                                     <Link
                                         href={route('logout')}
                                         method="post"

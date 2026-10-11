@@ -5,6 +5,7 @@ import TextInput from '@/Components/TextInput';
 import AuthLayout from '@/Layouts/AuthLayout';
 import { Head, useForm } from '@inertiajs/react';
 
+// TODO(backend): not in use-case diagram; remove password.confirm routes when backend migrates
 export default function ConfirmPassword() {
     const { data, setData, post, processing, errors, reset } = useForm({ password: '' });
     const submit = (e) => {
@@ -13,7 +14,7 @@ export default function ConfirmPassword() {
     };
 
     return (
-        <AuthLayout title="Konfirmasi kata sandi" subtitle="Area aman — mohon konfirmasi kata sandi Anda untuk melanjutkan.">
+        <AuthLayout title="Konfirmasi kata sandi" subtitle="Area aman, mohon konfirmasi kata sandi Anda untuk melanjutkan.">
             <Head title="Konfirmasi Kata Sandi" />
             <form onSubmit={submit}>
                 <InputLabel htmlFor="password" value="Kata sandi" />

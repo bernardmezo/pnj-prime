@@ -5,61 +5,29 @@ import { useEffect, useRef, useState } from 'react';
 
 export const EASE = [0.22, 1, 0.36, 1];
 
-/* ---------- Roles: single centralized map (labels + menus) ---------- */
-// Backend role values today: admin_rtpu, dosen_peneliti, mahasiswa, eksternal.
-// dosen_peneliti + mahasiswa submit via the Admin P3M channel, so both
-// normalize to admin_p3m. super_admin is forward-compatible (no such rows
-// yet). Pages/layouts must use these helpers — never hardcode role checks.
-export const NORMALIZED_ROLES = ['customer', 'admin_p3m', 'admin_rtpu', 'super_admin'];
+/* ---------- Roles: delegated to lib/roles.js (single source of truth) ---------- */
+import {
+    MENUS as LIB_MENUS,
+    ROLE_LABELS as LIB_LABELS,
+    isStaffRole,
+    menuForRole as libMenuForRole,
+    normalizeRole as libNormalize,
+    roleLabel as libRoleLabel,
+} from '@/lib/roles';
 
-export function normalizeRole(role) {
-    switch (role) {
-        case 'admin_rtpu': return 'admin_rtpu';
-        case 'super_admin': return 'super_admin';
-        case 'dosen_peneliti':
-        case 'mahasiswa': return 'admin_p3m';
-        default: return 'customer';
-    }
-}
-
-export const ROLE_LABELS = {
-    customer: 'Customer',
-    admin_p3m: 'Admin P3M',
-    admin_rtpu: 'Admin RTPU',
-    super_admin: 'Super Admin',
-};
-export const roleLabel = (role) => ROLE_LABELS[normalizeRole(role)] ?? role;
-export const isInternalRole = (role) => normalizeRole(role) !== 'customer';
-
-// Menu item icons are referenced by key so this map stays serializable;
-// DashboardLayout resolves keys to lucide components.
+// Legacy names kept working for older kept pages.
+export const NORMALIZED_ROLES = ['customer', 'admin_p3m', 'admin_rtpu', 'super_admin', 'pimpinan_rtpu', 'direktur'];
+export const normalizeRole = libNormalize;
+export const ROLE_LABELS = LIB_LABELS;
+export const roleLabel = libRoleLabel;
+export const isInternalRole = isStaffRole;
 export const MENU_BY_ROLE = {
-    admin_rtpu: [
-        { label: 'Dashboard', href: 'dashboard', icon: 'home' },
-        { label: 'Kurasi', href: 'admin.curation.index', icon: 'curation' },
-        { label: 'Produk', href: 'products.index', icon: 'products' },
-        { label: 'Transaksi', href: 'transactions.index', icon: 'transactions' },
-        { label: 'Laporan', href: 'reports.index', icon: 'reports' },
-        { label: 'Tautan Eksternal', href: 'admin.external-links.index', icon: 'links' },
-        { label: 'Pengaturan', href: 'admin.settings.index', icon: 'settings' },
-    ],
-    super_admin: [
-        { label: 'Dashboard', href: 'dashboard', icon: 'home' },
-        { label: 'Manajemen Pengguna & Role', href: 'admin.users.index', icon: 'users' },
-        { label: 'Laporan', href: 'reports.index', icon: 'reports' },
-        { label: 'Pengaturan', href: 'admin.settings.index', icon: 'settings' },
-    ],
-    admin_p3m: [
-        { label: 'Dashboard', href: 'dashboard', icon: 'home' },
-        { label: 'Pengajuan Inovasi', href: 'products.index', icon: 'products' },
-        { label: 'Transaksi', href: 'transactions.index', icon: 'transactions' },
-        { label: 'Laporan', href: 'reports.index', icon: 'reports' },
-    ],
-    customer: [
-        { label: 'Dashboard', href: 'dashboard', icon: 'home' },
-    ],
+    admin_rtpu: LIB_MENUS.admin_rtpu.map((m) => ({ label: m.label, href: m.page, icon: m.icon })),
+    super_admin: LIB_MENUS.super_admin.map((m) => ({ label: m.label, href: m.page, icon: m.icon })),
+    admin_p3m: LIB_MENUS.admin_p3m.map((m) => ({ label: m.label, href: m.page, icon: m.icon })),
+    customer: LIB_MENUS.customer.map((m) => ({ label: m.label, href: m.page, icon: m.icon })),
 };
-export const menuForRole = (role) => MENU_BY_ROLE[normalizeRole(role)] ?? MENU_BY_ROLE.customer;
+export const menuForRole = (role) => libMenuForRole(role).map((m) => ({ label: m.label, href: m.page, icon: m.icon }));
 
 /* ---------- Status badges (small rounded rectangles, never pills) ---------- */
 const BADGE_STYLES = {
@@ -69,12 +37,13 @@ const BADGE_STYLES = {
     neutral: { background: 'var(--color-surface)', color: 'var(--color-muted)' },
 };
 
-// Canonical status -> tone mapping used on every page.
+// Canonical status -> tone mapping (delegates to lib/statuses.js, plus
+// legacy backend keys still used by older kept pages).
 export function statusTone(status) {
-    const s = String(status ?? '').toLowerCase();
-    if (['aktif', 'approved', 'disetujui', 'selesai', 'tersedia', 'verified', 'paid', 'lunas'].includes(s)) return 'teal';
-    if (['pending', 'menunggu', 'menunggu_pembayaran', 'menunggu_verifikasi', 'diproses', 'diproses_admin', 'unggulan', 'draft_pengajuan'].includes(s)) return 'gold';
-    if (['ditolak', 'rejected', 'dibatalkan', 'cancelled', 'nonaktif', 'gagal'].includes(s)) return 'danger';
+    const s = String(status ?? '');
+    if (['aktif', 'Aktif', 'approved', 'Approved', 'disetujui', 'Disetujui', 'selesai', 'Selesai', 'tersedia', 'Tersedia', 'verified', 'paid', 'lunas', 'Diverifikasi', 'Terverifikasi', 'Lunas'].includes(s)) return 'teal';
+    if (['pending', 'Pending', 'menunggu', 'Menunggu', 'menunggu_pembayaran', 'menunggu_verifikasi', 'diproses', 'Diproses', 'diproses_admin', 'unggulan', 'draft_pengajuan', 'Diajukan', 'Menunggu Pembayaran', 'Menunggu Verifikasi Pembayaran'].includes(s)) return 'gold';
+    if (['ditolak', 'Ditolak', 'rejected', 'dibatalkan', 'Dibatalkan', 'cancelled', 'nonaktif', 'Nonaktif', 'gagal'].includes(s)) return 'danger';
     return 'neutral';
 }
 

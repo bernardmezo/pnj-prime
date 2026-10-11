@@ -5,6 +5,7 @@ import TextInput from '@/Components/TextInput';
 import AuthLayout from '@/Layouts/AuthLayout';
 import { Head, Link, useForm } from '@inertiajs/react';
 
+// TODO(backend): password reset not in use-case diagram; remove password.* routes when backend migrates
 export default function ForgotPassword({ status }) {
     const { data, setData, post, processing, errors } = useForm({ email: '' });
     const submit = (e) => { e.preventDefault(); post(route('password.email')); };

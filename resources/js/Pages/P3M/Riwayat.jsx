@@ -2,11 +2,10 @@ import { Head } from '@inertiajs/react';
 import DashboardLayout from '@/Layouts/DashboardLayout';
 import { FadeIn, PageHeader, StatusBadge, Table, Td } from '@/Components/ui';
 import { href as navHref } from '@/lib/nav';
-import { mockProdukUnggulan } from '@/mocks/data';
 
-export default function P3mRiwayat({ auth, riwayat }) {
+export default function P3mRiwayat({ auth, riwayat = [] }) {
     const role = auth?.user?.role;
-    const rows = riwayat ?? mockProdukUnggulan;
+    const rows = riwayat;
 
     return (
         <DashboardLayout title="Riwayat Produk Unggulan" breadcrumb="Admin P3M / Riwayat" activeKey="riwayat">

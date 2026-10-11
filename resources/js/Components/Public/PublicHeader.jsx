@@ -1,9 +1,9 @@
-import { Link } from '@inertiajs/react';
+import { Link, usePage } from '@inertiajs/react';
 import { AnimatePresence, motion, useReducedMotion } from 'framer-motion';
 import { ChevronDown, LogOut, Menu, X } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import Logo from '@/Components/Logo';
-import { CUSTOMER_MENU } from '@/lib/roles';
+import { CUSTOMER_MENU, filterMenuByFitur } from '@/lib/roles';
 import { href as navHref } from '@/lib/nav';
 
 const EASE = [0.22, 1, 0.36, 1];
@@ -47,6 +47,7 @@ export default function PublicHeader({ auth }) {
     }, []);
 
     const menuUrl = (page) => navHref(page, {}, role);
+    const customerMenu = filterMenuByFitur(CUSTOMER_MENU, usePage().props.fitur);
 
     return (
         <header
@@ -177,7 +178,7 @@ export default function PublicHeader({ auth }) {
                                             className="overflow-hidden rounded-2xl border bg-white p-2"
                                             style={{ borderColor: 'var(--color-border)', boxShadow: '0 18px 44px -12px rgba(6,59,52,0.28)' }}
                                         >
-                                            {CUSTOMER_MENU.map((m) => (
+                                            {customerMenu.map((m) => (
                                                 <a
                                                     key={m.key}
                                                     href={menuUrl(m.page)}
@@ -292,7 +293,7 @@ export default function PublicHeader({ auth }) {
                             )}
                             {user ? (
                                 <>
-                                    {CUSTOMER_MENU.map((m) => (
+                                    {customerMenu.map((m) => (
                                         <a
                                             key={m.key}
                                             href={menuUrl(m.page)}

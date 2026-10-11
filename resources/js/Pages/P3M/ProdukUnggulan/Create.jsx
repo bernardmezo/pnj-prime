@@ -1,16 +1,20 @@
-import { Head } from '@inertiajs/react';
+import { Head, router, useForm } from '@inertiajs/react';
 import { useState } from 'react';
 import FileDropzone from '@/Components/FileDropzone';
 import DashboardLayout from '@/Layouts/DashboardLayout';
 import { FadeIn, Field, PageHeader, PrimaryButton, inputClass, inputStyleProps } from '@/Components/ui';
 
-// TODO(backend): no produk-unggulan route yet. Submit shows a neutral
-// notice; nothing is sent and no success is faked.
 export default function ProdukCreate({ auth }) {
-    const [form, setForm] = useState({ name: '', desc: '', researcher: '', team: '', category: '', price: '' });
+    const { data, setData, processing, errors } = useForm({
+        name: '', desc: '', researcher: '', team: '', category: '', price: '',
+    });
     const [docs, setDocs] = useState([]);
-    const [notice, setNotice] = useState(null);
-    const set = (k, v) => setForm((f) => ({ ...f, [k]: v }));
+    const set = (k, v) => setData(k, v);
+
+    const submit = (e) => {
+        e.preventDefault();
+        router.post(route('p3m.produk.store'), { ...data, dokumen: docs });
+    };
 
     return (
         <DashboardLayout title="Ajukan Produk Unggulan" breadcrumb="Admin P3M / Ajukan Produk Unggulan" activeKey="ajukan">
@@ -21,44 +25,35 @@ export default function ProdukCreate({ auth }) {
                     title="Ajukan Produk Unggulan"
                     desc="Lengkapi data produk beserta dokumen pendukung untuk diverifikasi Pimpinan RTPU."
                 />
-                <form
-                    onSubmit={(e) => {
-                        e.preventDefault();
-                        setNotice('Pengiriman pengajuan belum tersedia. Backend perlu menyediakan endpoint pengajuan produk unggulan.');
-                    }}
-                    className="max-w-2xl space-y-4"
-                >
-                    <Field label="Nama produk" htmlFor="pu-name">
-                        <input id="pu-name" value={form.name} onChange={(e) => set('name', e.target.value)} placeholder="mis. Kompor Biomassa Hemat Energi" className={inputClass} {...inputStyleProps()} />
+                <form onSubmit={submit} className="max-w-2xl space-y-4">
+                    <Field label="Nama produk" htmlFor="pu-name" error={errors.name}>
+                        <input id="pu-name" value={data.name} onChange={(e) => setData('name', e.target.value)} placeholder="mis. Kompor Biomassa Hemat Energi" className={inputClass} {...inputStyleProps()} />
                     </Field>
-                    <Field label="Deskripsi" htmlFor="pu-desc">
-                        <textarea id="pu-desc" value={form.desc} onChange={(e) => set('desc', e.target.value)} rows={4} placeholder="Keunggulan, cara kerja, dan target pengguna…" className={inputClass} {...inputStyleProps()} />
+                    <Field label="Deskripsi" htmlFor="pu-desc" error={errors.desc}>
+                        <textarea id="pu-desc" value={data.desc} onChange={(e) => setData('desc', e.target.value)} rows={4} placeholder="Keunggulan, cara kerja, dan target pengguna…" className={inputClass} {...inputStyleProps()} />
                     </Field>
                     <div className="grid gap-4 sm:grid-cols-2">
-                        <Field label="Peneliti / tim" htmlFor="pu-team">
-                            <input id="pu-team" value={form.team} onChange={(e) => set('team', e.target.value)} placeholder="mis. Teknik Mesin" className={inputClass} {...inputStyleProps()} />
+                        <Field label="Peneliti / tim" htmlFor="pu-team" error={errors.team}>
+                            <input id="pu-team" value={data.team} onChange={(e) => setData('team', e.target.value)} placeholder="mis. Teknik Mesin" className={inputClass} {...inputStyleProps()} />
                         </Field>
-                        <Field label="Nama peneliti utama" htmlFor="pu-researcher">
-                            <input id="pu-researcher" value={form.researcher} onChange={(e) => set('researcher', e.target.value)} placeholder="Nama lengkap" className={inputClass} {...inputStyleProps()} />
+                        <Field label="Nama peneliti utama" htmlFor="pu-researcher" error={errors.researcher}>
+                            <input id="pu-researcher" value={data.researcher} onChange={(e) => setData('researcher', e.target.value)} placeholder="Nama lengkap" className={inputClass} {...inputStyleProps()} />
                         </Field>
                     </div>
                     <div className="grid gap-4 sm:grid-cols-2">
-                        <Field label="Kategori" htmlFor="pu-category">
-                            <input id="pu-category" value={form.category} onChange={(e) => set('category', e.target.value)} placeholder="mis. Energi" className={inputClass} {...inputStyleProps()} />
+                        <Field label="Kategori" htmlFor="pu-category" error={errors.category}>
+                            <input id="pu-category" value={data.category} onChange={(e) => setData('category', e.target.value)} placeholder="mis. Energi" className={inputClass} {...inputStyleProps()} />
                         </Field>
-                        <Field label="Usulan harga (Rp)" htmlFor="pu-price">
-                            <input id="pu-price" type="number" min="0" value={form.price} onChange={(e) => set('price', e.target.value)} placeholder="1850000" className={inputClass} {...inputStyleProps()} />
+                        <Field label="Usulan harga (Rp)" htmlFor="pu-price" error={errors.price}>
+                            <input id="pu-price" type="number" min="0" value={data.price} onChange={(e) => setData('price', e.target.value)} placeholder="1850000" className={inputClass} {...inputStyleProps()} />
                         </Field>
                     </div>
-                    <Field label="Dokumen pendukung">
+                    <Field label="Dokumen pendukung" error={errors.dokumen}>
                         <FileDropzone multiple files={docs} onChange={setDocs} hint="Proposal, foto produk, hasil uji. PDF/JPG/PNG." />
                     </Field>
-                    {notice && (
-                        <p className="rounded-xl px-4 py-2.5 text-[13px]" role="status" style={{ background: 'var(--color-surface)', color: 'var(--color-muted)' }}>
-                            {notice}
-                        </p>
-                    )}
-                    <PrimaryButton>Kirim Pengajuan</PrimaryButton>
+                    <PrimaryButton disabled={processing}>
+                        {processing ? 'Mengirim…' : 'Kirim Pengajuan'}
+                    </PrimaryButton>
                 </form>
             </FadeIn>
         </DashboardLayout>

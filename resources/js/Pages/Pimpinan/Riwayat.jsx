@@ -1,10 +1,9 @@
 import { Head } from '@inertiajs/react';
 import DashboardLayout from '@/Layouts/DashboardLayout';
 import { FadeIn, PageHeader, StatusBadge, Table, Td } from '@/Components/ui';
-import { mockProdukUnggulan } from '@/mocks/data';
 
-export default function PimpinanRiwayat({ auth, produk }) {
-    const rows = produk ?? mockProdukUnggulan;
+export default function PimpinanRiwayat({ auth, produk = [] }) {
+    const rows = produk;
 
     return (
         <DashboardLayout title="Riwayat Produk Unggulan" breadcrumb="Pimpinan RTPU / Riwayat" activeKey="riwayat">

@@ -2,13 +2,12 @@ import { Head } from '@inertiajs/react';
 import { useState } from 'react';
 import DashboardLayout from '@/Layouts/DashboardLayout';
 import { FadeIn, PageHeader, StatusBadge, Table, Td } from '@/Components/ui';
-import { mockPengajuan, mockProdukUnggulan } from '@/mocks/data';
 
 // Read-only everywhere on this page.
-export default function DirekturRiwayat({ auth, produk, layanan }) {
+export default function DirekturRiwayat({ auth, produk = [], layanan = [] }) {
     const [tab, setTab] = useState('produk');
-    const produkRows = produk ?? mockProdukUnggulan;
-    const layananRows = layanan ?? mockPengajuan;
+    const produkRows = produk;
+    const layananRows = layanan;
 
     return (
         <DashboardLayout title="Riwayat" breadcrumb="Direktur / Riwayat" activeKey="riwayat">

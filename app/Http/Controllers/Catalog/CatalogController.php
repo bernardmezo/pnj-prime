@@ -11,10 +11,20 @@ use Inertia\Response;
 
 class CatalogController extends Controller
 {
-    public function index(): Response
+    /**
+     * Landing for guests, shop homepage for customers, dashboard redirect
+     * for staff (they have work to do, not marketing to read).
+     */
+    public function index()
     {
-        return Inertia::render('Catalog/Index', [
-            'categories'        => ProductCategory::where('is_active', true)
+        $user = auth()->user();
+
+        if ($user && $user->isStaff()) {
+            return redirect()->route('dashboard');
+        }
+
+        $data = [
+            'categories' => ProductCategory::where('is_active', true)
                 ->orderBy('sort_order')
                 ->get(['id', 'name', 'slug', 'icon']),
             'featured_products' => Product::with(['category', 'owner'])
@@ -23,7 +33,13 @@ class CatalogController extends Controller
                 ->latest('approved_at')
                 ->limit(8)
                 ->get(),
-        ]);
+        ];
+
+        if ($user) {
+            return Inertia::render('Customer/Home', $data);
+        }
+
+        return Inertia::render('Catalog/Index', $data);
     }
 
     /**
@@ -58,11 +74,11 @@ class CatalogController extends Controller
         }
 
         return Inertia::render('Catalog/Browse', [
-            'products'   => $query->latest('approved_at')->paginate(12)->withQueryString(),
+            'products' => $query->latest('approved_at')->paginate(12)->withQueryString(),
             'categories' => ProductCategory::where('is_active', true)
                 ->orderBy('sort_order')
                 ->get(['id', 'name', 'slug', 'icon']),
-            'filters'    => $request->only(['q', 'category', 'min_price', 'max_price']),
+            'filters' => $request->only(['q', 'category', 'min_price', 'max_price']),
         ]);
     }
 

@@ -6,13 +6,12 @@ import PublicLayout from '@/Layouts/PublicLayout';
 import StatusTimeline from '@/Components/StatusTimeline';
 import { EASE, EmptyState, PageHeader, StatusBadge, Table, Td } from '@/Components/ui';
 import { LAYANAN_FLOW } from '@/lib/statuses';
-import { mockPengajuan } from '@/mocks/data';
 
 const TYPE_LABEL = { jasa: 'Jasa', ruangan: 'Ruangan', produk: 'Produk' };
 
-export default function Riwayat({ auth, riwayat }) {
+export default function Riwayat({ auth, riwayat = [] }) {
     const role = auth?.user?.role;
-    const rows = riwayat ?? mockPengajuan.filter((p) => ['Selesai', 'Dibatalkan', 'Ditolak'].includes(p.status));
+    const rows = riwayat;
     const [openId, setOpenId] = useState(null);
     const reduce = useReducedMotion();
     const open = rows.find((r) => r.id === openId) ?? null;

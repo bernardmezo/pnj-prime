@@ -1,8 +1,13 @@
 <?php
 
+use App\Http\Middleware\EnsureFitur;
+use App\Http\Middleware\EnsurePermission;
+use App\Http\Middleware\EnsureRole;
+use App\Http\Middleware\HandleInertiaRequests;
 use Illuminate\Foundation\Application;
 use Illuminate\Foundation\Configuration\Exceptions;
 use Illuminate\Foundation\Configuration\Middleware;
+use Illuminate\Http\Middleware\AddLinkHeadersForPreloadedAssets;
 use Illuminate\Http\Request;
 
 return Application::configure(basePath: dirname(__DIR__))
@@ -13,13 +18,17 @@ return Application::configure(basePath: dirname(__DIR__))
     )
     ->withMiddleware(function (Middleware $middleware): void {
         $middleware->web(append: [
-            \App\Http\Middleware\HandleInertiaRequests::class,
-            \Illuminate\Http\Middleware\AddLinkHeadersForPreloadedAssets::class,
+            HandleInertiaRequests::class,
+            AddLinkHeadersForPreloadedAssets::class,
         ]);
 
         // Register role guard middleware — usage: middleware('role:admin_rtpu')
+        // Granular RBAC gate — usage: middleware('permission:verifikasi,Verifikasi')
+        // Feature-flag gate — usage: middleware('fitur:pengajuan')
         $middleware->alias([
-            'role' => \App\Http\Middleware\EnsureRole::class,
+            'role' => EnsureRole::class,
+            'permission' => EnsurePermission::class,
+            'fitur' => EnsureFitur::class,
         ]);
     })
     ->withExceptions(function (Exceptions $exceptions): void {

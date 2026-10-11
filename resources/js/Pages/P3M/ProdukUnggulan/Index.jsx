@@ -1,13 +1,12 @@
-import { Head } from '@inertiajs/react';
+import { Head, router } from '@inertiajs/react';
 import DashboardLayout from '@/Layouts/DashboardLayout';
 import { EmptyState, FadeIn, PageHeader, PrimaryButton, StatusBadge, Table, Td } from '@/Components/ui';
 import { href as navHref } from '@/lib/nav';
 import { canBatalProduk, canUbahProduk } from '@/lib/statuses';
-import { mockProdukUnggulan } from '@/mocks/data';
 
-export default function ProdukIndex({ auth, daftar }) {
+export default function ProdukIndex({ auth, daftar = [] }) {
     const role = auth?.user?.role;
-    const rows = daftar ?? mockProdukUnggulan.filter((p) => !['Disetujui', 'Ditolak', 'Dibatalkan'].includes(p.status));
+    const rows = daftar;
 
     return (
         <DashboardLayout title="Pemantauan Produk Unggulan" breadcrumb="Admin P3M / Pemantauan" activeKey="pantau">

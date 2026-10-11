@@ -1,9 +1,8 @@
-import { Head } from '@inertiajs/react';
+import { Head, router } from '@inertiajs/react';
 import { useState } from 'react';
 import DashboardLayout from '@/Layouts/DashboardLayout';
 import { ConfirmModal, EmptyState, FadeIn, PageHeader, PrimaryButton, StatusBadge, Table, Td } from '@/Components/ui';
 import { href as navHref } from '@/lib/nav';
-import { mockLayanan } from '@/mocks/data';
 
 const TABS = [
     { value: 'jasa', label: 'Jasa' },
@@ -13,11 +12,9 @@ const TABS = [
 
 const TYPE_LABEL = { jasa: 'Jasa', ruangan: 'Ruangan', produk: 'Produk' };
 
-// TODO(backend): no layanan CRUD routes yet. Tambah/Ubah open the form page
-// (preview); Hapus shows a neutral notice, nothing is deleted.
-export default function LayananIndex({ auth, layanan }) {
+export default function LayananIndex({ auth, layanan = [] }) {
     const role = auth?.user?.role;
-    const rows = layanan ?? mockLayanan;
+    const rows = layanan;
     const [tab, setTab] = useState('jasa');
     const [del, setDel] = useState(null);
     const visible = rows.filter((l) => l.type === tab);
@@ -62,7 +59,14 @@ export default function LayananIndex({ auth, layanan }) {
                             {visible.map((l) => (
                                 <tr key={l.id} className="transition-colors hover:bg-[var(--color-surface)]">
                                     <Td className="font-mono" strong>{l.code}</Td>
-                                    <Td strong>{l.name}</Td>
+                                    <Td strong>
+                                        {l.name}
+                                        {l.dari_pu && (
+                                            <span className="ml-2 inline-block rounded-md px-2 py-0.5 text-[11px] font-semibold" style={{ background: 'var(--color-accent-tint)', color: 'var(--color-accent-hover)' }}>
+                                                Dari Produk Unggulan
+                                            </span>
+                                        )}
+                                    </Td>
                                     <Td>Rp {Number(l.price ?? 0).toLocaleString('id-ID')}</Td>
                                     <Td><StatusBadge status={l.status} label={l.status} /></Td>
                                     <Td>
@@ -83,9 +87,14 @@ export default function LayananIndex({ auth, layanan }) {
                 <ConfirmModal
                     open={del !== null}
                     title={`Hapus "${del?.name}"?`}
-                    desc="Penghapusan data master belum tersedia. Backend perlu menyediakan endpoint hapus layanan."
-                    confirmLabel="Mengerti"
-                    onConfirm={() => setDel(null)}
+                    desc="Layanan yang dihapus tidak tampil lagi di katalog. Tindakan ini tidak dapat dibatalkan."
+                    confirmLabel="Ya, hapus"
+                    danger
+                    onConfirm={() => {
+                        router.delete(route('rtpu.layanan.destroy', del.id), {
+                            onFinish: () => setDel(null),
+                        });
+                    }}
                     onClose={() => setDel(null)}
                 />
             </FadeIn>

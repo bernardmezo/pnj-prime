@@ -1,11 +1,10 @@
 import { Head } from '@inertiajs/react';
 import DashboardLayout from '@/Layouts/DashboardLayout';
 import { FadeIn, PageHeader, StatusBadge, Table, Td } from '@/Components/ui';
-import { mockProdukUnggulan } from '@/mocks/data';
 
 // Read-only: no action buttons on this page.
-export default function PimpinanPemantauan({ auth, produk }) {
-    const rows = produk ?? mockProdukUnggulan;
+export default function PimpinanPemantauan({ auth, produk = [] }) {
+    const rows = produk;
 
     return (
         <DashboardLayout title="Pemantauan" breadcrumb="Pimpinan RTPU / Pemantauan" activeKey="pantau">

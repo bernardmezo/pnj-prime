@@ -25,17 +25,17 @@ class UserFactory extends Factory
     public function definition(): array
     {
         return [
-            'name'             => fake()->name(),
-            'email'            => fake()->unique()->safeEmail(),
-            'email_verified_at'=> now(),
-            'password'         => static::$password ??= Hash::make('password'),
-            'role'             => 'eksternal',
-            'account_origin'   => 'local_simulation',
-            'phone'            => fake()->phoneNumber(),
-            'institution'      => null,
-            'ktp_number'       => null,
-            'npwp_number'      => null,
-            'remember_token'   => Str::random(10),
+            'name' => fake()->name(),
+            'email' => fake()->unique()->safeEmail(),
+            'email_verified_at' => now(),
+            'password' => static::$password ??= Hash::make('password'),
+            'role' => 'customer',
+            'account_origin' => 'local_simulation',
+            'phone' => fake()->phoneNumber(),
+            'institution' => null,
+            'ktp_number' => null,
+            'npwp_number' => null,
+            'remember_token' => Str::random(10),
         ];
     }
 
@@ -58,25 +58,51 @@ class UserFactory extends Factory
         ]);
     }
 
-    public function dosenPeneliti(): static
-    {
-        return $this->state(fn (array $attributes) => [
-            'role' => 'dosen_peneliti',
-        ]);
-    }
-
-    public function mahasiswa(): static
-    {
-        return $this->state(fn (array $attributes) => [
-            'role' => 'mahasiswa',
-        ]);
-    }
+    // ---- Legacy alias (old value now maps to customer) ----
 
     public function eksternal(): static
     {
         return $this->state(fn (array $attributes) => [
-            'role'        => 'eksternal',
+            'role' => 'customer',
             'institution' => fake()->company(),
+        ]);
+    }
+
+    // ---- New six-role states ----
+
+    public function customer(): static
+    {
+        return $this->state(fn (array $attributes) => [
+            'role' => 'customer',
+            'institution' => fake()->company(),
+        ]);
+    }
+
+    public function adminP3m(): static
+    {
+        return $this->state(fn (array $attributes) => [
+            'role' => 'admin_p3m',
+        ]);
+    }
+
+    public function pimpinanRtpu(): static
+    {
+        return $this->state(fn (array $attributes) => [
+            'role' => 'pimpinan_rtpu',
+        ]);
+    }
+
+    public function direktur(): static
+    {
+        return $this->state(fn (array $attributes) => [
+            'role' => 'direktur',
+        ]);
+    }
+
+    public function superAdmin(): static
+    {
+        return $this->state(fn (array $attributes) => [
+            'role' => 'super_admin',
         ]);
     }
 }

@@ -8,11 +8,12 @@ import DashboardLayout from '@/Layouts/DashboardLayout';
 import { Card, FadeIn, PageHeader } from '@/Components/ui';
 
 // TODO(backend): not in use-case diagram; remove admin.settings routes when backend migrates
-export default function AdminSettings({ settings }) {
+export default function AdminSettings({ settings, audits = [] }) {
     const { data, setData, patch, processing, errors } = useForm({
         settings: {
             ppn_enabled: settings.ppn_enabled?.value ?? '0',
             ppn_rate: settings.ppn_rate?.value ?? '',
+            ppn_threshold: settings.ppn_threshold?.value ?? '0',
             payment_bank_name: settings.payment_bank_name?.value ?? '',
             payment_account_number: settings.payment_account_number?.value ?? '',
             payment_account_holder: settings.payment_account_holder?.value ?? '',
@@ -62,6 +63,19 @@ export default function AdminSettings({ settings }) {
                                 />
                                 <InputError message={errors['settings.ppn_rate']} className="mt-1" />
                             </div>
+                            <div>
+                                <InputLabel htmlFor="ppn_threshold" value="Batas bawah PPN (Rp)" />
+                                <TextInput
+                                    id="ppn_threshold" type="number" min="0" value={data.settings.ppn_threshold}
+                                    onChange={(e) => set('ppn_threshold', e.target.value)}
+                                    className="mt-1 w-48" placeholder="0 = selalu diterapkan"
+                                    disabled={data.settings.ppn_enabled !== '1'}
+                                />
+                                <InputError message={errors['settings.ppn_threshold']} className="mt-1" />
+                                <p className="mt-1 text-xs" style={{ color: 'var(--color-muted)' }}>
+                                    PPN hanya diterapkan bila subtotal DI ATAS nominal ini.
+                                </p>
+                            </div>
                         </div>
                     </Card>
 
@@ -94,6 +108,30 @@ export default function AdminSettings({ settings }) {
                         </div>
                     </div>
                 </form>
+
+                <Card className="mx-auto mt-2 max-w-3xl p-6 sm:p-8">
+                    <h3 className="font-display text-base font-bold" style={{ color: 'var(--color-ink)' }}>Riwayat perubahan (20 terakhir)</h3>
+                    <p className="mb-4 mt-1 text-[13px]" style={{ color: 'var(--color-muted)' }}>
+                        Hanya-baca. Setiap penyimpanan tercatat beserta pengubahnya.
+                    </p>
+                    {audits.length === 0 ? (
+                        <p className="text-sm" style={{ color: 'var(--color-muted)' }}>Belum ada perubahan tercatat.</p>
+                    ) : (
+                        <ul className="divide-y" style={{ borderColor: 'var(--color-border)' }}>
+                            {audits.map((a) => (
+                                <li key={a.id} className="flex flex-wrap items-baseline justify-between gap-2 py-2 text-sm">
+                                    <span className="font-mono text-[13px]" style={{ color: 'var(--color-ink)' }}>{a.key}</span>
+                                    <span className="font-mono text-[13px]" style={{ color: 'var(--color-muted)' }}>
+                                        {a.old_value ?? '∅'} → {a.new_value ?? '∅'}
+                                    </span>
+                                    <span className="text-xs" style={{ color: 'var(--color-muted)' }}>
+                                        {a.changed_by_name ?? 'sistem'} · {a.changed_at}
+                                    </span>
+                                </li>
+                            ))}
+                        </ul>
+                    )}
+                </Card>
             </FadeIn>
         </DashboardLayout>
     );

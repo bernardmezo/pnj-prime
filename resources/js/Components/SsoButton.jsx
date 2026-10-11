@@ -1,22 +1,25 @@
+import { usePage } from '@inertiajs/react';
 import { useState } from 'react';
 import { Fingerprint, Loader2 } from 'lucide-react';
 import { startSsoLogin } from '@/lib/sso';
 
 /**
- * Shared "Masuk dengan SSO PNJ" button (frontend only).
- * Shows a loading state on click; if no SSO route exists yet, shows an
- * inline notice instead of navigating anywhere.
+ * Shared "Masuk dengan SSO PNJ" button.
+ *
+ * Navigates to `sso.redirect` only when the shared prop `sso_enabled` is
+ * true; otherwise it keeps the neutral notice. No identity provider is
+ * faked here.
  */
 export default function SsoButton() {
+    const { sso_enabled: ssoEnabled } = usePage().props;
     const [loading, setLoading] = useState(false);
     const [missing, setMissing] = useState(false);
 
     const handleClick = () => {
         setMissing(false);
         setLoading(true);
-        const started = startSsoLogin();
+        const started = startSsoLogin(ssoEnabled);
         if (!started) {
-            // TODO(backend): wire SSO redirect
             setLoading(false);
             setMissing(true);
         }

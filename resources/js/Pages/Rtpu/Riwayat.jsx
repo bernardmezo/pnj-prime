@@ -1,12 +1,11 @@
 import { Head } from '@inertiajs/react';
 import DashboardLayout from '@/Layouts/DashboardLayout';
 import { FadeIn, PageHeader, StatusBadge, Table, Td } from '@/Components/ui';
-import { mockPengajuan } from '@/mocks/data';
 
 const TYPE_LABEL = { jasa: 'Jasa', ruangan: 'Ruangan', produk: 'Produk' };
 
-export default function RtpuRiwayat({ auth, riwayat }) {
-    const rows = riwayat ?? mockPengajuan;
+export default function RtpuRiwayat({ auth, riwayat = [] }) {
+    const rows = riwayat;
 
     return (
         <DashboardLayout title="Riwayat Transaksi" breadcrumb="Admin RTPU / Riwayat" activeKey="riwayat">

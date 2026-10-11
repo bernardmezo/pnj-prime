@@ -1,23 +1,29 @@
-import { Head } from '@inertiajs/react';
+import { Head, router } from '@inertiajs/react';
 import { useState } from 'react';
 import DashboardLayout from '@/Layouts/DashboardLayout';
 import { Card, FadeIn, PageHeader, PrimaryButton } from '@/Components/ui';
 import { ROLE_KEYS, roleLabel } from '@/lib/roles';
-import { MATRIX_AKSI, mockFitur, mockPermissions } from '@/mocks/data';
 
-// TODO(backend): no permission routes yet. Matrix edits are local state;
-// "Simpan Perubahan" shows a neutral notice, nothing is sent.
-export default function HakAkses({ auth, fitur, matriks }) {
-    const rows = fitur ?? mockFitur;
+const AKSI = ['Lihat', 'Tambah', 'Ubah', 'Hapus', 'Verifikasi'];
+
+export default function HakAkses({ auth, fitur = [], matriks = {} }) {
+    const rows = fitur;
     const [role, setRole] = useState('admin_rtpu');
-    const [matrix, setMatrix] = useState(matriks ?? mockPermissions);
-    const [notice, setNotice] = useState(null);
+    const [matrix, setMatrix] = useState(matriks);
+    const [processing, setProcessing] = useState(false);
 
     const toggle = (fkey, aksi) => {
         setMatrix((m) => ({
             ...m,
             [role]: { ...m[role], [fkey]: { ...m[role]?.[fkey], [aksi]: !m[role]?.[fkey]?.[aksi] } },
         }));
+    };
+
+    const save = () => {
+        setProcessing(true);
+        router.post(route('superadmin.hakakses.save'), { matriks: matrix }, {
+            onFinish: () => setProcessing(false),
+        });
     };
 
     return (
@@ -29,8 +35,8 @@ export default function HakAkses({ auth, fitur, matriks }) {
                     title="Hak Akses"
                     desc="Pilih peran, lalu atur izin tiap fitur. Baris berasal dari daftar Kelola Fitur."
                     actions={
-                        <PrimaryButton onClick={() => setNotice('Penyimpanan hak akses belum tersedia. Backend perlu menyediakan endpoint simpan matriks izin.')}>
-                            Simpan Perubahan
+                        <PrimaryButton onClick={save} disabled={processing}>
+                            {processing ? 'Menyimpan…' : 'Simpan Perubahan'}
                         </PrimaryButton>
                     }
                 />
@@ -53,11 +59,6 @@ export default function HakAkses({ auth, fitur, matriks }) {
                         </button>
                     ))}
                 </div>
-                {notice && (
-                    <p className="mb-4 rounded-xl px-4 py-2.5 text-[13px]" role="status" style={{ background: 'var(--color-surface)', color: 'var(--color-muted)' }}>
-                        {notice}
-                    </p>
-                )}
                 <Card className="overflow-x-auto">
                     <table className="w-full min-w-[720px] text-sm">
                         <thead>
@@ -65,7 +66,7 @@ export default function HakAkses({ auth, fitur, matriks }) {
                                 <th className="sticky left-0 px-6 py-3 text-left text-xs font-semibold uppercase tracking-wide" style={{ color: 'var(--color-muted)', background: 'var(--color-surface)' }}>
                                     Fitur
                                 </th>
-                                {MATRIX_AKSI.map((a) => (
+                                {AKSI.map((a) => (
                                     <th key={a} className="px-4 py-3 text-center text-xs font-semibold uppercase tracking-wide" style={{ color: 'var(--color-muted)' }}>
                                         {a}
                                     </th>
@@ -78,7 +79,7 @@ export default function HakAkses({ auth, fitur, matriks }) {
                                     <td className="sticky left-0 border-t px-6 py-3 font-medium" style={{ borderColor: 'var(--color-border)', color: 'var(--color-ink)', background: 'var(--color-bg)' }}>
                                         {f.name}
                                     </td>
-                                    {MATRIX_AKSI.map((a) => (
+                                    {AKSI.map((a) => (
                                         <td key={a} className="border-t px-4 py-3 text-center" style={{ borderColor: 'var(--color-border)' }}>
                                             <input
                                                 type="checkbox"

@@ -32,7 +32,7 @@ items (Selesai/Ditolak/Dibatalkan final or full archive per role scope).
 | Mengelola Layanan Produk | `Pages/Rtpu/Layanan/Index.jsx` (tab Produk), `Pages/Rtpu/Layanan/Form.jsx` | — | Admin RTPU |
 | Mengelola Metode Pembayaran | `Pages/Rtpu/MetodePembayaran/Index.jsx` | `Components/ui.jsx` (ConfirmModal) | Admin RTPU |
 | Mengelola User | `Pages/SuperAdmin/Users/Index.jsx` | `lib/roles.js` (ROLE_KEYS) | Super Admin |
-| Mengelola Hak Akses | `Pages/SuperAdmin/HakAkses.jsx` | `mocks/data.js` (fitur + matriks) | Super Admin |
+| Mengelola Hak Akses | `Pages/SuperAdmin/HakAkses.jsx` | — | Super Admin |
 | Mengelola Fitur | `Pages/SuperAdmin/Fitur/Index.jsx` | — | Super Admin |
 | Pemantauan (Pimpinan: produk unggulan) | `Pages/Pimpinan/Pemantauan.jsx` | — | Pimpinan RTPU |
 | Pemantauan (Direktur: dua aliran) | `Pages/Direktur/Pemantauan.jsx` | — | Direktur |
@@ -41,6 +41,9 @@ items (Selesai/Ditolak/Dibatalkan final or full archive per role scope).
 | Role home redirect | `Pages/Dashboard.jsx` | `lib/roles.js` (roleHome), `lib/nav.js` | all six roles |
 
 Notes:
+- Backend is real: every page above receives server props (no mocks; the
+  DEV preview harness and `resources/js/mocks/` were removed once routes
+  landed). `lib/nav.js` resolves pageKeys to named routes only.
 - Includes/extends covered inline: Memvalidasi Data Registrasi (Register
   field errors), Memverifikasi Kredensial (Login error banner), Memilih
   Metode Pembayaran + Mengunggah Bukti (Pembayaran steps), Membatalkan

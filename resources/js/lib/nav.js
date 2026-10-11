@@ -1,12 +1,8 @@
 /**
- * Link helper. Every menu/link in the app goes through href(pageKey)
- * instead of raw route() calls that throw on missing names.
- * - Real named route exists  -> its URL.
- * - Otherwise in DEV        -> "?preview=<pageKey>&role=<role>".
- * - Otherwise (production)  -> "#".
+ * Link helper. Every menu/link in the app goes through href(pageKey) using
+ * real named routes. Returns '#' when the route is unavailable.
  */
 export const DESTINATIONS = {
-    // real routes
     landing:        { route: 'home' },
     catalog:        { route: 'catalog.index' },
     'catalog.show': { route: 'catalog.show' },
@@ -14,33 +10,32 @@ export const DESTINATIONS = {
     register:       { route: 'register' },
     dashboard:      { route: 'dashboard' },
     logout:         { route: 'logout' },
-    // preview-only pages (no backend route yet)
-    'customer.pengajuan.create': { component: 'Customer/Pengajuan/Create' },
-    'customer.pengajuan.index':  { component: 'Customer/Pengajuan/Index' },
-    'customer.pengajuan.show':   { component: 'Customer/Pengajuan/Show' },
-    'customer.pengajuan.edit':   { component: 'Customer/Pengajuan/Edit' },
-    'customer.bayar':            { component: 'Customer/Pembayaran' },
-    'customer.riwayat':          { component: 'Customer/Riwayat' },
-    'rtpu.verify.layanan': { component: 'Rtpu/Verifikasi/Layanan' },
-    'rtpu.verify.bayar':   { component: 'Rtpu/Verifikasi/Pembayaran' },
-    'rtpu.status':         { component: 'Rtpu/StatusLayanan' },
-    'rtpu.layanan':        { component: 'Rtpu/Layanan/Index' },
-    'rtpu.layanan.form':   { component: 'Rtpu/Layanan/Form' },
-    'rtpu.metode':         { component: 'Rtpu/MetodePembayaran/Index' },
-    'rtpu.riwayat':        { component: 'Rtpu/Riwayat' },
-    'p3m.produk.index':  { component: 'P3M/ProdukUnggulan/Index' },
-    'p3m.produk.create': { component: 'P3M/ProdukUnggulan/Create' },
-    'p3m.produk.show':   { component: 'P3M/ProdukUnggulan/Show' },
-    'p3m.produk.edit':   { component: 'P3M/ProdukUnggulan/Edit' },
-    'p3m.riwayat':       { component: 'P3M/Riwayat' },
-    'pimpinan.verify':  { component: 'Pimpinan/Verifikasi' },
-    'pimpinan.monitor': { component: 'Pimpinan/Pemantauan' },
-    'pimpinan.riwayat': { component: 'Pimpinan/Riwayat' },
-    'direktur.monitor': { component: 'Direktur/Pemantauan' },
-    'direktur.riwayat': { component: 'Direktur/Riwayat' },
-    'superadmin.users':    { component: 'SuperAdmin/Users/Index' },
-    'superadmin.hakakses': { component: 'SuperAdmin/HakAkses' },
-    'superadmin.fitur':    { component: 'SuperAdmin/Fitur/Index' },
+    'customer.pengajuan.index':  { route: 'customer.pengajuan.index' },
+    'customer.pengajuan.create': { route: 'customer.pengajuan.create' },
+    'customer.pengajuan.show':   { route: 'customer.pengajuan.show' },
+    'customer.pengajuan.edit':   { route: 'customer.pengajuan.edit' },
+    'customer.bayar':            { route: 'customer.pengajuan.bayar' },
+    'customer.riwayat':          { route: 'customer.riwayat' },
+    'rtpu.verify.layanan': { route: 'rtpu.verify.layanan' },
+    'rtpu.verify.bayar':   { route: 'rtpu.verify.bayar' },
+    'rtpu.status':         { route: 'rtpu.status' },
+    'rtpu.layanan':        { route: 'rtpu.layanan' },
+    'rtpu.layanan.form':   { route: 'rtpu.layanan.form' },
+    'rtpu.metode':         { route: 'rtpu.metode' },
+    'rtpu.riwayat':        { route: 'rtpu.riwayat' },
+    'p3m.produk.index':  { route: 'p3m.produk.index' },
+    'p3m.produk.create': { route: 'p3m.produk.create' },
+    'p3m.produk.show':   { route: 'p3m.produk.show' },
+    'p3m.produk.edit':   { route: 'p3m.produk.edit' },
+    'p3m.riwayat':       { route: 'p3m.riwayat' },
+    'pimpinan.verify':  { route: 'pimpinan.verify' },
+    'pimpinan.monitor': { route: 'pimpinan.monitor' },
+    'pimpinan.riwayat': { route: 'pimpinan.riwayat' },
+    'direktur.monitor': { route: 'direktur.monitor' },
+    'direktur.riwayat': { route: 'direktur.riwayat' },
+    'superadmin.users':    { route: 'superadmin.users' },
+    'superadmin.hakakses': { route: 'superadmin.hakakses' },
+    'superadmin.fitur':    { route: 'superadmin.fitur' },
 };
 
 export function hasRoute(name) {
@@ -51,28 +46,12 @@ export function hasRoute(name) {
     }
 }
 
-function previewUrl(pageKey, params = {}) {
-    const q = new URLSearchParams({ preview: pageKey, ...params });
-    return `?${q.toString()}`;
-}
-
-export function href(pageKey, params = {}, role = null) {
+export function href(pageKey, params = {}) {
     const dest = DESTINATIONS[pageKey];
-    if (!dest) return '#';
-    if (dest.route && hasRoute(dest.route)) {
-        try {
-            return route(dest.route, params);
-        } catch {
-            /* fall through */
-        }
+    if (!dest?.route || !hasRoute(dest.route)) return '#';
+    try {
+        return route(dest.route, params);
+    } catch {
+        return '#';
     }
-    if (typeof import.meta !== 'undefined' && import.meta.env?.DEV) {
-        const r = role ?? params.role ?? 'customer';
-        return previewUrl(pageKey, { ...params, role: r });
-    }
-    return '#';
-}
-
-export function componentFor(pageKey) {
-    return DESTINATIONS[pageKey]?.component ?? null;
 }

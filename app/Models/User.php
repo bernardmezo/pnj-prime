@@ -22,7 +22,10 @@ class User extends Authenticatable
         'email',
         'password',
         'role',
+        'is_active',
         'account_origin',
+        'user_type',
+        'nik_npwp',
         'phone',
         'institution',
         'ktp_number',
@@ -50,7 +53,8 @@ class User extends Authenticatable
     {
         return [
             'email_verified_at' => 'datetime',
-            'password'          => 'hashed',
+            'password' => 'hashed',
+            'is_active' => 'boolean',
         ];
     }
 
@@ -58,6 +62,38 @@ class User extends Authenticatable
     {
         return $this->role === 'admin_rtpu';
     }
+
+    public function isAdminP3m(): bool
+    {
+        return $this->role === 'admin_p3m';
+    }
+
+    public function isPimpinanRtpu(): bool
+    {
+        return $this->role === 'pimpinan_rtpu';
+    }
+
+    public function isDirektur(): bool
+    {
+        return $this->role === 'direktur';
+    }
+
+    public function isSuperAdmin(): bool
+    {
+        return $this->role === 'super_admin';
+    }
+
+    public function isCustomer(): bool
+    {
+        return $this->role === 'customer';
+    }
+
+    public function isStaff(): bool
+    {
+        return in_array($this->role, ['admin_rtpu', 'admin_p3m', 'pimpinan_rtpu', 'direktur', 'super_admin'], true);
+    }
+
+    // ---- Legacy helpers (kept for BC; old values no longer assigned) ----
 
     public function isDosenPeneliti(): bool
     {
@@ -76,11 +112,43 @@ class User extends Authenticatable
 
     public function isInternal(): bool
     {
-        return in_array($this->role, ['admin_rtpu', 'dosen_peneliti', 'mahasiswa'], true);
+        return $this->isStaff();
     }
 
     public function isFromSso(): bool
     {
         return $this->account_origin === 'sso_pnj';
+    }
+
+    /**
+     * Granular RBAC check against the permissions matrix.
+     * (Named canDo to avoid colliding with the base Authorizable::can().)
+     * Super Admin bypasses everything. Unknown combos deny by default.
+     */
+    public function canDo(string $fitur, string $aksi = 'Lihat'): bool
+    {
+        if ($this->role === 'super_admin') {
+            return true;
+        }
+
+        $key = $this->role.'|'.$fitur.'|'.$aksi;
+
+        if (! array_key_exists($key, static::$permissionCache)) {
+            static::$permissionCache[$key] = (bool) Permission::query()
+                ->where('role', $this->role)
+                ->where('fitur_key', $fitur)
+                ->where('aksi', $aksi)
+                ->value('allowed');
+        }
+
+        return static::$permissionCache[$key];
+    }
+
+    /** @var array<string, bool> */
+    protected static array $permissionCache = [];
+
+    public static function flushPermissionCache(): void
+    {
+        static::$permissionCache = [];
     }
 }

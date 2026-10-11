@@ -19,6 +19,7 @@ import {
 import { useState } from 'react';
 import Logo from '@/Components/Logo';
 import { EASE, menuForRole, roleLabel } from '@/Components/ui';
+import { filterMenuByFitur } from '@/lib/roles';
 import { href as navHref } from '@/lib/nav';
 
 function initials(name) {
@@ -45,10 +46,6 @@ const MENU_ICONS = {
     users: Users,
     key: KeyRound,
     grid: LayoutGrid,
-    curation: ClipboardCheck,
-    products: Package,
-    transactions: Activity,
-    reports: Activity,
     links: LayoutGrid,
     settings: LayoutGrid,
 };
@@ -148,9 +145,9 @@ function SidebarBody({ user, menu, activeKey, onNavigate }) {
  * without a backend route.
  */
 export default function DashboardLayout({ title, breadcrumb, activeKey, children }) {
-    const { auth } = usePage().props;
+    const { auth, fitur: activeFitur } = usePage().props;
     const user = auth?.user ?? {};
-    const menu = menuFor(user.role);
+    const menu = filterMenuByFitur(menuFor(user.role), activeFitur);
     const [drawer, setDrawer] = useState(false);
     const reduce = useReducedMotion();
 

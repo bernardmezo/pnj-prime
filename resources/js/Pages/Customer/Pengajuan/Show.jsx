@@ -1,4 +1,4 @@
-import { Head } from '@inertiajs/react';
+import { Head, router } from '@inertiajs/react';
 import { ArrowLeft } from 'lucide-react';
 import { useState } from 'react';
 import CustomerTabs from '@/Components/CustomerTabs';
@@ -7,16 +7,24 @@ import StatusTimeline from '@/Components/StatusTimeline';
 import { Card, ConfirmModal, DangerButton, PageHeader, SecondaryButton, StatusBadge } from '@/Components/ui';
 import { href as navHref } from '@/lib/nav';
 import { LAYANAN_FLOW, canBatalLayanan, canBayarLayanan, canUbahLayanan } from '@/lib/statuses';
-import { mockPengajuan } from '@/mocks/data';
 
-// TODO(backend): no pengajuan routes yet. Ubah/Batalkan/Bayar actions show a
-// neutral notice; nothing is sent and no success is faked.
 export default function PengajuanShow({ auth, item }) {
     const role = auth?.user?.role;
-    const p = item ?? mockPengajuan[0];
+    const p = item;
     const [cancelOpen, setCancelOpen] = useState(false);
     const [cancelReason, setCancelReason] = useState('');
-    const [notice, setNotice] = useState(null);
+    const [processing, setProcessing] = useState(false);
+
+    if (!p) {
+        return (
+            <PublicLayout auth={auth}>
+                <Head title="Detail Pengajuan · PNJ Prime" />
+                <div className="mx-auto w-full max-w-[1240px] px-4 py-10 sm:px-6">
+                    <p style={{ color: 'var(--color-muted)' }}>Pengajuan tidak ditemukan.</p>
+                </div>
+            </PublicLayout>
+        );
+    }
 
     return (
         <PublicLayout auth={auth}>
@@ -64,11 +72,6 @@ export default function PengajuanShow({ auth, item }) {
                                 <span className="font-semibold">Catatan RTPU: </span>{p.note}
                             </div>
                         )}
-                        {notice && (
-                            <p className="mt-4 rounded-xl px-4 py-2.5 text-[13px]" role="status" style={{ background: 'var(--color-surface)', color: 'var(--color-muted)' }}>
-                                {notice}
-                            </p>
-                        )}
                         <div className="mt-5 flex flex-wrap gap-2">
                             {canUbahLayanan(p.status) && (
                                 <SecondaryButton href={navHref('customer.pengajuan.edit', { id: p.id }, role)}>
@@ -95,9 +98,12 @@ export default function PengajuanShow({ auth, item }) {
                     desc="Pengajuan yang dibatalkan tidak dapat dilanjutkan. Alasan bersifat opsional."
                     confirmLabel="Ya, batalkan"
                     danger
+                    processing={processing}
                     onConfirm={() => {
-                        setCancelOpen(false);
-                        setNotice('Pembatalan belum tersedia. Backend perlu menyediakan endpoint pembatalan pengajuan.');
+                        setProcessing(true);
+                        router.patch(route('customer.pengajuan.cancel', p.id), { alasan: cancelReason }, {
+                            onFinish: () => { setProcessing(false); setCancelOpen(false); },
+                        });
                     }}
                     onClose={() => setCancelOpen(false)}
                 >

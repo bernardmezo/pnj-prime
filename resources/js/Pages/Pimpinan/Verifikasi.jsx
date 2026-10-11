@@ -1,9 +1,8 @@
-import { Head } from '@inertiajs/react';
+import { Head, router } from '@inertiajs/react';
 import { useState } from 'react';
 import ReviewPanel from '@/Components/ReviewPanel';
 import DashboardLayout from '@/Layouts/DashboardLayout';
 import { Card, FadeIn, PageHeader, StatusBadge } from '@/Components/ui';
-import { mockProdukUnggulan } from '@/mocks/data';
 
 const CHECKLIST = [
     'Proposal produk unggulan dilampirkan',
@@ -12,10 +11,8 @@ const CHECKLIST = [
     'Usulan harga dan kategori terisi',
 ];
 
-// TODO(backend): no pimpinan verification route yet. Setujui/Tolak show a
-// neutral notice; nothing is sent and no success is faked.
-export default function PimpinanVerifikasi({ auth, antrean, selected }) {
-    const rows = antrean ?? mockProdukUnggulan.filter((p) => p.status === 'Diajukan');
+export default function PimpinanVerifikasi({ auth, antrean = [], selected = null }) {
+    const rows = antrean;
     const [selId, setSelId] = useState(selected?.id ?? rows[0]?.id ?? null);
     const sel = rows.find((r) => r.id === selId) ?? rows[0] ?? null;
 
@@ -98,7 +95,7 @@ export default function PimpinanVerifikasi({ auth, antrean, selected }) {
                                         <ul className="space-y-1.5">
                                             {sel.documents.map((d, i) => (
                                                 <li key={i} className="flex items-center justify-between gap-3 rounded-xl px-4 py-2.5 text-sm" style={{ background: 'var(--color-surface)' }}>
-                                                    <span style={{ color: 'var(--color-ink)' }}>{d.name}</span>
+                                                    <a href={d.url} target="_blank" rel="noreferrer" className="font-medium underline underline-offset-2" style={{ color: 'var(--color-accent-hover)' }}>{d.name}</a>
                                                     <span className="text-xs" style={{ color: 'var(--color-muted)' }}>{d.size}</span>
                                                 </li>
                                             ))}
@@ -110,8 +107,14 @@ export default function PimpinanVerifikasi({ auth, antrean, selected }) {
                                         title="Panel peninjau"
                                         checklist={CHECKLIST}
                                         approveLabel="Setujui"
-                                        onApprove={() => 'Persetujuan belum tersedia. Backend perlu menyediakan endpoint verifikasi produk unggulan.'}
-                                        onReject={() => 'Penolakan belum tersedia. Backend perlu menyediakan endpoint penolakan produk unggulan.'}
+                                        onApprove={() => {
+                                            router.patch(route('pimpinan.verify.approve', sel.id));
+                                            return null;
+                                        }}
+                                        onReject={(catatan) => {
+                                            router.patch(route('pimpinan.verify.reject', sel.id), { catatan });
+                                            return null;
+                                        }}
                                     />
                                 </div>
                             </Card>

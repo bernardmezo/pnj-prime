@@ -219,7 +219,7 @@ export function Table({ columns, children }) {
                         ))}
                     </tr>
                 </thead>
-                <tbody>{children}</tbody>
+                {children}
             </table>
         </Card>
     );

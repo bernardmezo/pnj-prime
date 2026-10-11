@@ -1,17 +1,15 @@
-import { Head } from '@inertiajs/react';
+import { Head, Link } from '@inertiajs/react';
 import { useState } from 'react';
 import CustomerTabs from '@/Components/CustomerTabs';
 import PublicLayout from '@/Layouts/PublicLayout';
 import { EmptyState, FilterTabs, PageHeader, PrimaryButton, StatusBadge, Table, Td } from '@/Components/ui';
 import { href as navHref } from '@/lib/nav';
-import { mockPengajuan } from '@/mocks/data';
 
 const TYPE_LABEL = { jasa: 'Jasa', ruangan: 'Ruangan', produk: 'Produk' };
 
-export default function PengajuanIndex({ auth, pengajuan }) {
+export default function PengajuanIndex({ auth, pengajuan = [] }) {
     const role = auth?.user?.role;
-    const rows = pengajuan ?? mockPengajuan.filter((p) => p.customer === (auth?.user?.name ?? ''));
-    const list = rows.length > 0 ? rows : mockPengajuan;
+    const list = pengajuan;
     const [tipe, setTipe] = useState('all');
     const [status, setStatus] = useState('all');
     const visible = list.filter((p) => (tipe === 'all' || p.type === tipe) && (status === 'all' || p.status === status));
@@ -64,9 +62,9 @@ export default function PengajuanIndex({ auth, pengajuan }) {
                                     <Td><span style={{ color: 'var(--color-muted)' }}>{p.date}</span></Td>
                                     <Td><StatusBadge status={p.status} label={p.status} /></Td>
                                     <Td>
-                                        <a href={navHref('customer.pengajuan.show', { id: p.id }, role)} className="text-sm font-medium" style={{ color: 'var(--color-accent-hover)' }}>
+                                        <Link href={route('customer.pengajuan.show', p.id)} className="text-sm font-medium" style={{ color: 'var(--color-accent-hover)' }}>
                                             Detail
-                                        </a>
+                                        </Link>
                                     </Td>
                                 </tr>
                             ))}

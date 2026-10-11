@@ -102,7 +102,7 @@ export default function CatalogShow({ auth, product }) {
                                 <div className="mt-6 flex flex-wrap gap-3">
                                     {user ? (
                                         <a
-                                            href={navHref('customer.pengajuan.create', { tipe: type }, user.role)}
+                                            href={navHref('customer.pengajuan.create', { product_id: product.id, tipe: type }, user.role)}
                                             className="group inline-flex items-center gap-2 rounded-full px-7 py-3 text-sm font-semibold text-white transition hover:-translate-y-px active:scale-[0.98]"
                                             style={{ background: 'var(--color-accent)' }}
                                         >

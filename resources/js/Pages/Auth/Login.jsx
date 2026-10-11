@@ -2,7 +2,6 @@ import Checkbox from '@/Components/Checkbox';
 import InputError from '@/Components/InputError';
 import PrimaryButton from '@/Components/PrimaryButton';
 import SsoButton from '@/Components/SsoButton';
-import TextInput from '@/Components/TextInput';
 import AuthLayout from '@/Layouts/AuthLayout';
 import { Head, Link, useForm } from '@inertiajs/react';
 import { Eye, EyeOff, LockKeyhole, Mail } from 'lucide-react';
@@ -42,35 +41,60 @@ function AuthTabs({ active }) {
     );
 }
 
-/** Floating-label wrapper around the shared TextInput (same behavior/props). */
-function FloatField({ id, label, error, icon: Icon, hint, describedBy, children }) {
+/**
+ * State-driven floating-label field. The label floats whenever the field
+ * is focused or has a value, so it can never overlap typed text.
+ */
+function AuthField({ id, label, error, icon: Icon, hint, trailing, onFocus, onBlur, ...props }) {
+    const [focused, setFocused] = useState(false);
+    const value = props.value ?? '';
+    const floated = focused || String(value).length > 0;
     return (
         <div>
-            <div className="relative">
+            <div
+                className="relative rounded-xl border bg-white transition"
+                style={{
+                    borderColor: error ? 'var(--color-danger)' : focused ? 'var(--color-accent)' : 'var(--color-border)',
+                    boxShadow: focused && !error ? '0 0 0 3px var(--color-accent-tint)' : 'none',
+                }}
+            >
                 {Icon && (
                     <Icon
                         aria-hidden
                         className="pointer-events-none absolute left-4 top-1/2 h-[18px] w-[18px] -translate-y-1/2"
-                        style={{ color: error ? 'var(--color-danger)' : 'var(--color-muted)' }}
+                        style={{ color: error ? 'var(--color-danger)' : focused ? 'var(--color-accent-hover)' : 'var(--color-muted)' }}
                     />
                 )}
-                {children}
+                <input
+                    id={id}
+                    {...props}
+                    onFocus={(e) => { setFocused(true); onFocus?.(e); }}
+                    onBlur={(e) => { setFocused(false); onBlur?.(e); }}
+                    className="block w-full bg-transparent text-[15px] outline-none"
+                    style={{ color: 'var(--color-ink)', padding: '22px 16px 8px 48px' }}
+                />
+                {trailing}
                 <label
                     htmlFor={id}
-                    className="pointer-events-none absolute top-1/2 -translate-y-1/2 text-[15px] transition-all duration-200 peer-placeholder-shown:top-1/2 peer-placeholder-shown:text-[15px] peer-focus:top-2.5 peer-focus:text-xs peer-[:not(:placeholder-shown)]:top-2.5 peer-[:not(:placeholder-shown)]:text-xs"
-                    style={{ left: Icon ? 48 : 16, color: error ? 'var(--color-danger)' : 'var(--color-muted)' }}
+                    aria-hidden
+                    className="pointer-events-none absolute transition-all duration-200"
+                    style={{
+                        left: 48,
+                        top: floated ? 7 : '50%',
+                        transform: floated ? 'none' : 'translateY(-50%)',
+                        fontSize: floated ? 12 : 15,
+                        color: error ? 'var(--color-danger)' : focused ? 'var(--color-accent-hover)' : 'var(--color-muted)',
+                    }}
                 >
                     {label}
                 </label>
             </div>
             {error ? <InputError message={error} className="mt-2" /> : hint ? (
-                <p id={describedBy} className="mt-1.5 text-xs" style={{ color: 'var(--color-muted)' }}>{hint}</p>
+                <p className="mt-1.5 text-xs" style={{ color: 'var(--color-muted)' }}>{hint}</p>
             ) : null}
         </div>
     );
 }
-
-const floatInputClass = 'peer block w-full !pl-12 !pt-6 !pb-2';
 
 export function LoginForm({ status, canResetPassword }) {
     // Existing Laravel login contract: email, password, remember.
@@ -120,41 +144,40 @@ export function LoginForm({ status, canResetPassword }) {
                 </div>
             )}
             <form onSubmit={submit}>
-                <FloatField id="email" label="Alamat email" error={errors.email} icon={Mail} hint="Gunakan email yang Anda daftarkan.">
-                    <TextInput
-                        id="email"
-                        type="email"
-                        name="email"
-                        value={data.email}
-                        placeholder=" "
-                        inputMode="email"
-                        autoCapitalize="none"
-                        autoCorrect="off"
-                        spellCheck={false}
-                        className={floatInputClass}
-                        autoComplete="username"
-                        isFocused={true}
-                        aria-invalid={Boolean(errors.email)}
-                        onChange={(e) => setData('email', e.target.value)}
-                    />
-                </FloatField>
+                <AuthField
+                    id="email"
+                    label="Alamat email"
+                    icon={Mail}
+                    error={errors.email}
+                    hint="Gunakan email yang Anda daftarkan."
+                    type="email"
+                    name="email"
+                    value={data.email}
+                    inputMode="email"
+                    autoCapitalize="none"
+                    autoCorrect="off"
+                    spellCheck={false}
+                    autoComplete="username"
+                    autoFocus
+                    aria-invalid={Boolean(errors.email)}
+                    onChange={(e) => setData('email', e.target.value)}
+                />
                 <div className="mt-4">
-                    <FloatField id="password" label="Kata sandi" error={errors.password} icon={LockKeyhole}>
-                        <div className="relative">
-                            <TextInput
-                                id="password"
-                                type={showPassword ? 'text' : 'password'}
-                                name="password"
-                                value={data.password}
-                                placeholder=" "
-                                className={`${floatInputClass} pr-11`}
-                                autoComplete="current-password"
-                                aria-invalid={Boolean(errors.password)}
-                                onChange={(e) => setData('password', e.target.value)}
-                                onKeyUp={trackCaps}
-                                onKeyDown={trackCaps}
-                                onBlur={() => setCapsOn(false)}
-                            />
+                    <AuthField
+                        id="password"
+                        label="Kata sandi"
+                        icon={LockKeyhole}
+                        error={errors.password}
+                        type={showPassword ? 'text' : 'password'}
+                        name="password"
+                        value={data.password}
+                        autoComplete="current-password"
+                        aria-invalid={Boolean(errors.password)}
+                        onChange={(e) => setData('password', e.target.value)}
+                        onKeyUp={trackCaps}
+                        onKeyDown={trackCaps}
+                        onBlur={() => setCapsOn(false)}
+                        trailing={
                             <button
                                 type="button"
                                 onClick={() => setShowPassword((v) => !v)}
@@ -165,8 +188,8 @@ export function LoginForm({ status, canResetPassword }) {
                             >
                                 {showPassword ? <EyeOff className="h-[18px] w-[18px]" /> : <Eye className="h-[18px] w-[18px]" />}
                             </button>
-                        </div>
-                    </FloatField>
+                        }
+                    />
                     {capsOn && !errors.password && (
                         <p className="mt-1.5 text-xs font-medium" role="status" style={{ color: 'var(--color-gold-deep)' }}>
                             Caps Lock aktif, periksa huruf besar/kecil.

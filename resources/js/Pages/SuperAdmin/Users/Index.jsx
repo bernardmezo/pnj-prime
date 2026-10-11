@@ -1,37 +1,28 @@
-import { Head } from '@inertiajs/react';
+import { Head, router, useForm } from '@inertiajs/react';
 import { useState } from 'react';
 import DashboardLayout from '@/Layouts/DashboardLayout';
 import { ConfirmModal, EmptyState, FadeIn, Field, PageHeader, PrimaryButton, RoleBadge, StatusBadge, Table, Td, inputClass, inputStyleProps } from '@/Components/ui';
 import { ROLE_KEYS, roleLabel } from '@/lib/roles';
-import { mockUsers } from '@/mocks/data';
 
-// TODO(backend): no user CRUD routes for these six roles yet. Tambah/Ubah/
-// Hapus/Aktifkan are local state only, with a neutral notice.
-let nextId = 100;
+const EMPTY = { name: '', email: '', password: '', role: 'customer', active: true };
 
-const EMPTY = { name: '', email: '', role: 'customer', active: true };
-
-export default function UsersIndex({ auth, users }) {
-    const [rows, setRows] = useState(users ?? mockUsers);
+export default function UsersIndex({ auth, users = [] }) {
+    const rows = users;
     const [editing, setEditing] = useState(null);
-    const [form, setForm] = useState(EMPTY);
     const [del, setDel] = useState(null);
-    const [notice, setNotice] = useState(null);
+    const { data, setData, post, patch, processing, errors, reset } = useForm(EMPTY);
 
-    const openAdd = () => { setEditing('new'); setForm(EMPTY); };
-    const openEdit = (u) => { setEditing(u.id); setForm({ name: u.name, email: u.email, role: u.role, active: u.status !== 'Nonaktif' }); };
+    const openAdd = () => { setEditing('new'); reset(); setData(EMPTY); };
+    const openEdit = (u) => { setEditing(u.id); setData({ name: u.name, email: u.email, password: '', role: u.role, active: u.status !== 'Nonaktif' }); };
     const save = () => {
         if (editing === 'new') {
-            setRows((r) => [...r, { ...form, id: nextId++, status: form.active ? 'Aktif' : 'Nonaktif' }]);
+            post(route('superadmin.users.store'), { onSuccess: () => setEditing(null) });
         } else {
-            setRows((r) => r.map((x) => (x.id === editing ? { ...x, ...form, status: form.active ? 'Aktif' : 'Nonaktif' } : x)));
+            patch(route('superadmin.users.update', editing), { onSuccess: () => setEditing(null) });
         }
-        setEditing(null);
-        setNotice('Perubahan tersimpan lokal (pratinjau). Backend perlu menyediakan endpoint kelola user.');
     };
     const toggleActive = (u) => {
-        setRows((r) => r.map((x) => (x.id === u.id ? { ...x, status: x.status === 'Nonaktif' ? 'Aktif' : 'Nonaktif' } : x)));
-        setNotice('Perubahan tersimpan lokal (pratinjau). Backend perlu menyediakan endpoint kelola user.');
+        router.patch(route('superadmin.users.toggle', u.id));
     };
 
     return (
@@ -44,11 +35,6 @@ export default function UsersIndex({ auth, users }) {
                     desc="Tambah, ubah, hapus, serta aktifkan dan nonaktifkan akun keenam peran."
                     actions={<PrimaryButton onClick={openAdd}>+ Tambah User</PrimaryButton>}
                 />
-                {notice && (
-                    <p className="mb-4 rounded-xl px-4 py-2.5 text-[13px]" role="status" style={{ background: 'var(--color-surface)', color: 'var(--color-muted)' }}>
-                        {notice}
-                    </p>
-                )}
                 {rows.length === 0 ? (
                     <EmptyState title="Belum ada user" desc="Tambahkan user pertama." />
                 ) : (
@@ -85,21 +71,25 @@ export default function UsersIndex({ auth, users }) {
                     onConfirm={save}
                     onClose={() => setEditing(null)}
                     confirmLabel="Simpan"
+                    processing={processing}
                 >
                     <div className="space-y-3">
-                        <Field label="Nama lengkap">
-                            <input value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} className={inputClass} {...inputStyleProps()} />
+                        <Field label="Nama lengkap" error={errors.name}>
+                            <input value={data.name} onChange={(e) => setData('name', e.target.value)} className={inputClass} {...inputStyleProps()} />
                         </Field>
-                        <Field label="Email">
-                            <input type="email" value={form.email} onChange={(e) => setForm({ ...form, email: e.target.value })} className={inputClass} {...inputStyleProps()} />
+                        <Field label="Email" error={errors.email}>
+                            <input type="email" value={data.email} onChange={(e) => setData('email', e.target.value)} className={inputClass} {...inputStyleProps()} />
                         </Field>
-                        <Field label="Role">
-                            <select value={form.role} onChange={(e) => setForm({ ...form, role: e.target.value })} className={inputClass} {...inputStyleProps()}>
+                        <Field label={editing === 'new' ? 'Kata sandi' : 'Kata sandi baru (kosongkan bila tidak diubah)'} error={errors.password}>
+                            <input type="password" value={data.password} onChange={(e) => setData('password', e.target.value)} autoComplete="new-password" className={inputClass} {...inputStyleProps()} />
+                        </Field>
+                        <Field label="Role" error={errors.role}>
+                            <select value={data.role} onChange={(e) => setData('role', e.target.value)} className={inputClass} {...inputStyleProps()}>
                                 {ROLE_KEYS.map((k) => <option key={k} value={k}>{roleLabel(k)}</option>)}
                             </select>
                         </Field>
                         <label className="flex cursor-pointer items-center gap-2.5 text-sm font-medium" style={{ color: 'var(--color-ink)' }}>
-                            <input type="checkbox" checked={form.active} onChange={(e) => setForm({ ...form, active: e.target.checked })} className="h-4 w-4 rounded" style={{ accentColor: 'var(--color-accent)' }} />
+                            <input type="checkbox" checked={data.active} onChange={(e) => setData('active', e.target.checked)} className="h-4 w-4 rounded" style={{ accentColor: 'var(--color-accent)' }} />
                             Akun aktif
                         </label>
                     </div>
@@ -108,9 +98,14 @@ export default function UsersIndex({ auth, users }) {
                 <ConfirmModal
                     open={del !== null}
                     title={`Hapus "${del?.name}"?`}
-                    desc="Penghapusan user belum tersedia. Backend perlu menyediakan endpoint hapus user."
-                    confirmLabel="Mengerti"
-                    onConfirm={() => setDel(null)}
+                    desc="User yang dihapus tidak dapat masuk lagi. Tindakan ini tidak dapat dibatalkan."
+                    confirmLabel="Ya, hapus"
+                    danger
+                    onConfirm={() => {
+                        router.delete(route('superadmin.users.destroy', del.id), {
+                            onFinish: () => setDel(null),
+                        });
+                    }}
                     onClose={() => setDel(null)}
                 />
             </FadeIn>

@@ -1,20 +1,26 @@
-import { Head } from '@inertiajs/react';
+import { Head, router, useForm } from '@inertiajs/react';
 import { useState } from 'react';
 import DashboardLayout from '@/Layouts/DashboardLayout';
 import StatusTimeline from '@/Components/StatusTimeline';
 import { Card, ConfirmModal, DangerButton, FadeIn, PageHeader, SecondaryButton, StatusBadge } from '@/Components/ui';
 import { href as navHref } from '@/lib/nav';
 import { PRODUK_FLOW, canBatalProduk, canUbahProduk } from '@/lib/statuses';
-import { mockProdukUnggulan } from '@/mocks/data';
 
-// TODO(backend): no produk-unggulan routes yet. Ubah navigates to the edit
-// preview; Batalkan shows a neutral notice, nothing is sent.
 export default function ProdukShow({ auth, item }) {
     const role = auth?.user?.role;
-    const p = item ?? mockProdukUnggulan[0];
+    const p = item;
     const [cancelOpen, setCancelOpen] = useState(false);
     const [cancelReason, setCancelReason] = useState('');
-    const [notice, setNotice] = useState(null);
+    const [processing, setProcessing] = useState(false);
+
+    if (!p) {
+        return (
+            <DashboardLayout title="Detail Produk Unggulan" breadcrumb="Admin P3M / Pemantauan / Detail" activeKey="pantau">
+                <Head title="Detail Produk Unggulan · PNJ Prime" />
+                <FadeIn><p style={{ color: 'var(--color-muted)' }}>Data tidak ditemukan.</p></FadeIn>
+            </DashboardLayout>
+        );
+    }
 
     return (
         <DashboardLayout title="Detail Produk Unggulan" breadcrumb="Admin P3M / Pemantauan / Detail" activeKey="pantau">
@@ -55,7 +61,7 @@ export default function ProdukShow({ auth, item }) {
                                 <ul className="space-y-1.5">
                                     {p.documents.map((d, i) => (
                                         <li key={i} className="flex items-center justify-between gap-3 rounded-xl px-4 py-2.5 text-sm" style={{ background: 'var(--color-surface)' }}>
-                                            <span style={{ color: 'var(--color-ink)' }}>{d.name}</span>
+                                            <a href={d.url} target="_blank" rel="noreferrer" className="font-medium underline underline-offset-2" style={{ color: 'var(--color-accent-hover)' }}>{d.name}</a>
                                             <span className="text-xs" style={{ color: 'var(--color-muted)' }}>{d.size}</span>
                                         </li>
                                     ))}
@@ -66,11 +72,6 @@ export default function ProdukShow({ auth, item }) {
                             <div className="mt-4 rounded-xl px-4 py-3 text-sm" style={{ background: 'var(--color-danger-tint)', color: 'var(--color-danger)' }}>
                                 <span className="font-semibold">Catatan Pimpinan RTPU: </span>{p.note}
                             </div>
-                        )}
-                        {notice && (
-                            <p className="mt-4 rounded-xl px-4 py-2.5 text-[13px]" role="status" style={{ background: 'var(--color-surface)', color: 'var(--color-muted)' }}>
-                                {notice}
-                            </p>
                         )}
                         <div className="mt-5 flex flex-wrap gap-2">
                             {canUbahProduk(p.status) && (
@@ -92,9 +93,12 @@ export default function ProdukShow({ auth, item }) {
                     desc="Pengajuan yang dibatalkan tidak dapat dilanjutkan. Alasan bersifat opsional."
                     confirmLabel="Ya, batalkan"
                     danger
+                    processing={processing}
                     onConfirm={() => {
-                        setCancelOpen(false);
-                        setNotice('Pembatalan belum tersedia. Backend perlu menyediakan endpoint pembatalan produk unggulan.');
+                        setProcessing(true);
+                        router.patch(route('p3m.produk.cancel', p.id), { alasan: cancelReason }, {
+                            onFinish: () => { setProcessing(false); setCancelOpen(false); },
+                        });
                     }}
                     onClose={() => setCancelOpen(false)}
                 >

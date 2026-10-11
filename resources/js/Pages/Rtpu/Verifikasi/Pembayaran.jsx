@@ -1,9 +1,8 @@
-import { Head } from '@inertiajs/react';
+import { Head, router } from '@inertiajs/react';
 import { useState } from 'react';
 import ReviewPanel from '@/Components/ReviewPanel';
 import DashboardLayout from '@/Layouts/DashboardLayout';
 import { Card, FadeIn, PageHeader, StatusBadge } from '@/Components/ui';
-import { mockPembayaran } from '@/mocks/data';
 
 const CHECKLIST = [
     'Nominal transfer sesuai tagihan',
@@ -12,10 +11,8 @@ const CHECKLIST = [
     'Kode pengajuan tercantum pada berita transfer',
 ];
 
-// TODO(backend): no payment verification routes yet. Terima/Tolak show a
-// neutral notice; nothing is sent and no success is faked.
-export default function VerifikasiPembayaran({ auth, antrean, selected }) {
-    const rows = antrean ?? mockPembayaran;
+export default function VerifikasiPembayaran({ auth, antrean = [], selected = null }) {
+    const rows = antrean;
     const [selId, setSelId] = useState(selected?.id ?? rows[0]?.id ?? null);
     const sel = rows.find((r) => r.id === selId) ?? rows[0] ?? null;
 
@@ -82,7 +79,11 @@ export default function VerifikasiPembayaran({ auth, antrean, selected }) {
                                 <div className="mt-4 rounded-2xl border-2 border-dashed p-8 text-center" style={{ borderColor: 'var(--color-border)' }}>
                                     <p className="text-sm font-medium" style={{ color: 'var(--color-ink)' }}>Pratinjau bukti pembayaran</p>
                                     <p className="mt-1 text-xs" style={{ color: 'var(--color-muted)' }}>
-                                        {sel.proof ? sel.proof : 'Belum ada berkas pratinjau pada data contoh.'}
+                                        {sel.proof ? (
+                                            <a href={sel.proof} target="_blank" rel="noreferrer" className="font-medium underline underline-offset-2" style={{ color: 'var(--color-accent-hover)' }}>
+                                                Buka bukti pembayaran
+                                            </a>
+                                        ) : 'Belum ada berkas.'}
                                     </p>
                                 </div>
                                 <div className="mt-5 border-t pt-5" style={{ borderColor: 'var(--color-border)' }}>
@@ -90,8 +91,14 @@ export default function VerifikasiPembayaran({ auth, antrean, selected }) {
                                         title="Panel peninjau"
                                         checklist={CHECKLIST}
                                         approveLabel="Terima"
-                                        onApprove={() => 'Penerimaan pembayaran belum tersedia. Backend perlu menyediakan endpoint verifikasi pembayaran.'}
-                                        onReject={() => 'Penolakan pembayaran belum tersedia. Backend perlu menyediakan endpoint penolakan pembayaran.'}
+                                        onApprove={() => {
+                                            router.patch(route('rtpu.verify.bayar.accept', sel.id));
+                                            return null;
+                                        }}
+                                        onReject={(catatan) => {
+                                            router.patch(route('rtpu.verify.bayar.reject', sel.id), { catatan });
+                                            return null;
+                                        }}
                                     />
                                 </div>
                             </Card>

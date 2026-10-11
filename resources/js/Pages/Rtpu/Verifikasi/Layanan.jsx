@@ -1,9 +1,8 @@
-import { Head } from '@inertiajs/react';
+import { Head, router } from '@inertiajs/react';
 import { useState } from 'react';
 import ReviewPanel from '@/Components/ReviewPanel';
 import DashboardLayout from '@/Layouts/DashboardLayout';
 import { Card, FadeIn, PageHeader, StatusBadge } from '@/Components/ui';
-import { mockPengajuan } from '@/mocks/data';
 
 const TYPE_LABEL = { jasa: 'Jasa', ruangan: 'Ruangan', produk: 'Produk' };
 const CHECKLIST = [
@@ -13,13 +12,11 @@ const CHECKLIST = [
     'Dokumen pendukung dilampirkan bila diperlukan',
 ];
 
-// TODO(backend): no verifikasi routes yet. Verifikasi/Tolak show a neutral
-// notice; nothing is sent and no success is faked.
-export default function VerifikasiLayanan({ auth, antrean, selected }) {
-    const rows = antrean ?? mockPengajuan.filter((p) => p.status === 'Diajukan');
+export default function VerifikasiLayanan({ auth, antrean = [], selected = null }) {
+    const rows = antrean;
     const [selId, setSelId] = useState(selected?.id ?? rows[0]?.id ?? null);
     const sel = rows.find((r) => r.id === selId) ?? rows[0] ?? null;
-    const [notice, setNotice] = useState(null);
+    const [processing, setProcessing] = useState(false);
 
     return (
         <DashboardLayout title="Verifikasi Pengajuan" breadcrumb="Admin RTPU / Verifikasi Pengajuan" activeKey="verify-layanan">
@@ -99,14 +96,21 @@ export default function VerifikasiLayanan({ auth, antrean, selected }) {
                                         title="Panel peninjau"
                                         checklist={CHECKLIST}
                                         approveLabel="Verifikasi"
-                                        onApprove={() => 'Keputusan verifikasi belum tersedia. Backend perlu menyediakan endpoint verifikasi pengajuan.'}
-                                        onReject={() => 'Penolakan belum tersedia. Backend perlu menyediakan endpoint penolakan pengajuan.'}
+                                        onApprove={() => {
+                                            setProcessing(true);
+                                            router.patch(route('rtpu.verify.layanan.approve', sel.id), {}, {
+                                                onFinish: () => setProcessing(false),
+                                            });
+                                            return null;
+                                        }}
+                                        onReject={(catatan) => {
+                                            setProcessing(true);
+                                            router.patch(route('rtpu.verify.layanan.reject', sel.id), { catatan }, {
+                                                onFinish: () => setProcessing(false),
+                                            });
+                                            return null;
+                                        }}
                                     />
-                                    {notice && (
-                                        <p className="mt-3 rounded-xl px-4 py-2.5 text-[13px]" role="status" style={{ background: 'var(--color-surface)', color: 'var(--color-muted)' }}>
-                                            {notice}
-                                        </p>
-                                    )}
                                 </div>
                             </Card>
                         )}

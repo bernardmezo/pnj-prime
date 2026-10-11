@@ -1,74 +1,118 @@
-import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout';
 import { Head, router } from '@inertiajs/react';
+import { Check, ClipboardCheck, Inbox, X } from 'lucide-react';
+import { useState } from 'react';
+import DashboardLayout from '@/Layouts/DashboardLayout';
+import { Card, ConfirmModal, FadeIn, Field, PageHeader, StatCard, StatusBadge, inputClass, inputStyleProps } from '@/Components/ui';
 
 export default function CurationIndex({ pending_products, stats }) {
+    const [rejectId, setRejectId] = useState(null);
+    const [reason, setReason] = useState('');
+    const [processing, setProcessing] = useState(false);
+    const rows = pending_products?.data ?? [];
+
     function handleApprove(productId) {
         router.patch(route('admin.curation.approve', productId));
     }
 
-    function handleReject(productId) {
-        const reason = prompt('Alasan penolakan:');
-        if (reason) {
-            router.patch(route('admin.curation.reject', productId), { rejection_reason: reason });
-        }
+    function openReject(productId) {
+        setRejectId(productId);
+        setReason('');
+    }
+
+    function handleReject() {
+        if (!reason.trim()) return;
+        setProcessing(true);
+        router.patch(route('admin.curation.reject', rejectId), { rejection_reason: reason }, {
+            onFinish: () => {
+                setProcessing(false);
+                setRejectId(null);
+            },
+        });
     }
 
     return (
-        <AuthenticatedLayout header={<h2 className="text-xl font-semibold text-prime-900">Antrian Kurasi</h2>}>
+        <DashboardLayout title="Antrian Kurasi" breadcrumb="PNJ Prime / Kurasi">
             <Head title="Kurasi Produk — PNJ Prime" />
+            <FadeIn>
+                <PageHeader
+                    eyebrow="Admin RTPU"
+                    title="Tinjau Pengajuan dari Admin P3M"
+                    desc="Setujui produk yang layak tampil di katalog, atau tolak disertai alasan yang jelas."
+                />
+                <div className="mb-6 grid grid-cols-3 gap-4">
+                    <StatCard label="Menunggu" value={stats?.pending ?? 0} icon={Inbox} tone="gold" index={0} />
+                    <StatCard label="Disetujui" value={stats?.approved ?? 0} icon={Check} tone="teal" index={1} />
+                    <StatCard label="Ditolak" value={stats?.rejected ?? 0} icon={X} tone="danger" index={2} />
+                </div>
 
-            <div className="py-10">
-                <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
-                    {/* Stats */}
-                    <div className="grid grid-cols-3 gap-4 mb-8">
-                        {[
-                            { label: 'Menunggu', value: stats.pending, color: 'text-yellow-600' },
-                            { label: 'Disetujui', value: stats.approved, color: 'text-green-600' },
-                            { label: 'Ditolak', value: stats.rejected, color: 'text-red-600' },
-                        ].map((s) => (
-                            <div key={s.label} className="rounded-xl bg-white shadow-card p-5 text-center">
-                                <p className={`text-3xl font-bold ${s.color}`}>{s.value}</p>
-                                <p className="text-sm text-gray-500 mt-1">{s.label}</p>
-                            </div>
-                        ))}
-                    </div>
-
-                    {/* Pending products */}
-                    <h3 className="text-lg font-semibold text-prime-900 mb-4">Menunggu Tinjauan</h3>
-                    {pending_products.data.length === 0 ? (
-                        <div className="rounded-2xl bg-white shadow-card p-10 text-center text-gray-500">
-                            ✅ Tidak ada produk yang menunggu kurasi.
-                        </div>
-                    ) : (
-                        <div className="space-y-3">
-                            {pending_products.data.map((product) => (
-                                <div key={product.id} className="flex items-center justify-between rounded-xl bg-white shadow-card px-6 py-4">
-                                    <div>
-                                        <p className="font-semibold text-prime-900">{product.name}</p>
-                                        <p className="text-sm text-gray-500">
-                                            {product.category?.name} · oleh {product.owner?.name}
-                                        </p>
-                                    </div>
-                                    <div className="flex gap-2">
-                                        <button
-                                            onClick={() => handleApprove(product.id)}
-                                            className="rounded-lg bg-green-500 px-4 py-2 text-sm font-medium text-white hover:bg-green-600 transition-colors"
-                                        >
-                                            Setujui
-                                        </button>
-                                        <button
-                                            onClick={() => handleReject(product.id)}
-                                            className="rounded-lg bg-red-500 px-4 py-2 text-sm font-medium text-white hover:bg-red-600 transition-colors"
-                                        >
-                                            Tolak
-                                        </button>
+                <h2 className="mb-3 font-display text-lg font-bold" style={{ color: 'var(--color-ink)' }}>
+                    Menunggu Tinjauan
+                </h2>
+                {rows.length === 0 ? (
+                    <Card className="p-10 text-center">
+                        <span className="mx-auto mb-3 flex h-12 w-12 items-center justify-center rounded-2xl" style={{ background: 'var(--color-accent-tint)', color: 'var(--color-accent-hover)' }}>
+                            <ClipboardCheck className="h-6 w-6" />
+                        </span>
+                        <p className="text-sm" style={{ color: 'var(--color-muted)' }}>Tidak ada produk yang menunggu kurasi.</p>
+                    </Card>
+                ) : (
+                    <div className="space-y-3">
+                        {rows.map((product) => (
+                            <Card key={product.id} className="flex flex-wrap items-center justify-between gap-4 px-6 py-4">
+                                <div className="min-w-0">
+                                    <p className="truncate font-semibold" style={{ color: 'var(--color-ink)' }}>{product.name}</p>
+                                    <p className="mt-0.5 text-[13px]" style={{ color: 'var(--color-muted)' }}>
+                                        {product.category?.name ?? '—'} · oleh {product.owner?.name ?? '—'}
+                                    </p>
+                                    <div className="mt-1.5">
+                                        <StatusBadge label="Menunggu" tone="gold" />
                                     </div>
                                 </div>
-                            ))}
-                        </div>
-                    )}
-                </div>
-            </div>
-        </AuthenticatedLayout>
+                                <div className="flex shrink-0 gap-2">
+                                    <button
+                                        type="button"
+                                        onClick={() => handleApprove(product.id)}
+                                        className="inline-flex items-center gap-1.5 rounded-full px-5 py-2 text-sm font-semibold text-white transition active:scale-[0.98]"
+                                        style={{ background: 'var(--color-accent)' }}
+                                    >
+                                        <Check className="h-4 w-4" /> Setujui
+                                    </button>
+                                    <button
+                                        type="button"
+                                        onClick={() => openReject(product.id)}
+                                        className="inline-flex items-center gap-1.5 rounded-full px-5 py-2 text-sm font-semibold text-white transition active:scale-[0.98]"
+                                        style={{ background: 'var(--color-danger)' }}
+                                    >
+                                        <X className="h-4 w-4" /> Tolak
+                                    </button>
+                                </div>
+                            </Card>
+                        ))}
+                    </div>
+                )}
+
+                <ConfirmModal
+                    open={rejectId !== null}
+                    title="Tolak pengajuan ini?"
+                    desc="Tulis alasan penolakan agar Admin P3M dapat memperbaiki pengajuannya."
+                    confirmLabel="Tolak Pengajuan"
+                    danger
+                    processing={processing}
+                    onConfirm={handleReject}
+                    onClose={() => setRejectId(null)}
+                >
+                    <Field label="Alasan penolakan">
+                        <textarea
+                            value={reason}
+                            onChange={(e) => setReason(e.target.value)}
+                            rows={3}
+                            placeholder="mis. Dokumen pendukung belum lengkap…"
+                            className={inputClass}
+                            {...inputStyleProps()}
+                        />
+                    </Field>
+                </ConfirmModal>
+            </FadeIn>
+        </DashboardLayout>
     );
 }

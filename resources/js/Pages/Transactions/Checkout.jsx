@@ -1,50 +1,63 @@
-import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout';
 import { Head } from '@inertiajs/react';
+import { Landmark, UploadCloud } from 'lucide-react';
+import PublicLayout from '@/Layouts/PublicLayout';
+import { Card } from '@/Components/ui';
 
-export default function Checkout({ payment_info }) {
+export default function Checkout({ auth, payment_info }) {
+    const info = payment_info ?? {};
     return (
-        <AuthenticatedLayout header={<h2 className="text-xl font-semibold text-prime-900">Checkout</h2>}>
+        <PublicLayout auth={auth}>
             <Head title="Checkout — PNJ Prime" />
+            <div className="mx-auto w-full max-w-2xl px-4 py-10 sm:px-6">
+                <p className="mb-2 text-sm font-semibold" style={{ color: 'var(--color-accent)' }}>Checkout</p>
+                <h1 className="font-display text-2xl font-bold sm:text-3xl" style={{ color: 'var(--color-ink)' }}>
+                    Instruksi Pembayaran
+                </h1>
+                <p className="mt-2 text-sm" style={{ color: 'var(--color-muted)' }}>
+                    Transfer pembayaran ke rekening resmi PNJ berikut, kemudian unggah bukti transfer pada halaman detail pesanan Anda.
+                </p>
 
-            <div className="py-10">
-                <div className="mx-auto max-w-2xl px-4 sm:px-6 lg:px-8">
-                    {/* Payment instructions */}
-                    <div className="rounded-2xl bg-white shadow-card p-8 mb-6">
-                        <h3 className="text-lg font-bold text-prime-900 mb-4">Instruksi Pembayaran</h3>
-                        <p className="text-sm text-gray-600 mb-4">
-                            Transfer pembayaran ke rekening BLU PNJ berikut, kemudian unggah bukti transfer.
-                        </p>
-                        <div className="rounded-xl bg-surface-subtle p-5 space-y-3">
-                            <div className="flex justify-between">
-                                <span className="text-sm text-gray-500">Bank</span>
-                                <span className="font-semibold text-prime-900">{payment_info.bank}</span>
-                            </div>
-                            <div className="flex justify-between">
-                                <span className="text-sm text-gray-500">No. Rekening</span>
-                                <span className="font-mono font-bold text-prime-900 text-lg">
-                                    {payment_info.account || '— (belum dikonfigurasi)'}
-                                </span>
-                            </div>
-                            <div className="flex justify-between">
-                                <span className="text-sm text-gray-500">Atas Nama</span>
-                                <span className="font-semibold text-prime-900">{payment_info.holder}</span>
-                            </div>
+                <Card className="mt-6 p-6 sm:p-8">
+                    <div className="flex items-center gap-3">
+                        <span className="flex h-11 w-11 items-center justify-center rounded-2xl" style={{ background: 'var(--color-accent-tint)', color: 'var(--color-accent-hover)' }}>
+                            <Landmark className="h-5 w-5" />
+                        </span>
+                        <h2 className="font-display text-lg font-bold" style={{ color: 'var(--color-ink)' }}>Rekening Resmi PNJ</h2>
+                    </div>
+                    <div className="mt-5 space-y-3 rounded-2xl p-5" style={{ background: 'var(--color-surface)' }}>
+                        <div className="flex items-center justify-between gap-4">
+                            <span className="text-sm" style={{ color: 'var(--color-muted)' }}>Bank</span>
+                            <span className="font-semibold" style={{ color: 'var(--color-ink)' }}>{info.bank ?? '—'}</span>
+                        </div>
+                        <div className="flex items-center justify-between gap-4">
+                            <span className="text-sm" style={{ color: 'var(--color-muted)' }}>No. Rekening</span>
+                            <span className="font-mono text-lg font-bold" style={{ color: 'var(--color-ink)' }}>
+                                {info.account || '— (belum dikonfigurasi)'}
+                            </span>
+                        </div>
+                        <div className="flex items-center justify-between gap-4">
+                            <span className="text-sm" style={{ color: 'var(--color-muted)' }}>Atas Nama</span>
+                            <span className="font-semibold" style={{ color: 'var(--color-ink)' }}>{info.holder ?? '—'}</span>
                         </div>
                     </div>
+                </Card>
 
-                    {/* Upload proof */}
-                    <div className="rounded-2xl bg-white shadow-card p-8">
-                        <h3 className="text-lg font-bold text-prime-900 mb-4">Unggah Bukti Transfer</h3>
-                        <p className="text-xs text-gray-400 mb-4">
-                            Format yang diterima: JPG, PNG, PDF. Maks. 5 MB.
+                <Card className="mt-5 p-6 sm:p-8">
+                    <h2 className="font-display text-lg font-bold" style={{ color: 'var(--color-ink)' }}>Unggah Bukti Transfer</h2>
+                    <p className="mt-1 text-xs" style={{ color: 'var(--color-muted)' }}>
+                        Format yang diterima: JPG, PNG, PDF. Maks. 5 MB.
+                    </p>
+                    <div className="mt-4 rounded-2xl border-2 border-dashed p-8 text-center" style={{ borderColor: 'var(--color-border)' }}>
+                        <span className="mx-auto mb-3 flex h-12 w-12 items-center justify-center rounded-2xl" style={{ background: 'var(--color-surface)', color: 'var(--color-muted)' }}>
+                            <UploadCloud className="h-6 w-6" />
+                        </span>
+                        <p className="text-sm font-medium" style={{ color: 'var(--color-ink)' }}>Unggah dari halaman detail pesanan</p>
+                        <p className="mx-auto mt-1 max-w-sm text-[13px]" style={{ color: 'var(--color-muted)' }}>
+                            Setelah pesanan dibuat, buka menu Pesanan Saya, pilih pesanan, lalu unggah bukti transfer di sana.
                         </p>
-                        <div className="border-2 border-dashed border-surface-border rounded-xl p-8 text-center text-gray-400">
-                            <p className="text-3xl mb-2">📎</p>
-                            <p>TODO: implementasi file upload</p>
-                        </div>
                     </div>
-                </div>
+                </Card>
             </div>
-        </AuthenticatedLayout>
+        </PublicLayout>
     );
 }

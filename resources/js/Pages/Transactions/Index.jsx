@@ -1,83 +1,99 @@
-import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout';
 import { Head, Link } from '@inertiajs/react';
+import { Plus, ReceiptText } from 'lucide-react';
+import { useState } from 'react';
+import DashboardLayout from '@/Layouts/DashboardLayout';
+import PublicLayout from '@/Layouts/PublicLayout';
+import { EmptyState, FadeIn, FilterTabs, PageHeader, Pagination, PrimaryButton, StatusBadge, Table, Td, isInternalRole } from '@/Components/ui';
+
+const STATUS_LABEL = {
+    menunggu_pembayaran: 'Menunggu Pembayaran',
+    menunggu_verifikasi: 'Menunggu Verifikasi',
+    diproses: 'Diproses',
+    selesai: 'Selesai',
+    dibatalkan: 'Dibatalkan',
+};
+
+const TABS = [
+    { value: 'all', label: 'Semua' },
+    { value: 'menunggu_pembayaran', label: 'Menunggu Pembayaran' },
+    { value: 'menunggu_verifikasi', label: 'Menunggu Verifikasi' },
+    { value: 'diproses', label: 'Diproses' },
+    { value: 'selesai', label: 'Selesai' },
+    { value: 'dibatalkan', label: 'Dibatalkan' },
+];
+
+function OrderTable({ orders }) {
+    return (
+        <Table columns={['No. Pesanan', 'Total', 'Status', 'Tanggal', '']}>
+            <tbody>
+                {orders.data.map((order) => (
+                    <tr key={order.id} className="transition-colors hover:bg-[var(--color-surface)]">
+                        <Td strong className="font-mono">{order.order_number}</Td>
+                        <Td>Rp {Number(order.total ?? 0).toLocaleString('id-ID')}</Td>
+                        <Td>
+                            <StatusBadge status={order.status} label={STATUS_LABEL[order.status] ?? order.status} />
+                        </Td>
+                        <Td><span style={{ color: 'var(--color-muted)' }}>{new Date(order.created_at).toLocaleDateString('id-ID')}</span></Td>
+                        <Td>
+                            <Link href={route('transactions.show', order.id)} className="text-sm font-medium" style={{ color: 'var(--color-accent-hover)' }}>
+                                Detail
+                            </Link>
+                        </Td>
+                    </tr>
+                ))}
+            </tbody>
+        </Table>
+    );
+}
 
 export default function TransactionIndex({ auth, orders }) {
-    const statusLabel = {
-        menunggu_pembayaran:  'Menunggu Pembayaran',
-        menunggu_verifikasi:  'Menunggu Verifikasi',
-        diproses:             'Diproses',
-        selesai:              'Selesai',
-        dibatalkan:           'Dibatalkan',
-    };
-    const statusColor = {
-        menunggu_pembayaran:  'bg-yellow-100 text-yellow-700',
-        menunggu_verifikasi:  'bg-blue-100 text-blue-700',
-        diproses:             'bg-prime-100 text-prime-700',
-        selesai:              'bg-green-100 text-green-700',
-        dibatalkan:           'bg-red-100 text-red-700',
-    };
+    const [filter, setFilter] = useState('all');
+    const rows = orders?.data ?? [];
+    const visible = filter === 'all' ? rows : rows.filter((o) => o.status === filter);
+    const filteredOrders = { ...orders, data: visible };
 
-    return (
-        <AuthenticatedLayout header={<h2 className="text-xl font-semibold text-prime-900">Transaksi</h2>}>
-            <Head title="Transaksi — PNJ Prime" />
-
-            <div className="py-10">
-                <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
-                    <div className="flex items-center justify-between mb-6">
-                        <h1 className="text-2xl font-bold text-prime-900">Riwayat Pesanan</h1>
-                        <Link href={route('home')} className="rounded-xl bg-prime-gradient px-5 py-2.5 text-sm font-semibold text-white">
-                            + Pesan Produk
-                        </Link>
-                    </div>
-
-                    {orders.data.length === 0 ? (
-                        <div className="rounded-2xl bg-white shadow-card p-12 text-center">
-                            <p className="text-5xl mb-3">🧾</p>
-                            <p className="text-lg font-semibold text-prime-900">Belum ada pesanan</p>
-                            <p className="mt-1 text-gray-500">Mulai belanja di katalog kami.</p>
-                        </div>
-                    ) : (
-                        <div className="rounded-2xl bg-white shadow-card overflow-hidden">
-                            <table className="w-full text-sm">
-                                <thead className="bg-surface-subtle text-left text-xs font-semibold uppercase text-gray-500">
-                                    <tr>
-                                        <th className="px-6 py-3">No. Pesanan</th>
-                                        <th className="px-6 py-3">Total</th>
-                                        <th className="px-6 py-3">Status</th>
-                                        <th className="px-6 py-3">Tanggal</th>
-                                        <th className="px-6 py-3"></th>
-                                    </tr>
-                                </thead>
-                                <tbody className="divide-y divide-surface-border">
-                                    {orders.data.map((order) => (
-                                        <tr key={order.id} className="hover:bg-surface-muted transition-colors">
-                                            <td className="px-6 py-4 font-mono font-medium text-prime-900">
-                                                {order.order_number}
-                                            </td>
-                                            <td className="px-6 py-4">
-                                                Rp {Number(order.total).toLocaleString('id-ID')}
-                                            </td>
-                                            <td className="px-6 py-4">
-                                                <span className={`inline-block rounded-full px-2.5 py-0.5 text-xs font-medium ${statusColor[order.status] ?? ''}`}>
-                                                    {statusLabel[order.status] ?? order.status}
-                                                </span>
-                                            </td>
-                                            <td className="px-6 py-4 text-gray-500">
-                                                {new Date(order.created_at).toLocaleDateString('id-ID')}
-                                            </td>
-                                            <td className="px-6 py-4">
-                                                <Link href={route('transactions.show', order.id)} className="text-prime-500 hover:underline">
-                                                    Detail
-                                                </Link>
-                                            </td>
-                                        </tr>
-                                    ))}
-                                </tbody>
-                            </table>
-                        </div>
-                    )}
-                </div>
+    const content = (
+        <>
+            <PageHeader
+                eyebrow="Transaksi"
+                title="Riwayat Pesanan"
+                desc="Pantau status pembayaran dan pesanan Anda. Pembayaran masuk ke rekening resmi PNJ."
+                actions={
+                    <PrimaryButton href={route('home')}>
+                        <Plus className="h-4 w-4" /> Pesan Produk
+                    </PrimaryButton>
+                }
+            />
+            <div className="mb-4">
+                <FilterTabs tabs={TABS} active={filter} onChange={setFilter} />
             </div>
-        </AuthenticatedLayout>
+            {visible.length === 0 ? (
+                <EmptyState
+                    icon={ReceiptText}
+                    title={rows.length === 0 ? 'Belum ada pesanan' : 'Tidak ada pesanan pada filter ini'}
+                    desc="Mulai belanja di katalog kami."
+                />
+            ) : (
+                <>
+                    <OrderTable orders={filteredOrders} />
+                    {filter === 'all' && <Pagination links={orders?.links ?? []} meta={orders?.meta} />}
+                </>
+            )}
+        </>
+    );
+
+    if (!isInternalRole(auth.user.role)) {
+        return (
+            <PublicLayout auth={auth}>
+                <Head title="Transaksi — PNJ Prime" />
+                <div className="mx-auto w-full max-w-[1240px] px-4 py-10 sm:px-6">{content}</div>
+            </PublicLayout>
+        );
+    }
+    return (
+        <DashboardLayout title="Transaksi" breadcrumb="PNJ Prime / Transaksi">
+            <Head title="Transaksi — PNJ Prime" />
+            <FadeIn>{content}</FadeIn>
+        </DashboardLayout>
     );
 }

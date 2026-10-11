@@ -13,6 +13,7 @@ use Illuminate\Support\Facades\Route;
 use Inertia\Inertia;
 
 Route::get('/', [CatalogController::class, 'index'])->name('home');
+Route::get('/katalog', [CatalogController::class, 'browse'])->name('catalog.index');
 Route::get('/catalog/{product:slug}', [CatalogController::class, 'show'])->name('catalog.show');
 
 Route::middleware(['auth', 'verified'])->group(function () {

@@ -22,5 +22,9 @@
     },
     "optionalDependencies": {
         "@laravel/multiplex": "^0.4.1"
+    },
+    "dependencies": {
+        "framer-motion": "^14.1.0",
+        "lucide-react": "^1.55.0"
     }
 }

@@ -20,6 +20,6 @@ createInertiaApp({
         root.render(<App {...props} />);
     },
     progress: {
-        color: '#ecaa23', // PNJ Prime gold
+        color: '#f2b134', // PNJ Prime gold token
     },
 });

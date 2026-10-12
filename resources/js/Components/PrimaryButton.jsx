@@ -1,18 +1,15 @@
-export default function PrimaryButton({
-    className = '',
-    disabled,
-    children,
-    ...props
-}) {
+export default function PrimaryButton({ className = '', disabled, children, ...props }) {
     return (
         <button
             {...props}
-            className={
-                `inline-flex items-center rounded-md border border-transparent bg-gray-800 px-4 py-2 text-xs font-semibold uppercase tracking-widest text-white transition duration-150 ease-in-out hover:bg-gray-700 focus:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 active:bg-gray-900 ${
-                    disabled && 'opacity-25'
-                } ` + className
-            }
             disabled={disabled}
+            className={
+                `inline-flex items-center justify-center rounded-full px-6 py-2.5 text-sm font-semibold text-white transition ` +
+                `hover:-translate-y-px active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-60 ${className}`
+            }
+            style={{ background: 'var(--color-accent)', color: 'var(--color-bg)' }}
+            onMouseEnter={(e) => { e.currentTarget.style.background = 'var(--color-accent-hover)'; }}
+            onMouseLeave={(e) => { e.currentTarget.style.background = 'var(--color-accent)'; }}
         >
             {children}
         </button>

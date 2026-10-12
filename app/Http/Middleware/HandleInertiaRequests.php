@@ -2,7 +2,9 @@
 
 namespace App\Http\Middleware;
 
+use App\Models\Fitur;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Schema;
 use Inertia\Middleware;
 
 class HandleInertiaRequests extends Middleware
@@ -34,6 +36,14 @@ class HandleInertiaRequests extends Middleware
             'auth' => [
                 'user' => $request->user(),
             ],
+            // Active feature keys drive menu visibility (see lib/roles.js +
+            // DashboardLayout/CustomerTabs filtering). Missing table (fresh
+            // install) yields null = show everything.
+            'fitur' => Schema::hasTable('fitur')
+                ? Fitur::where('aktif', true)->pluck('key')->all()
+                : null,
+            // SSO is off unless explicitly enabled; the login button reads this.
+            'sso_enabled' => (bool) config('services.sso.enabled'),
         ];
     }
 }

@@ -32,21 +32,26 @@ class RegisteredUserController extends Controller
     public function store(Request $request): RedirectResponse
     {
         $request->validate([
-            'name'        => 'required|string|max:255',
-            'email'       => 'required|string|lowercase|email|max:255|unique:'.User::class,
-            'password'    => ['required', 'confirmed', Rules\Password::defaults()],
-            'phone'       => 'nullable|string|max:20',
+            'name' => 'required|string|max:255',
+            'email' => 'required|string|lowercase|email|max:255|unique:'.User::class,
+            'password' => ['required', 'confirmed', Rules\Password::defaults()],
+            'phone' => 'nullable|string|max:20',
             'institution' => 'nullable|string|max:255',
+            'user_type' => 'nullable|string|max:64',
+            'nik_npwp' => 'nullable|string|max:32',
+            'terms' => 'sometimes|accepted',
         ]);
 
         $user = User::create([
-            'name'           => $request->name,
-            'email'          => $request->email,
-            'password'       => Hash::make($request->password),
-            'role'           => 'eksternal',       // public registration = buyer only
+            'name' => $request->name,
+            'email' => $request->email,
+            'password' => Hash::make($request->password),
+            'role' => 'customer',       // public registration = buyer only
             'account_origin' => 'local_simulation',
-            'phone'          => $request->phone,
-            'institution'    => $request->institution,
+            'phone' => $request->phone,
+            'institution' => $request->institution,
+            'user_type' => $request->user_type,
+            'nik_npwp' => $request->nik_npwp,
         ]);
 
         event(new Registered($user));

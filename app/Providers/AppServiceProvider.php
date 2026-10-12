@@ -5,6 +5,8 @@ namespace App\Providers;
 use App\Services\Auth\AuthServiceInterface;
 use App\Services\Auth\LocalAuthService;
 use App\Services\SettingService;
+use App\Sso\NullSsoProvider;
+use App\Sso\SsoProvider;
 use Illuminate\Support\Facades\Vite;
 use Illuminate\Support\ServiceProvider;
 
@@ -23,6 +25,10 @@ class AppServiceProvider extends ServiceProvider
             AuthServiceInterface::class,
             LocalAuthService::class,
         );
+
+        // SSO adapter. Until PNJ supplies a real provider, this is the
+        // fail-loud placeholder (see docs/SSO.md). Tests override it.
+        $this->app->bind(SsoProvider::class, NullSsoProvider::class);
 
         $this->app->singleton(SettingService::class);
     }

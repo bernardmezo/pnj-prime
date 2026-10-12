@@ -28,16 +28,19 @@ class Product extends Model
         'approved_by',
         'stock',
         'is_active',
+        'meta',
+        'produk_unggulan_id',
     ];
 
     protected function casts(): array
     {
         return [
-            'base_price'  => 'integer',
+            'base_price' => 'integer',
             'final_price' => 'integer',
-            'is_active'   => 'boolean',
+            'is_active' => 'boolean',
             'approved_at' => 'datetime',
-            'stock'       => 'integer',
+            'stock' => 'integer',
+            'meta' => 'array',
         ];
     }
 

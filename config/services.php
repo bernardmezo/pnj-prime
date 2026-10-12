@@ -35,4 +35,16 @@ return [
         ],
     ],
 
+    /*
+    | SSO PNJ. Disabled by default; see docs/SSO.md for the values PNJ
+    | must provide. No real provider implementation ships in this repo.
+    */
+    'sso' => [
+        'enabled' => env('SSO_ENABLED', false),
+        'client_id' => env('SSO_PNJ_CLIENT_ID'),
+        'client_secret' => env('SSO_PNJ_CLIENT_SECRET'),
+        'redirect_uri' => env('SSO_PNJ_REDIRECT_URI'),
+        'endpoint' => env('SSO_PNJ_ENDPOINT'),
+    ],
+
 ];

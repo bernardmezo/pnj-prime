@@ -3,7 +3,7 @@
     <head>
         <meta charset="utf-8">
         <meta name="viewport" content="width=device-width, initial-scale=1">
-        <meta name="description" content="PNJ PRIME — Platform Marketplace Digital Politeknik Negeri Jakarta">
+        <meta name="description" content="PNJ PRIME, Platform Marketplace Digital Politeknik Negeri Jakarta">
 
         <title inertia>{{ config('app.name', 'PNJ Prime') }}</title>
 

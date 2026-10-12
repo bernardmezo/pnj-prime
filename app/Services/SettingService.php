@@ -3,7 +3,9 @@
 namespace App\Services;
 
 use App\Models\Setting;
+use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Cache;
+use Illuminate\Support\Facades\DB;
 
 class SettingService
 {
@@ -24,12 +26,27 @@ class SettingService
 
     public function set(string $key, mixed $value): void
     {
-        Setting::updateOrCreate(
-            ['key' => $key],
-            ['value' => is_bool($value) ? ($value ? '1' : '0') : (string) $value]
-        );
+        $old = Setting::where('key', $key)->first();
+
+        $setting = Setting::firstOrNew(['key' => $key]);
+        $setting->value = is_bool($value) ? ($value ? '1' : '0') : (string) $value;
+        if (! $setting->exists) {
+            $setting->label = $key;
+            $setting->type = 'string';
+        }
+        $setting->save();
 
         Cache::forget("setting:{$key}");
+
+        DB::table('settings_audit')->insert([
+            'key' => $key,
+            'old_value' => $old?->value,
+            'new_value' => is_bool($value) ? ($value ? '1' : '0') : (string) $value,
+            'changed_by' => Auth::id(),
+            'changed_at' => now(),
+            'created_at' => now(),
+            'updated_at' => now(),
+        ]);
     }
 
     public function isPpnEnabled(): bool
@@ -44,9 +61,18 @@ class SettingService
         return $rate !== null ? (int) $rate : null;
     }
 
+    public function getPpnThreshold(): int
+    {
+        return (int) ($this->get('ppn_threshold', 0) ?? 0);
+    }
+
     public function calculateTax(int $subtotal): int
     {
         if (! $this->isPpnEnabled()) {
+            return 0;
+        }
+
+        if ($subtotal <= $this->getPpnThreshold()) {
             return 0;
         }
 
@@ -68,8 +94,8 @@ class SettingService
         return match ($type) {
             'boolean' => in_array(strtolower($value), ['1', 'true', 'yes'], true),
             'integer' => (int) $value,
-            'json'    => json_decode($value, true),
-            default   => $value,
+            'json' => json_decode($value, true),
+            default => $value,
         };
     }
 }

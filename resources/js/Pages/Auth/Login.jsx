@@ -1,4 +1,4 @@
-import Checkbox from '@/Components/Checkbox';
+import Checkbox from '@/Components/ui/Checkbox';
 import InputError from '@/Components/InputError';
 import PrimaryButton from '@/Components/PrimaryButton';
 import SsoButton from '@/Components/SsoButton';
@@ -197,10 +197,7 @@ export function LoginForm({ status, canResetPassword }) {
                     )}
                 </div>
                 <div className="mt-5 flex items-center justify-start">
-                    <label className="flex cursor-pointer items-center">
-                        <Checkbox name="remember" checked={data.remember} onChange={(e) => setData('remember', e.target.checked)} />
-                        <span className="ms-2 text-sm" style={{ color: 'var(--color-muted)' }}>Ingat saya</span>
-                    </label>
+                    <Checkbox name="remember" checked={data.remember} onChange={(v) => setData('remember', v)} label="Ingat saya" />
                 </div>
                 <PrimaryButton className="mt-7 h-12 w-full text-base" disabled={processing}>
                     {processing ? 'Memproses…' : 'Masuk →'}

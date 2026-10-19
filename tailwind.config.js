@@ -28,6 +28,10 @@ export default {
                     DEFAULT: 'var(--color-gold)',
                     deep: 'var(--color-gold-deep)',
                 },
+                danger: {
+                    DEFAULT: 'var(--color-danger)',
+                    tint: 'var(--color-danger-tint)',
+                },
             },
 
             fontFamily: {

@@ -17,11 +17,11 @@
 // frontend keys (preview + display).
 export const ROLES = {
     customer:      { label: 'Customer',      layout: 'public',    home: 'customer.pengajuan.index' },
-    admin_rtpu:    { label: 'Admin RTPU',    layout: 'dashboard', home: 'rtpu.verify.layanan' },
-    admin_p3m:     { label: 'Admin P3M',     layout: 'dashboard', home: 'p3m.produk.index' },
-    pimpinan_rtpu: { label: 'Pimpinan RTPU', layout: 'dashboard', home: 'pimpinan.verify' },
-    direktur:      { label: 'Direktur',      layout: 'dashboard', home: 'direktur.monitor' },
-    super_admin:   { label: 'Super Admin',   layout: 'dashboard', home: 'superadmin.users' },
+    admin_rtpu:    { label: 'Admin RTPU',    layout: 'dashboard', home: 'rtpu.dashboard' },
+    admin_p3m:     { label: 'Admin P3M',     layout: 'dashboard', home: 'p3m.dashboard' },
+    pimpinan_rtpu: { label: 'Pimpinan RTPU', layout: 'dashboard', home: 'pimpinan.dashboard' },
+    direktur:      { label: 'Direktur',      layout: 'dashboard', home: 'direktur.dashboard' },
+    super_admin:   { label: 'Super Admin',   layout: 'dashboard', home: 'superadmin.dashboard' },
 };
 
 export const ROLE_KEYS = Object.keys(ROLES);
@@ -46,6 +46,7 @@ export const isStaffRole = (raw) => roleLayout(raw) === 'dashboard';
 // Icons are string keys resolved by DashboardLayout.
 export const MENUS = {
     admin_rtpu: [
+        { key: 'dashboard', label: 'Dashboard', page: 'rtpu.dashboard', icon: 'home', fitur: 'verifikasi' },
         { key: 'verify-layanan', label: 'Verifikasi Pengajuan', page: 'rtpu.verify.layanan', icon: 'verify', fitur: 'verifikasi' },
         { key: 'verify-bayar', label: 'Verifikasi Pembayaran', page: 'rtpu.verify.bayar', icon: 'pay', fitur: 'pembayaran' },
         { key: 'status', label: 'Status Layanan', page: 'rtpu.status', icon: 'status', fitur: 'pengajuan' },
@@ -54,20 +55,23 @@ export const MENUS = {
         { key: 'riwayat', label: 'Riwayat', page: 'rtpu.riwayat', icon: 'history', fitur: 'pengajuan' },
     ],
     admin_p3m: [
+        { key: 'dashboard', label: 'Dashboard', page: 'p3m.dashboard', icon: 'home', fitur: 'produk-unggulan' },
         { key: 'pantau', label: 'Pemantauan', page: 'p3m.produk.index', icon: 'eye', fitur: 'produk-unggulan' },
-        { key: 'ajukan', label: 'Ajukan Produk Unggulan', page: 'p3m.produk.create', icon: 'plus', fitur: 'produk-unggulan' },
         { key: 'riwayat', label: 'Riwayat', page: 'p3m.riwayat', icon: 'history', fitur: 'produk-unggulan' },
     ],
     pimpinan_rtpu: [
+        { key: 'dashboard', label: 'Dashboard', page: 'pimpinan.dashboard', icon: 'home', fitur: 'produk-unggulan' },
         { key: 'verify', label: 'Verifikasi Produk Unggulan', page: 'pimpinan.verify', icon: 'verify', fitur: 'produk-unggulan' },
         { key: 'pantau', label: 'Pemantauan', page: 'pimpinan.monitor', icon: 'eye', fitur: 'produk-unggulan' },
         { key: 'riwayat', label: 'Riwayat', page: 'pimpinan.riwayat', icon: 'history', fitur: 'produk-unggulan' },
     ],
     direktur: [
+        { key: 'dashboard', label: 'Dashboard', page: 'direktur.dashboard', icon: 'home', fitur: 'produk-unggulan' },
         { key: 'pantau', label: 'Pemantauan', page: 'direktur.monitor', icon: 'eye', fitur: 'produk-unggulan' },
         { key: 'riwayat', label: 'Riwayat', page: 'direktur.riwayat', icon: 'history', fitur: 'produk-unggulan' },
     ],
     super_admin: [
+        { key: 'dashboard', label: 'Dashboard', page: 'superadmin.dashboard', icon: 'home', fitur: 'pengguna' },
         { key: 'users', label: 'Kelola User', page: 'superadmin.users', icon: 'users', fitur: 'pengguna' },
         { key: 'hak', label: 'Hak Akses', page: 'superadmin.hakakses', icon: 'key', fitur: 'hak-akses' },
         { key: 'fitur', label: 'Kelola Fitur', page: 'superadmin.fitur', icon: 'grid', fitur: 'fitur' },
@@ -76,6 +80,28 @@ export const MENUS = {
 };
 
 export const menuForRole = (raw) => MENUS[normalizeRole(raw)] ?? [];
+
+/**
+ * Live menu preview for the Super Admin "Hak Akses" editor. Reuses the same
+ * MENUS config the real sidebar consumes — do not duplicate it here.
+ *
+ * @param {string} raw            role (raw or normalized)
+ * @param {object} matrix         role -> fitur -> aksi -> boolean (may be unsaved)
+ * @param {Array}  fiturList      [{ key, active }] from the server; missing = active
+ * @returns {Array} visible menu items, in config order
+ */
+export function previewMenuForRole(raw, matrix, fiturList = []) {
+    const role = normalizeRole(raw);
+    const items = MENUS[role] ?? [];
+    const activeByKey = new Map((fiturList ?? []).map((f) => [f.key, f.active !== false]));
+    return items.filter((item) => {
+        if (!item.fitur) return true;
+        const active = activeByKey.has(item.fitur) ? activeByKey.get(item.fitur) : true;
+        // Super Admin bypasses granular Lihat, mirroring User::canDo().
+        const canSee = role === 'super_admin' ? true : Boolean(matrix?.[role]?.[item.fitur]?.Lihat);
+        return active && canSee;
+    });
+}
 
 /**
  * Filter a menu by the active feature keys from shared props.

@@ -113,7 +113,6 @@ class AccessMatrixTest extends TestCase
     {
         $this->actingAs($this->users['admin_p3m']);
         $this->get('/p3m/produk-unggulan')->assertOk();
-        $this->get('/p3m/produk-unggulan/create')->assertOk();
         $this->get('/p3m/riwayat')->assertOk();
         $this->get('/rtpu/status')->assertForbidden();
         $this->get('/pimpinan/verifikasi')->assertForbidden();
@@ -223,7 +222,7 @@ class AccessMatrixTest extends TestCase
         // ...until Admin RTPU sets price/stock and activates it
         $this->actingAs($this->users['admin_rtpu']);
         $this->patch(route('rtpu.layanan.update', $layanan), [
-            'name' => $layanan->name, 'price' => 1300000, 'active' => true,
+            'tipe' => 'jasa', 'name' => $layanan->name, 'price' => 1300000, 'active' => true,
         ])->assertRedirect();
         $layanan->refresh();
         $this->assertTrue((bool) $layanan->is_active);

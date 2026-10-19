@@ -1,10 +1,14 @@
 import { Head, router, useForm } from '@inertiajs/react';
 import { ArrowLeft, ArrowRight, Check } from 'lucide-react';
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
 import FileDropzone from '@/Components/FileDropzone';
+import OpsiBreakdown from '@/Components/OpsiBreakdown';
+import OpsiPicker from '@/Components/OpsiPicker';
 import PublicLayout from '@/Layouts/PublicLayout';
+import Select from '@/Components/ui/Select';
 import { Field, PageHeader, PrimaryButton, StatusBadge, inputClass, inputStyleProps } from '@/Components/ui';
 import { href as navHref } from '@/lib/nav';
+import { useOpsiQuote } from '@/lib/useOpsiQuote';
 
 const TIPE = [
     { value: 'jasa', label: 'Jasa', desc: 'Jasa pengujian dan layanan PNJ' },
@@ -14,12 +18,19 @@ const TIPE = [
 
 const TYPE_LABEL = { jasa: 'Jasa', ruangan: 'Ruangan', produk: 'Produk' };
 
+const METODE_OPTIONS = [
+    { value: 'Ambil di lokasi', label: 'Ambil di lokasi' },
+    { value: 'Diantar', label: 'Diantar' },
+];
+
 export default function PengajuanCreate({ auth, layanan = [], selected = {} }) {
     const role = auth?.user?.role;
     const locked = Boolean(selected?.product_id);
     const [step, setStep] = useState(locked ? 3 : 1);
     const [tipe, setTipe] = useState(selected?.tipe ?? 'jasa');
     const [docs, setDocs] = useState([]);
+    // `{ [opsiId]: qty }` for the picked add-ons. Prices are never held here.
+    const [selectedOpsi, setSelectedOpsi] = useState({});
     const { data, setData, processing, errors, reset } = useForm({
         tipe: selected?.tipe ?? 'jasa',
         product_id: selected?.product_id ?? '',
@@ -33,32 +44,89 @@ export default function PengajuanCreate({ auth, layanan = [], selected = {} }) {
         catatan: '',
     });
 
+    const options = layanan.filter((l) => l.type === tipe);
+    const current = locked
+        ? selected
+        : options.find((o) => String(o.id) === String(data.product_id)) ?? null;
+    const opsiOptions = current?.opsi ?? [];
+    const productId = data.product_id ? Number(data.product_id) : null;
+
+    const opsiPayload = useMemo(
+        () => Object.entries(selectedOpsi).map(([id, qty]) => ({ id: Number(id), qty: Number(qty) || 1 })),
+        [selectedOpsi],
+    );
+
+    // The quote comes from the server; the client only renders it.
+    const { quote, loading, error } = useOpsiQuote({
+        productId,
+        tipe,
+        selection: {
+            jumlah: data.jumlah,
+            peserta: data.peserta,
+            jam_mulai: data.jam_mulai,
+            jam_selesai: data.jam_selesai,
+        },
+        opsi: opsiPayload,
+    });
+
     const pickTipe = (v) => {
         setTipe(v);
         setData('tipe', v);
+        setData('product_id', '');
+        setSelectedOpsi({});
     };
 
-    const options = layanan.filter((l) => l.type === tipe);
-    const selectedName = options.find((o) => String(o.id) === String(data.product_id))?.name ?? '';
+    const pickProduct = (v) => {
+        setData('product_id', v);
+        setSelectedOpsi({});
+    };
+
+    const selectedName = current?.name ?? (locked ? selected?.name ?? '' : '');
 
     // Inertia converts File objects in the payload to FormData automatically.
     const submit = (e) => {
         e.preventDefault();
-        router.post(route('customer.pengajuan.store'), { ...data, dokumen: docs }, {
+        router.post(route('customer.pengajuan.store'), { ...data, dokumen: docs, opsi: opsiPayload }, {
             onSuccess: () => { setDocs([]); reset(); },
             onFinish: () => reset(),
         });
     };
 
+    const picked = opsiOptions.filter((o) => selectedOpsi[o.id] != null);
+
     const summary = () => {
-        if (tipe === 'jasa') return [['Layanan', selectedName || selected?.name || '-'], ['Keperluan', data.keperluan], ['Jumlah/unit', data.jumlah], ['Tanggal diharapkan', data.tanggal]];
-        if (tipe === 'ruangan') return [['Ruangan', selectedName || selected?.name || '-'], ['Tanggal', data.tanggal], ['Jam', `${data.jam_mulai || '-'} – ${data.jam_selesai || '-'}`], ['Jumlah peserta', data.peserta], ['Keperluan', data.keperluan]];
-        return [['Produk', selectedName || selected?.name || '-'], ['Jumlah', data.jumlah], ['Metode pengambilan', data.metode_pengambilan], ['Catatan', data.catatan]];
+        let rows;
+        if (tipe === 'jasa') rows = [['Layanan', selectedName || selected?.name || '-'], ['Keperluan', data.keperluan], ['Jumlah/unit', data.jumlah], ['Tanggal diharapkan', data.tanggal]];
+        else if (tipe === 'ruangan') rows = [['Ruangan', selectedName || selected?.name || '-'], ['Tanggal', data.tanggal], ['Jam', `${data.jam_mulai || '-'} – ${data.jam_selesai || '-'}`], ['Jumlah peserta', data.peserta], ['Keperluan', data.keperluan]];
+        else rows = [['Produk', selectedName || selected?.name || '-'], ['Jumlah', data.jumlah], ['Metode pengambilan', data.metode_pengambilan], ['Catatan', data.catatan]];
+
+        if (opsiOptions.length > 0) {
+            rows = [...rows, ['Opsi & add-on', picked.length > 0 ? picked.map((o) => `${o.nama}${selectedOpsi[o.id] > 1 ? ` ×${selectedOpsi[o.id]}` : ''}`).join(', ') : 'Tidak ada tambahan']];
+        }
+
+        return rows;
     };
 
     const estimate = tipe === 'produk' && selected?.price
         ? Number(selected.price) * (parseInt(String(data.jumlah), 10) > 0 ? parseInt(String(data.jumlah), 10) : 1)
         : null;
+
+    const opsiSection = opsiOptions.length > 0 ? (
+        <div className="space-y-4">
+            <OpsiPicker options={opsiOptions} value={selectedOpsi} onChange={setSelectedOpsi} />
+            <OpsiBreakdown
+                lines={quote?.lines}
+                subtotal={quote?.subtotal}
+                ppn={quote?.ppn}
+                total={quote?.total}
+                showTotals
+                loading={loading}
+                error={error}
+                title="Ringkasan biaya"
+                emptyText="Harga dihitung oleh server setelah layanan dan tambahan Anda dipilih."
+            />
+        </div>
+    ) : null;
 
     // Direct path (from catalog "Ajukan Layanan"): single review-and-fill
     // page for the locked item, no type picker, no step indicator.
@@ -89,13 +157,14 @@ export default function PengajuanCreate({ auth, layanan = [], selected = {} }) {
                                 <Field label="Jumlah" error={errors.jumlah} htmlFor="f-jumlah">
                                     <input id="f-jumlah" type="number" min="1" value={data.jumlah} onChange={(e) => setData('jumlah', e.target.value)} placeholder="mis. 2" className={inputClass} {...inputStyleProps()} />
                                 </Field>
-                                <Field label="Metode pengambilan" error={errors.metode_pengambilan} htmlFor="f-metode">
-                                    <select id="f-metode" value={data.metode_pengambilan} onChange={(e) => setData('metode_pengambilan', e.target.value)} className={inputClass} {...inputStyleProps()}>
-                                        <option value="">Pilih metode…</option>
-                                        <option value="Ambil di lokasi">Ambil di lokasi</option>
-                                        <option value="Diantar">Diantar</option>
-                                    </select>
-                                </Field>
+                                <Select
+                                    label="Metode pengambilan"
+                                    value={data.metode_pengambilan}
+                                    onChange={(v) => setData('metode_pengambilan', v)}
+                                    options={METODE_OPTIONS}
+                                    error={errors.metode_pengambilan}
+                                    placeholder="Pilih metode…"
+                                />
                             </div>
                         )}
                         {tipe === 'jasa' && (
@@ -142,6 +211,7 @@ export default function PengajuanCreate({ auth, layanan = [], selected = {} }) {
                                 <textarea id="f-catatan" value={data.catatan} onChange={(e) => setData('catatan', e.target.value)} rows={2} placeholder="Catatan tambahan (opsional)…" className={inputClass} {...inputStyleProps()} />
                             </Field>
                         )}
+                        {opsiSection}
                     </div>
 
                     <div className="mt-6 flex items-center justify-between">
@@ -220,12 +290,14 @@ export default function PengajuanCreate({ auth, layanan = [], selected = {} }) {
 
                 {step === 2 && (
                     <div className="space-y-4">
-                        <Field label={tipe === 'jasa' ? 'Layanan' : tipe === 'ruangan' ? 'Ruangan' : 'Produk'} error={errors.product_id} htmlFor="f-layanan">
-                            <select id="f-layanan" value={data.product_id} onChange={(e) => setData('product_id', e.target.value)} className={inputClass} {...inputStyleProps()}>
-                                <option value="">Pilih…</option>
-                                {options.map((o) => <option key={o.id} value={o.id}>{o.name}</option>)}
-                            </select>
-                        </Field>
+                        <Select
+                            label={tipe === 'jasa' ? 'Layanan' : tipe === 'ruangan' ? 'Ruangan' : 'Produk'}
+                            value={data.product_id}
+                            onChange={pickProduct}
+                            options={options.map((o) => ({ value: o.id, label: o.name }))}
+                            error={errors.product_id}
+                            placeholder="Pilih…"
+                        />
                         {(tipe === 'jasa' || tipe === 'ruangan') && (
                             <Field label="Keperluan" error={errors.keperluan} htmlFor="f-keperluan">
                                 <textarea id="f-keperluan" value={data.keperluan} onChange={(e) => setData('keperluan', e.target.value)} rows={3} placeholder="Untuk apa layanan ini dibutuhkan…" className={inputClass} {...inputStyleProps()} />
@@ -270,19 +342,21 @@ export default function PengajuanCreate({ auth, layanan = [], selected = {} }) {
                                     <Field label="Jumlah" error={errors.jumlah} htmlFor="f-jumlah">
                                         <input id="f-jumlah" type="number" min="1" value={data.jumlah} onChange={(e) => setData('jumlah', e.target.value)} placeholder="mis. 2" className={inputClass} {...inputStyleProps()} />
                                     </Field>
-                                    <Field label="Metode pengambilan" error={errors.metode_pengambilan} htmlFor="f-metode">
-                                        <select id="f-metode" value={data.metode_pengambilan} onChange={(e) => setData('metode_pengambilan', e.target.value)} className={inputClass} {...inputStyleProps()}>
-                                            <option value="">Pilih metode…</option>
-                                            <option value="Ambil di lokasi">Ambil di lokasi</option>
-                                            <option value="Diantar">Diantar</option>
-                                        </select>
-                                    </Field>
+                                    <Select
+                                        label="Metode pengambilan"
+                                        value={data.metode_pengambilan}
+                                        onChange={(v) => setData('metode_pengambilan', v)}
+                                        options={METODE_OPTIONS}
+                                        error={errors.metode_pengambilan}
+                                        placeholder="Pilih metode…"
+                                    />
                                 </div>
                                 <Field label="Catatan" error={errors.catatan} htmlFor="f-catatan">
                                     <textarea id="f-catatan" value={data.catatan} onChange={(e) => setData('catatan', e.target.value)} rows={3} placeholder="Catatan tambahan (opsional)…" className={inputClass} {...inputStyleProps()} />
                                 </Field>
                             </>
                         )}
+                        {opsiSection}
                     </div>
                 )}
 

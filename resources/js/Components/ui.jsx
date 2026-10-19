@@ -1,7 +1,8 @@
 import { Link } from '@inertiajs/react';
 import { motion, useReducedMotion } from 'framer-motion';
-import { ArrowRight, ChevronLeft, ChevronRight, X } from 'lucide-react';
+import { ArrowRight, ChevronLeft, ChevronRight } from 'lucide-react';
 import { useEffect, useRef, useState } from 'react';
+import Modal from '@/Components/ui/Modal';
 
 export const EASE = [0.22, 1, 0.36, 1];
 
@@ -359,35 +360,18 @@ export function Pagination({ links = [], meta }) {
     );
 }
 
-/* ---------- Confirm modal (framer-motion fade+scale; calm, dashboard-safe) ---------- */
+/* ---------- Confirm modal (built on the shared ui/Modal dialog) ---------- */
 export function ConfirmModal({ open, title, desc, confirmLabel = 'Ya, lanjutkan', danger = false, processing = false, onConfirm, onClose, children }) {
-    const reduce = useReducedMotion();
-    if (!open) return null;
     return (
-        <div className="fixed inset-0 z-[80] flex items-center justify-center p-4" role="dialog" aria-modal="true">
-            <motion.div
-                className="absolute inset-0"
-                style={{ background: 'rgba(26,29,28,0.5)' }}
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                exit={{ opacity: 0 }}
-                transition={{ duration: reduce ? 0 : 0.2 }}
-                onClick={onClose}
-            />
-            <motion.div
-                className="relative w-full max-w-md rounded-[22px] border bg-white p-6"
-                style={{ borderColor: 'var(--color-border)' }}
-                initial={{ opacity: 0, scale: reduce ? 1 : 0.96, y: reduce ? 0 : 8 }}
-                animate={{ opacity: 1, scale: 1, y: 0 }}
-                transition={{ duration: reduce ? 0 : 0.22, ease: EASE }}
-            >
-                <button type="button" onClick={onClose} aria-label="Tutup" className="absolute right-4 top-4 rounded-lg p-1" style={{ color: 'var(--color-muted)' }}>
-                    <X className="h-4 w-4" />
-                </button>
-                <h3 className="font-display text-lg font-bold" style={{ color: 'var(--color-ink)' }}>{title}</h3>
-                {desc && <p className="mt-2 text-sm" style={{ color: 'var(--color-muted)' }}>{desc}</p>}
-                {children && <div className="mt-4">{children}</div>}
-                <div className="mt-6 flex justify-end gap-2">
+        <Modal
+            open={open}
+            onClose={onClose}
+            size="md"
+            title={title}
+            description={desc}
+            dismissible={!processing}
+            footer={
+                <>
                     <SecondaryButton onClick={onClose}>Batal</SecondaryButton>
                     {danger ? (
                         <DangerButton onClick={onConfirm} disabled={processing}>
@@ -398,9 +382,11 @@ export function ConfirmModal({ open, title, desc, confirmLabel = 'Ya, lanjutkan'
                             {processing ? 'Memproses…' : confirmLabel}
                         </PrimaryButton>
                     )}
-                </div>
-            </motion.div>
-        </div>
+                </>
+            }
+        >
+            {children}
+        </Modal>
     );
 }
 

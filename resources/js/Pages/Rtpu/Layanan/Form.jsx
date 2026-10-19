@@ -1,6 +1,10 @@
 import { Head, useForm } from '@inertiajs/react';
+import { useState } from 'react';
 import DashboardLayout from '@/Layouts/DashboardLayout';
-import { Card, FadeIn, Field, PageHeader, PrimaryButton, inputClass, inputStyleProps } from '@/Components/ui';
+import OpsiEditor from '@/Components/OpsiEditor';
+import Switch from '@/Components/ui/Switch';
+import { FadeIn, Field, PageHeader, PrimaryButton, inputClass, inputStyleProps } from '@/Components/ui';
+import { serializeOpsi, toOpsiRow } from '@/lib/opsi';
 
 // Form fields vary by tipe; category is derived server-side from tipe.
 const FIELDS = {
@@ -31,9 +35,11 @@ const FIELDS = {
 
 const TYPE_LABEL = { jasa: 'Jasa', ruangan: 'Ruangan', produk: 'Produk' };
 
-export default function LayananForm({ auth, tipe = 'jasa', initial = null }) {
+export default function LayananForm({ auth, tipe = 'jasa', initial = null, suggestions = [] }) {
     const existing = initial;
     const isEdit = Boolean(existing?.id);
+    const initialOpsi = (existing?.opsi ?? []).map((row, i) => toOpsiRow(row, i));
+    const [opsi, setOpsi] = useState(initialOpsi);
     const { data, setData, post, patch, processing, errors } = useForm({
         tipe,
         name: existing?.name ?? '',
@@ -47,7 +53,13 @@ export default function LayananForm({ auth, tipe = 'jasa', initial = null }) {
         specs: existing?.specs ?? '',
         photo: existing?.photo ?? '',
         active: existing ? existing.status !== 'Nonaktif' : true,
+        opsi: serializeOpsi(initialOpsi),
     });
+
+    const onOpsiChange = (rows) => {
+        setOpsi(rows);
+        setData('opsi', serializeOpsi(rows));
+    };
 
     const submit = (e) => {
         e.preventDefault();
@@ -67,7 +79,7 @@ export default function LayananForm({ auth, tipe = 'jasa', initial = null }) {
                     title={`${isEdit ? 'Ubah' : 'Tambah'} Layanan ${TYPE_LABEL[tipe]}`}
                     desc="Lengkapi data layanan. Status aktif menentukan tampil tidaknya layanan di katalog."
                 />
-                <form onSubmit={submit} className="max-w-2xl space-y-4">
+                <form onSubmit={submit} className="max-w-3xl space-y-4">
                     {FIELDS[tipe].map((f) => (
                         <Field key={f.key} label={f.label} htmlFor={`layanan-${f.key}`} error={errors[f.key]}>
                             {f.type === 'textarea' ? (
@@ -77,10 +89,20 @@ export default function LayananForm({ auth, tipe = 'jasa', initial = null }) {
                             )}
                         </Field>
                     ))}
-                    <label className="flex cursor-pointer items-center gap-2.5 text-sm font-medium" style={{ color: 'var(--color-ink)' }}>
-                        <input type="checkbox" checked={data.active} onChange={(e) => setData('active', e.target.checked)} className="h-4 w-4 rounded" style={{ accentColor: 'var(--color-accent)' }} />
-                        Status aktif (tampil di katalog)
-                    </label>
+                    <Switch
+                        checked={Boolean(data.active)}
+                        onChange={(v) => setData('active', v)}
+                        label="Status aktif (tampil di katalog)"
+                    />
+
+                    <div className="pt-2">
+                        <h2 className="font-display text-lg font-bold" style={{ color: 'var(--color-ink)' }}>Opsi & add-on</h2>
+                        <p className="mt-0.5 text-[13px]" style={{ color: 'var(--color-muted)' }}>
+                            Item “Termasuk” gratis, add-on opsional dipilih pelanggan saat mengajukan.
+                        </p>
+                    </div>
+                    <OpsiEditor value={opsi} onChange={onOpsiChange} tipe={tipe} suggestions={suggestions} />
+
                     <PrimaryButton disabled={processing}>
                         {processing ? 'Menyimpan…' : isEdit ? 'Simpan Perubahan' : 'Tambah Layanan'}
                     </PrimaryButton>

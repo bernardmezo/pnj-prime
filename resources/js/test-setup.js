@@ -9,12 +9,14 @@ globalThis.route = (name, params) => {
         'catalog.index', 'catalog.show',
         'customer.pengajuan.index', 'customer.pengajuan.create', 'customer.pengajuan.show',
         'customer.pengajuan.edit', 'customer.pengajuan.bayar', 'customer.riwayat',
+        'customer.pengajuan.hitung',
         'rtpu.verify.layanan', 'rtpu.verify.bayar', 'rtpu.status',
         'rtpu.layanan', 'rtpu.layanan.form', 'rtpu.metode', 'rtpu.riwayat',
-        'p3m.produk.index', 'p3m.produk.create', 'p3m.produk.show', 'p3m.produk.edit',
+        'p3m.produk.index', 'p3m.produk.show', 'p3m.produk.edit',
         'p3m.riwayat', 'pimpinan.verify', 'pimpinan.monitor', 'pimpinan.riwayat',
-        'direktur.monitor', 'direktur.riwayat',
-        'superadmin.users', 'superadmin.hakakses', 'superadmin.fitur',
+        'direktur.monitor', 'direktur.riwayat', 'direktur.dashboard',
+        'pimpinan.dashboard', 'p3m.dashboard', 'rtpu.dashboard',
+        'superadmin.users', 'superadmin.dashboard', 'superadmin.hakakses', 'superadmin.fitur',
     ];
     if (!known.includes(name)) {
         throw new Error(`Route [${name}] not defined in test stub.`);
@@ -44,6 +46,14 @@ class IOStub {
     disconnect() {}
 }
 globalThis.IntersectionObserver = IOStub;
+
+// ResizeObserver (Headless UI anchor positioning)
+class ResizeObserverStub {
+    observe() {}
+    unobserve() {}
+    disconnect() {}
+}
+globalThis.ResizeObserver = ResizeObserverStub;
 
 // scrollTo (jsdom gap)
 window.scrollTo = () => {};

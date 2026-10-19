@@ -1,4 +1,5 @@
-import Checkbox from '@/Components/Checkbox';
+import Checkbox from '@/Components/ui/Checkbox';
+import Select from '@/Components/ui/Select';
 import InputError from '@/Components/InputError';
 import InputLabel from '@/Components/InputLabel';
 import PrimaryButton from '@/Components/PrimaryButton';
@@ -161,21 +162,17 @@ export default function Register() {
                         {!errors.email && <p className="mt-1.5 text-xs" style={{ color: 'var(--color-muted)' }}>Gunakan email aktif, untuk masuk dan notifikasi pesanan.</p>}
                     </div>
                     <div className="mt-4">
-                        <InputLabel htmlFor="user_type" value="Jenis pengguna" />
-                        <select
+                        <Select
                             id="user_type"
+                            name="user_type"
+                            label="Jenis pengguna"
                             value={data.user_type}
-                            onChange={(e) => setData('user_type', e.target.value)}
-                            className="mt-1 block w-full rounded-xl border bg-white px-4 py-2.5 text-sm outline-none transition"
-                            style={{ borderColor: 'var(--color-border)', color: 'var(--color-ink)' }}
+                            onChange={(v) => setData('user_type', v)}
+                            options={USER_TYPES.map((t) => ({ value: t, label: t }))}
+                            placeholder="Pilih jenis pengguna…"
+                            error={errors.user_type}
                             required
-                        >
-                            <option value="">Pilih jenis pengguna…</option>
-                            {USER_TYPES.map((t) => (
-                                <option key={t} value={t}>{t}</option>
-                            ))}
-                        </select>
-                        <InputError message={errors.user_type} className="mt-2" />
+                        />
                     </div>
                     <div className="mt-4">
                         <InputLabel htmlFor="institution" value="Instansi/organisasi" />
@@ -225,12 +222,14 @@ export default function Register() {
                         )}
                     </div>
 
-                    <label className="mt-4 flex cursor-pointer items-start gap-2.5">
-                        <Checkbox name="terms" checked={data.terms} onChange={(e) => setData('terms', e.target.checked)} className="mt-0.5" />
-                        <span className="text-[13px] leading-relaxed" style={{ color: 'var(--color-muted)' }}>
-                            Saya menyetujui Syarat &amp; Ketentuan dan Kebijakan Privasi
-                        </span>
-                    </label>
+                    <div className="mt-4">
+                        <Checkbox
+                            name="terms"
+                            checked={data.terms}
+                            onChange={(v) => setData('terms', v)}
+                            label="Saya menyetujui Syarat & Ketentuan dan Kebijakan Privasi"
+                        />
+                    </div>
                     <InputError message={errors.terms} className="mt-2" />
 
                     <PrimaryButton className="mt-6 w-full" disabled={processing}>

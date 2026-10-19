@@ -8,13 +8,17 @@ use App\Models\Order;
 use App\Models\PaymentProof;
 use App\Models\Pengajuan;
 use App\Models\Product;
+use App\Services\PricingService;
 use Illuminate\Http\Request;
+use Illuminate\Support\Arr;
 use Illuminate\Support\Facades\Auth;
 use Inertia\Inertia;
 use Inertia\Response;
 
 class PengajuanController extends Controller
 {
+    public function __construct(private PricingService $pricing) {}
+
     private function own(Pengajuan $p): Pengajuan
     {
         abort_if($p->buyer_id !== Auth::id(), 403);
@@ -28,22 +32,39 @@ class PengajuanController extends Controller
             'id' => $p->id,
             'code' => $p->code,
             'type' => $p->tipe,
+            'product_id' => $p->product_id,
             'layanan' => $p->product?->name ?? ucfirst($p->tipe),
             'customer' => $p->buyer?->name,
             'date' => optional($p->created_at)->format('Y-m-d'),
             'status' => $p->status,
             'qty' => $p->jumlah,
+            'jumlah' => $p->jumlah,
             'need' => $p->keperluan,
+            'keperluan' => $p->keperluan,
             'tanggal' => optional($p->tanggal)->format('Y-m-d'),
+            'peserta' => $p->peserta,
+            'jam_mulai' => $p->jam_mulai,
+            'jam_selesai' => $p->jam_selesai,
+            'metode_pengambilan' => $p->metode_pengambilan,
+            'catatan' => $p->catatan,
             'total' => $p->total,
             'note' => $p->catatan_peninjau,
             'history' => $p->history ?? [],
+            'opsi' => collect($p->opsi)->map(fn ($o) => [
+                'opsi_id' => $o->opsi_id,
+                'jenis' => $o->jenis,
+                'nama' => $o->nama,
+                'harga' => $o->harga,
+                'satuan' => $o->satuan,
+                'qty' => $o->qty,
+                'subtotal' => $o->subtotal,
+            ])->values(),
         ];
     }
 
     public function index(): Response
     {
-        $rows = Pengajuan::with(['product', 'buyer:id,name'])
+        $rows = Pengajuan::with(['product', 'buyer:id,name', 'opsi'])
             ->where('buyer_id', Auth::id())
             ->whereNotIn('status', Pengajuan::CLOSED)
             ->latest()
@@ -55,21 +76,24 @@ class PengajuanController extends Controller
 
     public function create(Request $request): Response
     {
-        $layanan = Product::with('category')
+        $layanan = Product::with(['category', 'opsi' => fn ($q) => $q->where('aktif', true)->urut()])
             ->where('curation_status', 'approved')
             ->where('is_active', true)
             ->orderBy('name')
-            ->get(['id', 'name', 'slug', 'category_id', 'final_price', 'thumbnail'])
+            ->get(['id', 'name', 'slug', 'category_id', 'final_price', 'thumbnail', 'meta'])
             ->map(fn ($p) => [
                 'id' => $p->id,
                 'name' => $p->name,
-                'type' => str_contains($p->category?->slug ?? '', 'jasa') ? 'jasa'
-                    : (str_contains($p->category?->slug ?? '', 'sewa') || str_contains($p->category?->slug ?? '', 'fasilitas') ? 'ruangan' : 'produk'),
+                'type' => $p->layananTipe(),
                 'price' => $p->final_price,
+                'satuan' => $p->layananSatuan(),
+                'opsi' => $this->opsiPayload($p),
             ]);
 
         $selectedProduct = $request->integer('product_id')
-            ? Product::with('category')->where('curation_status', 'approved')->where('is_active', true)->find($request->integer('product_id'))
+            ? Product::with(['category', 'opsi' => fn ($q) => $q->where('aktif', true)->urut()])
+                ->where('curation_status', 'approved')->where('is_active', true)
+                ->find($request->integer('product_id'))
             : null;
 
         return Inertia::render('Customer/Pengajuan/Create', [
@@ -79,13 +103,110 @@ class PengajuanController extends Controller
                 'tipe' => $request->string('tipe')->toString() ?: null,
                 'name' => $selectedProduct?->name,
                 'price' => $selectedProduct?->final_price,
+                'satuan' => $selectedProduct?->layananSatuan(),
+                'opsi' => $selectedProduct ? $this->opsiPayload($selectedProduct) : [],
             ],
         ]);
     }
 
+    /**
+     * Public shape of a listing's active options for the create form.
+     *
+     * @return array<int, array<string, mixed>>
+     */
+    private function opsiPayload(Product $product): array
+    {
+        return $product->opsi
+            ->where('aktif', true)
+            ->map(fn ($o) => [
+                'id' => $o->id,
+                'jenis' => $o->jenis,
+                'nama' => $o->nama,
+                'deskripsi' => $o->deskripsi,
+                'harga' => $o->harga,
+                'satuan' => $o->satuan,
+                'qty_min' => $o->qty_min,
+                'qty_max' => $o->qty_max,
+                'stok' => $o->stok,
+            ])
+            ->values()
+            ->all();
+    }
+
     public function store(Request $request)
     {
+        $data = $request->validate($this->storeRules());
+
+        $product = null;
+        $quote = null;
+        if (! empty($data['product_id'])) {
+            $product = Product::with('category')->find($data['product_id']);
+            if ($product) {
+                // Throws a ValidationException (422 / redirect-back) when a
+                // selected addon is foreign, inactive, duplicated or out of range.
+                $quote = $this->pricing->quote($product, $this->selection($data));
+            }
+        }
+
+        $docs = [];
+        foreach ($request->file('dokumen', []) as $file) {
+            $path = $file->store('dokumen-pengajuan', 'public');
+            $docs[] = [
+                'name' => $file->getClientOriginalName(),
+                'size' => round($file->getSize() / 1024).' KB',
+                'url' => '/storage/'.$path,
+            ];
+        }
+
+        $pengajuan = new Pengajuan(Arr::except($data, ['opsi']));
+        $pengajuan->buyer_id = Auth::id();
+        $pengajuan->dokumen = $docs;
+        if ($quote !== null) {
+            // Stored total is the pre-tax subtotal (base + addons); PPN is
+            // applied on verification, exactly as before.
+            $pengajuan->total = $quote['subtotal'];
+        }
+        $pengajuan->code = 'PNJ-'.now()->format('Ymd').'-'.str_pad((string) (Pengajuan::max('id') + 1), 4, '0', STR_PAD_LEFT);
+        $pengajuan->setStatus('Diajukan');
+        $pengajuan->save();
+
+        if ($quote !== null) {
+            $this->pricing->snapshot($pengajuan, $quote);
+        }
+
+        return redirect()->route('customer.pengajuan.show', $pengajuan)
+            ->with('success', 'Pengajuan berhasil dikirim.');
+    }
+
+    /**
+     * Preview/quote endpoint for a draft selection. Prices and totals are
+     * always derived server-side; any client-sent price is ignored.
+     */
+    public function hitung(Request $request)
+    {
         $data = $request->validate([
+            'tipe' => 'required|in:jasa,ruangan,produk',
+            'product_id' => 'required|exists:products,id',
+            'jumlah' => 'nullable|string|max:100',
+            'peserta' => 'nullable|integer|min:1|max:10000',
+            'jam_mulai' => 'nullable|date_format:H:i',
+            'jam_selesai' => 'nullable|date_format:H:i|after:jam_mulai',
+            'opsi' => 'nullable|array',
+            'opsi.*.id' => 'required|integer',
+            'opsi.*.qty' => 'nullable|integer|min:1',
+        ]);
+
+        $product = Product::with('category')->findOrFail($data['product_id']);
+
+        return response()->json($this->pricing->quote($product, $this->selection($data)));
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    private function storeRules(): array
+    {
+        return [
             'tipe' => 'required|in:jasa,ruangan,produk',
             'product_id' => 'nullable|exists:products,id',
             'keperluan' => 'nullable|string|max:2000',
@@ -98,40 +219,32 @@ class PengajuanController extends Controller
             'catatan' => 'nullable|string|max:2000',
             'dokumen' => 'nullable|array|max:5',
             'dokumen.*' => 'file|mimes:pdf,jpg,jpeg,png|max:5120',
-        ]);
+            'opsi' => 'nullable|array',
+            'opsi.*.id' => 'required|integer',
+            'opsi.*.qty' => 'nullable|integer|min:1',
+        ];
+    }
 
-        $docs = [];
-        foreach ($request->file('dokumen', []) as $file) {
-            $path = $file->store('dokumen-pengajuan', 'public');
-            $docs[] = [
-                'name' => $file->getClientOriginalName(),
-                'size' => round($file->getSize() / 1024).' KB',
-                'url' => '/storage/'.$path,
-            ];
-        }
-
-        $pengajuan = new Pengajuan($data);
-        $pengajuan->buyer_id = Auth::id();
-        $pengajuan->dokumen = $docs;
-        if ($pengajuan->product_id && ($product = Product::find($pengajuan->product_id))) {
-            $qty = 1;
-            if (preg_match('/^\d+/', (string) ($data['jumlah'] ?? ''), $m)) {
-                $qty = max(1, (int) $m[0]);
-            }
-            $pengajuan->total = $product->final_price * $qty;
-        }
-        $pengajuan->code = 'PNJ-'.now()->format('Ymd').'-'.str_pad((string) (Pengajuan::max('id') + 1), 4, '0', STR_PAD_LEFT);
-        $pengajuan->setStatus('Diajukan');
-        $pengajuan->save();
-
-        return redirect()->route('customer.pengajuan.show', $pengajuan)
-            ->with('success', 'Pengajuan berhasil dikirim.');
+    /**
+     * Normalize submitted fields into a PricingService selection payload.
+     *
+     * @param  array<string, mixed>  $data
+     * @return array<string, mixed>
+     */
+    private function selection(array $data): array
+    {
+        return [
+            'qty' => PricingService::parseQty($data['jumlah'] ?? null),
+            'peserta' => isset($data['peserta']) ? (int) $data['peserta'] : null,
+            'jam' => PricingService::parseHours($data['jam_mulai'] ?? null, $data['jam_selesai'] ?? null),
+            'opsi' => $data['opsi'] ?? [],
+        ];
     }
 
     public function show(Pengajuan $pengajuan): Response
     {
         $this->own($pengajuan);
-        $pengajuan->load(['product', 'buyer:id,name']);
+        $pengajuan->load(['product', 'buyer:id,name', 'opsi']);
 
         return Inertia::render('Customer/Pengajuan/Show', [
             'item' => $this->serialize($pengajuan),
@@ -142,9 +255,24 @@ class PengajuanController extends Controller
     {
         $this->own($pengajuan);
         abort_unless(in_array($pengajuan->status, ['Diajukan', 'Ditolak'], true), 403);
+        $pengajuan->load([
+            'product.category',
+            'product.opsi' => fn ($q) => $q->where('aktif', true)->urut(),
+            'opsi',
+        ]);
+
+        $product = $pengajuan->product;
 
         return Inertia::render('Customer/Pengajuan/Edit', [
             'item' => $this->serialize($pengajuan),
+            'layanan' => $product ? [
+                'id' => $product->id,
+                'name' => $product->name,
+                'type' => $product->layananTipe(),
+                'price' => $product->final_price,
+                'satuan' => $product->layananSatuan(),
+                'opsi' => $this->opsiPayload($product),
+            ] : null,
         ]);
     }
 
@@ -162,12 +290,45 @@ class PengajuanController extends Controller
             'peserta' => 'nullable|integer|min:1|max:10000',
             'metode_pengambilan' => 'nullable|string|max:100',
             'catatan' => 'nullable|string|max:2000',
+            'opsi' => 'nullable|array',
+            'opsi.*.id' => 'required|integer',
+            'opsi.*.qty' => 'nullable|integer|min:1',
         ]);
 
-        $pengajuan->fill($data);
+        $pengajuan->fill(Arr::except($data, ['opsi']));
         if ($pengajuan->status === 'Ditolak') {
             $pengajuan->setStatus('Diajukan', 'Diajukan ulang oleh pemohon.');
         }
+
+        // Only re-quote/re-snapshot when the form actually resubmits its
+        // add-on selection, so partial edits (keperluan only) never disturb
+        // the frozen snapshot or the stored total.
+        if ($request->has('opsi') && $pengajuan->product_id) {
+            $product = Product::with('category')->find($pengajuan->product_id);
+            if ($product) {
+                $quote = $this->pricing->quote($product, [
+                    'qty' => PricingService::parseQty($data['jumlah'] ?? $pengajuan->jumlah),
+                    'peserta' => isset($data['peserta']) ? (int) $data['peserta'] : $pengajuan->peserta,
+                    'jam' => PricingService::parseHours(
+                        $data['jam_mulai'] ?? $pengajuan->jam_mulai,
+                        $data['jam_selesai'] ?? $pengajuan->jam_selesai,
+                    ),
+                    'opsi' => $data['opsi'] ?? [],
+                ]);
+
+                $pengajuan->total = $quote['subtotal'];
+                $pengajuan->save();
+
+                // Snapshots are append-only; a resubmission replaces the
+                // previous draft snapshot with the newly quoted one.
+                $pengajuan->opsi()->delete();
+                $this->pricing->snapshot($pengajuan, $quote);
+
+                return redirect()->route('customer.pengajuan.show', $pengajuan)
+                    ->with('success', 'Perubahan tersimpan.');
+            }
+        }
+
         $pengajuan->save();
 
         return redirect()->route('customer.pengajuan.show', $pengajuan)
@@ -196,7 +357,7 @@ class PengajuanController extends Controller
     {
         $this->own($pengajuan);
         abort_unless($pengajuan->status === 'Menunggu Pembayaran', 403);
-        $pengajuan->load('order');
+        $pengajuan->load(['order', 'opsi']);
 
         $order = $pengajuan->order;
         $subtotal = (int) ($order?->subtotal ?? $pengajuan->total ?? 0);

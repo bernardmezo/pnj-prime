@@ -4,6 +4,7 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\MorphMany;
 
 class ProdukUnggulan extends Model
 {
@@ -22,6 +23,11 @@ class ProdukUnggulan extends Model
     public function owner(): BelongsTo
     {
         return $this->belongsTo(User::class, 'owner_id');
+    }
+
+    public function opsi(): MorphMany
+    {
+        return $this->morphMany(Opsi::class, 'opsi');
     }
 
     public function pushHistory(string $status, ?string $note = null, ?string $by = null): void

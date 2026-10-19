@@ -1,5 +1,8 @@
-import { Head, router } from '@inertiajs/react';
+import { Head } from '@inertiajs/react';
+import { useState } from 'react';
+import { FilePlus2 } from 'lucide-react';
 import DashboardLayout from '@/Layouts/DashboardLayout';
+import PengajuanProdukModal from '@/Components/PengajuanProdukModal';
 import { EmptyState, FadeIn, PageHeader, PrimaryButton, StatusBadge, Table, Td } from '@/Components/ui';
 import { href as navHref } from '@/lib/nav';
 import { canBatalProduk, canUbahProduk } from '@/lib/statuses';
@@ -7,6 +10,7 @@ import { canBatalProduk, canUbahProduk } from '@/lib/statuses';
 export default function ProdukIndex({ auth, daftar = [] }) {
     const role = auth?.user?.role;
     const rows = daftar;
+    const [modalOpen, setModalOpen] = useState(false);
 
     return (
         <DashboardLayout title="Pemantauan Produk Unggulan" breadcrumb="Admin P3M / Pemantauan" activeKey="pantau">
@@ -17,8 +21,9 @@ export default function ProdukIndex({ auth, daftar = [] }) {
                     title="Pemantauan Produk Unggulan"
                     desc="Pengajuan produk unggulan Anda yang masih berjalan."
                     actions={
-                        <PrimaryButton href={navHref('p3m.produk.create', {}, role)}>
-                            + Ajukan Produk Unggulan
+                        <PrimaryButton onClick={() => setModalOpen(true)}>
+                            <FilePlus2 className="h-4 w-4" />
+                            Ajukan Produk Unggulan
                         </PrimaryButton>
                     }
                 />
@@ -27,8 +32,9 @@ export default function ProdukIndex({ auth, daftar = [] }) {
                         title="Tidak ada pengajuan berjalan"
                         desc="Ajukan produk unggulan pertama Anda."
                         action={
-                            <PrimaryButton href={navHref('p3m.produk.create', {}, role)}>
-                                + Ajukan Produk Unggulan
+                            <PrimaryButton onClick={() => setModalOpen(true)}>
+                                <FilePlus2 className="h-4 w-4" />
+                                Ajukan Produk Unggulan
                             </PrimaryButton>
                         }
                     />
@@ -64,6 +70,7 @@ export default function ProdukIndex({ auth, daftar = [] }) {
                         </tbody>
                     </Table>
                 )}
+                <PengajuanProdukModal open={modalOpen} onClose={() => setModalOpen(false)} />
             </FadeIn>
         </DashboardLayout>
     );

@@ -10,6 +10,55 @@ use Illuminate\Support\Facades\DB;
 
 class UsecaseSeeder extends Seeder
 {
+    /** Presentation metadata for the shipped fitur (key => [grup, urutan]). */
+    private const META = [
+        'katalog' => ['Layanan', 1],
+        'pengajuan' => ['Layanan', 2],
+        'verifikasi' => ['Layanan', 3],
+        'pembayaran' => ['Pembayaran', 4],
+        'produk-unggulan' => ['P3M', 5],
+        'pengguna' => ['Administrasi', 6],
+        'hak-akses' => ['Administrasi', 7],
+        'fitur' => ['Administrasi', 8],
+    ];
+
+    /**
+     * Factory-default permission matrix (role => fitur => aksi => bool).
+     * Shared with HakAksesController so the "Kembalikan ke bawaan" preset can
+     * reset a role to the values this seeder would install. Super Admin is
+     * always full — it is locked in the UI.
+     *
+     * @return array<string, array<string, array<string, bool>>>
+     */
+    public static function defaultMatrix(?array $fiturKeys = null): array
+    {
+        $full = ['Lihat' => true, 'Tambah' => true, 'Ubah' => true, 'Hapus' => true, 'Verifikasi' => true];
+        $read = ['Lihat' => true, 'Tambah' => false, 'Ubah' => false, 'Hapus' => false, 'Verifikasi' => false];
+
+        $explicit = [
+            'customer' => [
+                'katalog' => $read,
+                'pengajuan' => ['Lihat' => true, 'Tambah' => true, 'Ubah' => true, 'Hapus' => false, 'Verifikasi' => false],
+                'pembayaran' => ['Lihat' => true, 'Tambah' => true, 'Ubah' => false, 'Hapus' => false, 'Verifikasi' => false],
+            ],
+            'admin_rtpu' => ['katalog' => $full, 'pengajuan' => $full, 'verifikasi' => $full, 'pembayaran' => $full, 'produk-unggulan' => $read],
+            'admin_p3m' => ['produk-unggulan' => ['Lihat' => true, 'Tambah' => true, 'Ubah' => true, 'Hapus' => false, 'Verifikasi' => false]],
+            'pimpinan_rtpu' => ['produk-unggulan' => ['Lihat' => true, 'Tambah' => false, 'Ubah' => false, 'Hapus' => false, 'Verifikasi' => true]],
+            'direktur' => [],
+            'super_admin' => [],
+        ];
+
+        $keys = $fiturKeys ?? array_keys(self::META);
+        $out = [];
+        foreach (['customer', 'admin_rtpu', 'admin_p3m', 'pimpinan_rtpu', 'direktur', 'super_admin'] as $role) {
+            foreach ($keys as $key) {
+                $out[$role][$key] = $role === 'super_admin' ? $full : ($explicit[$role][$key] ?? $read);
+            }
+        }
+
+        return $out;
+    }
+
     public function run(): void
     {
         // Satu-satunya kanal resmi: Mandiri BLU PNJ. Nomor rekening mengikuti
@@ -34,29 +83,23 @@ class UsecaseSeeder extends Seeder
             ['fitur', 'Kelola Fitur', 'Mengaktifkan dan menonaktifkan modul.'],
         ];
         foreach ($fitur as [$key, $nama, $deskripsi]) {
-            Fitur::firstOrCreate(['key' => $key], ['nama' => $nama, 'deskripsi' => $deskripsi, 'aktif' => true]);
+            [$grup, $urutan] = self::META[$key] ?? ['Lainnya', 0];
+            Fitur::firstOrCreate(['key' => $key], [
+                'nama' => $nama,
+                'deskripsi' => $deskripsi,
+                'aktif' => true,
+                'grup' => $grup,
+                'urutan' => $urutan,
+                'aksi_tersedia' => Permission::AKSI,
+                'terkunci' => in_array($key, Fitur::PROTECTED, true),
+            ]);
         }
 
-        $full = ['Lihat' => true, 'Tambah' => true, 'Ubah' => true, 'Hapus' => true, 'Verifikasi' => true];
-        $read = ['Lihat' => true, 'Tambah' => false, 'Ubah' => false, 'Hapus' => false, 'Verifikasi' => false];
-
-        $matrix = [
-            'customer' => [
-                'katalog' => $read, 'pengajuan' => ['Lihat' => true, 'Tambah' => true, 'Ubah' => true, 'Hapus' => false, 'Verifikasi' => false],
-                'pembayaran' => ['Lihat' => true, 'Tambah' => true, 'Ubah' => false, 'Hapus' => false, 'Verifikasi' => false],
-            ],
-            'admin_rtpu' => ['katalog' => $full, 'pengajuan' => $full, 'verifikasi' => $full, 'pembayaran' => $full, 'produk-unggulan' => $read],
-            'admin_p3m' => ['produk-unggulan' => ['Lihat' => true, 'Tambah' => true, 'Ubah' => true, 'Hapus' => false, 'Verifikasi' => false]],
-            'pimpinan_rtpu' => ['produk-unggulan' => ['Lihat' => true, 'Tambah' => false, 'Ubah' => false, 'Hapus' => false, 'Verifikasi' => true]],
-            'direktur' => [],
-            'super_admin' => [],
-        ];
-
         $allFitur = array_column($fitur, 0);
-        foreach (['customer', 'admin_rtpu', 'admin_p3m', 'pimpinan_rtpu', 'direktur', 'super_admin'] as $role) {
-            foreach ($allFitur as $key) {
-                $row = $matrix[$role][$key] ?? $read;
-                foreach (['Lihat', 'Tambah', 'Ubah', 'Hapus', 'Verifikasi'] as $aksi) {
+        $matrix = self::defaultMatrix($allFitur);
+        foreach ($matrix as $role => $fiturs) {
+            foreach ($fiturs as $key => $row) {
+                foreach (Permission::AKSI as $aksi) {
                     Permission::updateOrCreate(
                         ['role' => $role, 'fitur_key' => $key, 'aksi' => $aksi],
                         ['allowed' => (bool) ($row[$aksi] ?? false)]

@@ -17,7 +17,7 @@ items (Selesai/Ditolak/Dibatalkan final or full archive per role scope).
 | Mengubah Pengajuan Layanan | `Pages/Customer/Pengajuan/Edit.jsx` | `lib/statuses.js` (canUbahLayanan) | Customer |
 | Memantau Pengajuan Layanan + Memantau Status Pengajuan | `Pages/Customer/Pengajuan/Index.jsx`, `Pages/Customer/Pengajuan/Show.jsx` | `Components/CustomerTabs.jsx`, `Components/StatusTimeline.jsx` | Customer |
 | Membatalkan Pengajuan Layanan (extend) | `Pages/Customer/Pengajuan/Show.jsx` (ConfirmModal) | `Components/ui.jsx` (ConfirmModal) | Customer |
-| Mengajukan Produk Unggulan + Mengunggah Dokumen Pendukung | `Pages/P3M/ProdukUnggulan/Create.jsx` | `Components/FileDropzone.jsx` | Admin P3M |
+| Mengajukan Produk Unggulan + Mengunggah Dokumen Pendukung | `Pages/P3M/Dashboard.jsx`, `Pages/P3M/ProdukUnggulan/Index.jsx` (`Components/PengajuanProdukModal.jsx`) | `Components/FileDropzone.jsx` | Admin P3M |
 | Memantau Pengajuan Produk Unggulan | `Pages/P3M/ProdukUnggulan/Index.jsx`, `Pages/P3M/ProdukUnggulan/Show.jsx` | `Components/StatusTimeline.jsx` | Admin P3M |
 | Mengubah Pengajuan Produk Unggulan (extend) | `Pages/P3M/ProdukUnggulan/Edit.jsx` | `lib/statuses.js` (canUbahProduk) | Admin P3M |
 | Membatalkan Pengajuan Produk Unggulan (extend) | `Pages/P3M/ProdukUnggulan/Show.jsx` (ConfirmModal) | `Components/ui.jsx` (ConfirmModal) | Admin P3M |

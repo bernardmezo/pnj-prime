@@ -27,7 +27,11 @@ class CatalogController extends Controller
             'categories' => ProductCategory::where('is_active', true)
                 ->orderBy('sort_order')
                 ->get(['id', 'name', 'slug', 'icon']),
-            'featured_products' => Product::with(['category', 'owner'])
+            'featured_products' => Product::with([
+                'category',
+                'owner',
+                'opsi' => fn ($q) => $q->where('aktif', true)->urut(),
+            ])
                 ->where('curation_status', 'approved')
                 ->where('is_active', true)
                 ->latest('approved_at')
@@ -48,7 +52,11 @@ class CatalogController extends Controller
      */
     public function browse(Request $request): Response
     {
-        $query = Product::with(['category', 'owner:id,name'])
+        $query = Product::with([
+            'category',
+            'owner:id,name',
+            'opsi' => fn ($q) => $q->where('aktif', true)->urut(),
+        ])
             ->where('curation_status', 'approved')
             ->where('is_active', true);
 
@@ -90,7 +98,11 @@ class CatalogController extends Controller
         );
 
         return Inertia::render('Catalog/Show', [
-            'product' => $product->load(['category', 'owner:id,name']),
+            'product' => $product->load([
+                'category',
+                'owner:id,name',
+                'opsi' => fn ($q) => $q->where('aktif', true)->urut(),
+            ]),
         ]);
     }
 }

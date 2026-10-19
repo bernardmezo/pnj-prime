@@ -1,6 +1,8 @@
 import { Head, router, useForm } from '@inertiajs/react';
 import { useState } from 'react';
 import DashboardLayout from '@/Layouts/DashboardLayout';
+import Checkbox from '@/Components/ui/Checkbox';
+import Select from '@/Components/ui/Select';
 import { Card, ConfirmModal, EmptyState, FadeIn, Field, PageHeader, PrimaryButton, StatusBadge, Table, Td, inputClass, inputStyleProps } from '@/Components/ui';
 
 export default function MetodeIndex({ auth, metode = [] }) {
@@ -77,11 +79,13 @@ export default function MetodeIndex({ auth, metode = [] }) {
                         <Field label="Nama metode" error={errors.name}>
                             <input value={data.name} onChange={(e) => setData('name', e.target.value)} placeholder="mis. Transfer Bank BNI" className={inputClass} {...inputStyleProps()} />
                         </Field>
-                        <Field label="Tipe" error={errors.type}>
-                            <select value={data.type} onChange={(e) => setData('type', e.target.value)} className={inputClass} {...inputStyleProps()}>
-                                {['Transfer Bank', 'Virtual Account', 'Tunai', 'Lainnya'].map((t) => <option key={t} value={t}>{t}</option>)}
-                            </select>
-                        </Field>
+                        <Select
+                            label="Tipe"
+                            value={data.type}
+                            onChange={(v) => setData('type', v)}
+                            options={['Transfer Bank', 'Virtual Account', 'Tunai', 'Lainnya'].map((t) => ({ value: t, label: t }))}
+                            error={errors.type}
+                        />
                         <Field label="Nomor rekening / VA" error={errors.account}>
                             <input value={data.account} onChange={(e) => setData('account', e.target.value)} className={inputClass} {...inputStyleProps()} />
                         </Field>
@@ -91,10 +95,11 @@ export default function MetodeIndex({ auth, metode = [] }) {
                         <Field label="Instruksi" error={errors.instructions}>
                             <textarea value={data.instructions} onChange={(e) => setData('instructions', e.target.value)} rows={2} className={inputClass} {...inputStyleProps()} />
                         </Field>
-                        <label className="flex cursor-pointer items-center gap-2.5 text-sm font-medium" style={{ color: 'var(--color-ink)' }}>
-                            <input type="checkbox" checked={data.active} onChange={(e) => setData('active', e.target.checked)} className="h-4 w-4 rounded" style={{ accentColor: 'var(--color-accent)' }} />
-                            Aktif (bisa dipilih Customer)
-                        </label>
+                        <Checkbox
+                            checked={data.active}
+                            onChange={(v) => setData('active', v)}
+                            label="Aktif (bisa dipilih Customer)"
+                        />
                     </div>
                 </ConfirmModal>
 

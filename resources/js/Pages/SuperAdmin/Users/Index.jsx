@@ -1,7 +1,10 @@
 import { Head, router, useForm } from '@inertiajs/react';
 import { useState } from 'react';
 import DashboardLayout from '@/Layouts/DashboardLayout';
-import { ConfirmModal, EmptyState, FadeIn, Field, PageHeader, PrimaryButton, RoleBadge, StatusBadge, Table, Td, inputClass, inputStyleProps } from '@/Components/ui';
+import { ConfirmModal, EmptyState, FadeIn, PageHeader, PrimaryButton, RoleBadge, StatusBadge, Table, Td } from '@/Components/ui';
+import TextInput from '@/Components/ui/TextInput';
+import Select from '@/Components/ui/Select';
+import Switch from '@/Components/ui/Switch';
 import { ROLE_KEYS, roleLabel } from '@/lib/roles';
 
 const EMPTY = { name: '', email: '', password: '', role: 'customer', active: true };
@@ -74,24 +77,40 @@ export default function UsersIndex({ auth, users = [] }) {
                     processing={processing}
                 >
                     <div className="space-y-3">
-                        <Field label="Nama lengkap" error={errors.name}>
-                            <input value={data.name} onChange={(e) => setData('name', e.target.value)} className={inputClass} {...inputStyleProps()} />
-                        </Field>
-                        <Field label="Email" error={errors.email}>
-                            <input type="email" value={data.email} onChange={(e) => setData('email', e.target.value)} className={inputClass} {...inputStyleProps()} />
-                        </Field>
-                        <Field label={editing === 'new' ? 'Kata sandi' : 'Kata sandi baru (kosongkan bila tidak diubah)'} error={errors.password}>
-                            <input type="password" value={data.password} onChange={(e) => setData('password', e.target.value)} autoComplete="new-password" className={inputClass} {...inputStyleProps()} />
-                        </Field>
-                        <Field label="Role" error={errors.role}>
-                            <select value={data.role} onChange={(e) => setData('role', e.target.value)} className={inputClass} {...inputStyleProps()}>
-                                {ROLE_KEYS.map((k) => <option key={k} value={k}>{roleLabel(k)}</option>)}
-                            </select>
-                        </Field>
-                        <label className="flex cursor-pointer items-center gap-2.5 text-sm font-medium" style={{ color: 'var(--color-ink)' }}>
-                            <input type="checkbox" checked={data.active} onChange={(e) => setData('active', e.target.checked)} className="h-4 w-4 rounded" style={{ accentColor: 'var(--color-accent)' }} />
-                            Akun aktif
-                        </label>
+                        <TextInput
+                            label="Nama lengkap"
+                            value={data.name}
+                            onChange={(e) => setData('name', e.target.value)}
+                            error={errors.name}
+                        />
+                        <TextInput
+                            label="Email"
+                            type="email"
+                            value={data.email}
+                            onChange={(e) => setData('email', e.target.value)}
+                            error={errors.email}
+                        />
+                        <TextInput
+                            label={editing === 'new' ? 'Kata sandi' : 'Kata sandi baru (kosongkan bila tidak diubah)'}
+                            type="password"
+                            value={data.password}
+                            onChange={(e) => setData('password', e.target.value)}
+                            autoComplete="new-password"
+                            error={errors.password}
+                        />
+                        <Select
+                            label="Role"
+                            value={data.role}
+                            onChange={(v) => setData('role', v)}
+                            options={ROLE_KEYS.map((k) => ({ value: k, label: roleLabel(k) }))}
+                            error={errors.role}
+                        />
+                        <Switch
+                            checked={data.active}
+                            onChange={(v) => setData('active', v)}
+                            label="Akun aktif"
+                            description="Nonaktifkan agar user tidak dapat masuk."
+                        />
                     </div>
                 </ConfirmModal>
 

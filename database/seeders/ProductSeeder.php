@@ -2,6 +2,7 @@
 
 namespace Database\Seeders;
 
+use App\Models\Opsi;
 use App\Models\Product;
 use App\Models\ProductCategory;
 use App\Models\User;
@@ -69,6 +70,62 @@ class ProductSeeder extends Seeder
                     'is_active'         => true,
                 ]
             );
+        }
+
+        $this->seedOpsi();
+    }
+
+    /**
+     * Demo "termasuk" / "addon" options so the catalog and the pengajuan
+     * pricing breakdown have something to show out of the box.
+     */
+    private function seedOpsi(): void
+    {
+        $demo = [
+            'Ruang Rapat Lantai 2' => [
+                ['jenis' => 'termasuk', 'nama' => 'Proyektor & layar', 'harga' => 0, 'satuan' => 'flat'],
+                ['jenis' => 'addon', 'nama' => 'Snack peserta', 'harga' => 25000, 'satuan' => 'per_orang'],
+                ['jenis' => 'addon', 'nama' => 'Sound system', 'harga' => 150000, 'satuan' => 'flat'],
+            ],
+            'Aula Gedung Serbaguna PNJ' => [
+                ['jenis' => 'addon', 'nama' => 'Kursi tambahan', 'harga' => 5000, 'satuan' => 'per_unit', 'qty_max' => 100, 'stok' => 100],
+            ],
+            'Pengujian Kuat Tekan Beton' => [
+                ['jenis' => 'addon', 'nama' => 'Sampel tambahan', 'harga' => 50000, 'satuan' => 'per_unit', 'qty_max' => 50],
+            ],
+            'Alat Uji Kualitas Air Portable' => [
+                ['jenis' => 'termasuk', 'nama' => 'Garansi 1 tahun', 'harga' => 0, 'satuan' => 'flat'],
+                ['jenis' => 'addon', 'nama' => 'Kalibrasi ulang', 'harga' => 350000, 'satuan' => 'flat'],
+            ],
+        ];
+
+        foreach ($demo as $productName => $rows) {
+            $product = Product::where('name', $productName)->first();
+            if (! $product) {
+                continue;
+            }
+
+            foreach ($rows as $urutan => $row) {
+                Opsi::updateOrCreate(
+                    [
+                        'opsi_type' => Product::class,
+                        'opsi_id' => $product->id,
+                        'jenis' => $row['jenis'],
+                        'nama' => $row['nama'],
+                    ],
+                    array_merge([
+                        'deskripsi' => null,
+                        'harga' => 0,
+                        'satuan' => 'flat',
+                        'qty_min' => 1,
+                        'qty_max' => null,
+                        'stok' => null,
+                        'aktif' => true,
+                        'urutan' => $urutan,
+                        'sumber' => 'admin',
+                    ], $row)
+                );
+            }
         }
     }
 }

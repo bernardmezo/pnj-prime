@@ -2,6 +2,7 @@ import { Head, router } from '@inertiajs/react';
 import { useState } from 'react';
 import DashboardLayout from '@/Layouts/DashboardLayout';
 import StatusTimeline from '@/Components/StatusTimeline';
+import Select from '@/Components/ui/Select';
 import { Card, FadeIn, Field, PageHeader, PrimaryButton, StatusBadge, inputClass, inputStyleProps } from '@/Components/ui';
 import { LAYANAN_FLOW, NEXT_STATUS } from '@/lib/statuses';
 
@@ -65,12 +66,13 @@ export default function StatusLayanan({ auth, daftar = [] }) {
                                     <StatusTimeline flow={LAYANAN_FLOW} history={sel.history ?? []} current={sel.status} />
                                 </div>
                                 <div className="mt-5 space-y-3 border-t pt-5" style={{ borderColor: 'var(--color-border)' }}>
-                                    <Field label="Status berikutnya">
-                                        <select value={next} onChange={(e) => setNext(e.target.value)} className={inputClass} {...inputStyleProps()}>
-                                            <option value="">Pilih status…</option>
-                                            {options.map((s) => <option key={s} value={s}>{s}</option>)}
-                                        </select>
-                                    </Field>
+                                    <Select
+                                        label="Status berikutnya"
+                                        value={next}
+                                        onChange={setNext}
+                                        options={options.map((s) => ({ value: s, label: s }))}
+                                        placeholder="Pilih status…"
+                                    />
                                     <Field label="Catatan (opsional)">
                                         <textarea value={note} onChange={(e) => setNote(e.target.value)} rows={2} placeholder="Catatan untuk pemohon…" className={inputClass} {...inputStyleProps()} />
                                     </Field>

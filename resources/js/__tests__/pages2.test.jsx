@@ -146,12 +146,6 @@ describe('remaining pages render with realistic controller props', () => {
         atLeast('Riwayat Transaksi');
     });
 
-    it('P3M/ProdukUnggulan/Create renders form', async () => {
-        const { default: Page } = await import('@/Pages/P3M/ProdukUnggulan/Create.jsx');
-        render(<Page auth={auth} />);
-        atLeast('Ajukan Produk Unggulan');
-    });
-
     it('P3M/ProdukUnggulan/Edit renders prefilled form', async () => {
         const { default: Page } = await import('@/Pages/P3M/ProdukUnggulan/Edit.jsx');
         render(<Page auth={auth} item={produk} />);

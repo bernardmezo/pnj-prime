@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { Check, X } from 'lucide-react';
+import Checkbox from '@/Components/ui/Checkbox';
 import { ConfirmModal, DangerButton, PrimaryButton, inputClass, inputStyleProps } from '@/Components/ui';
 
 /**
@@ -41,16 +42,11 @@ export default function ReviewPanel({
                     <ul className="space-y-2">
                         {checklist.map((item, i) => (
                             <li key={i}>
-                                <label className="flex cursor-pointer items-start gap-2.5 text-sm" style={{ color: 'var(--color-ink)' }}>
-                                    <input
-                                        type="checkbox"
-                                        checked={checked.includes(i)}
-                                        onChange={() => toggle(i)}
-                                        className="mt-1 h-4 w-4 rounded"
-                                        style={{ accentColor: 'var(--color-accent)' }}
-                                    />
-                                    {item}
-                                </label>
+                                <Checkbox
+                                    checked={checked.includes(i)}
+                                    onChange={() => toggle(i)}
+                                    label={item}
+                                />
                             </li>
                         ))}
                     </ul>

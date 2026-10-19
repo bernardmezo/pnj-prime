@@ -53,6 +53,11 @@ class Pengajuan extends Model
         return $this->hasOne(Order::class, 'pengajuan_id');
     }
 
+    public function opsi(): HasMany
+    {
+        return $this->hasMany(PengajuanOpsi::class, 'pengajuan_id');
+    }
+
     public function orders(): HasMany
     {
         return $this->hasMany(Order::class, 'pengajuan_id');

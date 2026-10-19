@@ -81,6 +81,24 @@ class VerifikasiController extends Controller
                     'produk_unggulan_id' => $produk->id,
                     'meta' => ['category' => $produk->category, 'team' => $produk->team, 'researcher' => $produk->researcher],
                 ]);
+
+                // Carry the options proposed with the Produk Unggulan onto the
+                // new (inactive) Layanan, tagged as a P3M proposal for RTPU review.
+                foreach ($produk->opsi()->urut()->get() as $opsi) {
+                    $layanan->opsi()->create([
+                        'jenis' => $opsi->jenis,
+                        'nama' => $opsi->nama,
+                        'deskripsi' => $opsi->deskripsi,
+                        'harga' => $opsi->harga,
+                        'satuan' => $opsi->satuan,
+                        'qty_min' => $opsi->qty_min,
+                        'qty_max' => $opsi->qty_max,
+                        'stok' => $opsi->stok,
+                        'aktif' => $opsi->aktif,
+                        'urutan' => $opsi->urutan,
+                        'sumber' => 'usulan_p3m',
+                    ]);
+                }
             }
 
             $produk->setStatus(

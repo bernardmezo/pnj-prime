@@ -1,5 +1,5 @@
 import { Head, useForm } from '@inertiajs/react';
-import Checkbox from '@/Components/Checkbox';
+import Checkbox from '@/Components/ui/Checkbox';
 import InputError from '@/Components/InputError';
 import InputLabel from '@/Components/InputLabel';
 import PrimaryButton from '@/Components/PrimaryButton';
@@ -45,14 +45,12 @@ export default function AdminSettings({ settings, audits = [] }) {
                             Atur pengenaan pajak pertambahan nilai (PPN) pada seluruh transaksi platform.
                         </p>
                         <div className="space-y-5">
-                            <div className="flex items-center gap-3">
-                                <Checkbox
-                                    id="ppn_enabled"
-                                    checked={data.settings.ppn_enabled === '1'}
-                                    onChange={(e) => set('ppn_enabled', e.target.checked ? '1' : '0')}
-                                />
-                                <InputLabel htmlFor="ppn_enabled" value="Aktifkan PPN" className="mb-0" />
-                            </div>
+                            <Checkbox
+                                id="ppn_enabled"
+                                checked={data.settings.ppn_enabled === '1'}
+                                onChange={(v) => set('ppn_enabled', v ? '1' : '0')}
+                                label="Aktifkan PPN"
+                            />
                             <div>
                                 <InputLabel htmlFor="ppn_rate" value="Tarif PPN (%)" />
                                 <TextInput

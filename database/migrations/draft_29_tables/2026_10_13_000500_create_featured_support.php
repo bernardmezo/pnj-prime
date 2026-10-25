@@ -107,11 +107,11 @@ return new class extends Migration
         // --- CHECK constraints ---
         DB::statement("ALTER TABLE featured_products ADD CONSTRAINT ck_fp_status CHECK (status IN (
             'MENUNGGU_VERIFIKASI','DIPERIKSA_RTPU','DISETUJUI','DITOLAK','DIBATALKAN'))");
-        DB::statement("ALTER TABLE featured_products ADD CONSTRAINT ck_fp_amounts CHECK (
+        DB::statement('ALTER TABLE featured_products ADD CONSTRAINT ck_fp_amounts CHECK (
             base_cost >= 0
             AND (platform_margin IS NULL OR platform_margin >= 0)
-            AND (final_price IS NULL OR final_price >= 0))");
-        DB::statement("ALTER TABLE featured_products ADD CONSTRAINT ck_fp_stock CHECK (stock >= 0)");
+            AND (final_price IS NULL OR final_price >= 0))');
+        DB::statement('ALTER TABLE featured_products ADD CONSTRAINT ck_fp_stock CHECK (stock >= 0)');
         DB::statement("ALTER TABLE featured_products ADD CONSTRAINT ck_fp_reject_note
             CHECK (status <> 'DITOLAK' OR rejection_note IS NOT NULL)");
         // BR-01/BR-11: DISETUJUI wajib sudah punya harga final

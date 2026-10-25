@@ -156,19 +156,19 @@ return new class extends Migration
             'MENUNGGU_VERIFIKASI_PEMBAYARAN','LUNAS','DIPROSES','SELESAI','DIBATALKAN'))");
         DB::statement("ALTER TABLE service_requests ADD CONSTRAINT ck_sr_reject_note
             CHECK (status <> 'DITOLAK' OR rejection_note IS NOT NULL)");
-        DB::statement("ALTER TABLE service_request_items ADD CONSTRAINT ck_sri_price
-            CHECK (unit_price_snapshot >= 0 AND subtotal >= 0)");
-        DB::statement("ALTER TABLE service_request_items ADD CONSTRAINT ck_sri_qty
-            CHECK (quantity > 0)");
-        DB::statement("ALTER TABLE room_reservations ADD CONSTRAINT ck_rr_period
-            CHECK (end_datetime > start_datetime)");
+        DB::statement('ALTER TABLE service_request_items ADD CONSTRAINT ck_sri_price
+            CHECK (unit_price_snapshot >= 0 AND subtotal >= 0)');
+        DB::statement('ALTER TABLE service_request_items ADD CONSTRAINT ck_sri_qty
+            CHECK (quantity > 0)');
+        DB::statement('ALTER TABLE room_reservations ADD CONSTRAINT ck_rr_period
+            CHECK (end_datetime > start_datetime)');
         DB::statement("ALTER TABLE room_reservations ADD CONSTRAINT ck_rr_status
             CHECK (status IN ('ACTIVE','RELEASED'))");
         DB::statement("ALTER TABLE invoices ADD CONSTRAINT ck_inv_status CHECK (status IN
             ('UNPAID','PENDING_VERIFICATION','PAID','CANCELLED'))");
-        DB::statement("ALTER TABLE invoices ADD CONSTRAINT ck_inv_amounts
-            CHECK (subtotal >= 0 AND tax_total >= 0 AND grand_total >= 0)");
-        DB::statement("ALTER TABLE payments ADD CONSTRAINT ck_pay_amount CHECK (amount > 0)");
+        DB::statement('ALTER TABLE invoices ADD CONSTRAINT ck_inv_amounts
+            CHECK (subtotal >= 0 AND tax_total >= 0 AND grand_total >= 0)');
+        DB::statement('ALTER TABLE payments ADD CONSTRAINT ck_pay_amount CHECK (amount > 0)');
         DB::statement("ALTER TABLE payments ADD CONSTRAINT ck_pay_status CHECK (status IN
             ('MENUNGGU_VERIFIKASI','LUNAS','DITOLAK'))");
         DB::statement("ALTER TABLE payments ADD CONSTRAINT ck_pay_reject_note

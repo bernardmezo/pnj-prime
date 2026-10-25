@@ -24,6 +24,7 @@ class ProductSeeder extends Seeder
 
         if (! $owner) {
             $this->command->warn('ProductSeeder: no owner user found, skipping.');
+
             return;
         }
 
@@ -55,19 +56,19 @@ class ProductSeeder extends Seeder
             Product::updateOrCreate(
                 ['slug' => $slug],
                 [
-                    'owner_id'          => $owner->id,
-                    'category_id'       => $categoryId,
-                    'name'              => $item['name'],
+                    'owner_id' => $owner->id,
+                    'category_id' => $categoryId,
+                    'name' => $item['name'],
                     'short_description' => $item['short'],
-                    'description'       => $item['short'] . ' Diajukan melalui PNJ Prime dan dikurasi oleh Admin RTPU sebelum tayang di katalog publik.',
-                    'thumbnail'         => '/assets/product.jpg',
-                    'base_price'        => $item['base'],
-                    'final_price'       => $item['final'],
-                    'curation_status'   => $item['status'],
-                    'approved_at'       => $item['status'] === 'approved' ? now() : null,
-                    'approved_by'       => $item['status'] === 'approved' ? $approver?->id : null,
-                    'stock'             => $item['stock'],
-                    'is_active'         => true,
+                    'description' => $item['short'].' Diajukan melalui PNJ Prime dan dikurasi oleh Admin RTPU sebelum tayang di katalog publik.',
+                    'thumbnail' => '/assets/product.jpg',
+                    'base_price' => $item['base'],
+                    'final_price' => $item['final'],
+                    'curation_status' => $item['status'],
+                    'approved_at' => $item['status'] === 'approved' ? now() : null,
+                    'approved_by' => $item['status'] === 'approved' ? $approver?->id : null,
+                    'stock' => $item['stock'],
+                    'is_active' => true,
                 ]
             );
         }

@@ -8,6 +8,7 @@ use App\Models\Permission;
 use App\Models\User;
 use Database\Seeders\UsecaseSeeder;
 use Illuminate\Http\Request;
+use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
 use Inertia\Inertia;
 use Inertia\Response;
@@ -153,7 +154,7 @@ class HakAksesController extends Controller
      * Factory-default matrix (role => fitur => aksi => bool) constrained to the
      * actions each fitur exposes.
      *
-     * @param  \Illuminate\Support\Collection<int, array<string, mixed>>  $fitur
+     * @param  Collection<int, array<string, mixed>>  $fitur
      * @return array<string, array<string, array<string, bool>>>
      */
     private function defaultMatrixFor($fitur): array

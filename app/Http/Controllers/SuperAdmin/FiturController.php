@@ -13,7 +13,7 @@ use Inertia\Response;
 class FiturController extends Controller
 {
     /** Fitur that can never be deactivated or deleted (lockout prevention). */
-    public const protected = Fitur::PROTECTED;
+    public const PROTECTED = Fitur::PROTECTED;
 
     public function index(): Response
     {

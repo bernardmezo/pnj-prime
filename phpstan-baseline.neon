@@ -1,0 +1,259 @@
+parameters:
+	ignoreErrors:
+		-
+			message: '#^Access to undefined constant Illuminate\\Support\\Facades\\Password\:\:PASSWORD_RESET\.$#'
+			identifier: classConstant.notFound
+			count: 1
+			path: app/Http/Controllers/Auth/NewPasswordController.php
+
+		-
+			message: '#^Access to undefined constant Illuminate\\Support\\Facades\\Password\:\:RESET_LINK_SENT\.$#'
+			identifier: classConstant.notFound
+			count: 1
+			path: app/Http/Controllers/Auth/PasswordResetLinkController.php
+
+		-
+			message: '#^Access to undefined constant App\\Models\\Pengajuan\:\:CLOSED\.$#'
+			identifier: classConstant.notFound
+			count: 1
+			path: app/Http/Controllers/Customer/PengajuanController.php
+
+		-
+			message: '#^Access to undefined constant App\\Models\\Pengajuan\:\:CLOSED\.$#'
+			identifier: classConstant.notFound
+			count: 1
+			path: app/Http/Controllers/Customer/RiwayatController.php
+
+		-
+			message: '#^Access to undefined constant App\\Models\\Opsi\:\:JENIS\.$#'
+			identifier: classConstant.notFound
+			count: 2
+			path: app/Http/Controllers/P3M/OpsiController.php
+
+		-
+			message: '#^Call to an undefined static method App\\Models\\Opsi\:\:satuanUntukTipe\(\)\.$#'
+			identifier: staticMethod.notFound
+			count: 2
+			path: app/Http/Controllers/P3M/OpsiController.php
+
+		-
+			message: '#^Access to undefined constant App\\Models\\Opsi\:\:JENIS\.$#'
+			identifier: classConstant.notFound
+			count: 1
+			path: app/Http/Controllers/P3M/ProdukUnggulanController.php
+
+		-
+			message: '#^Call to an undefined static method App\\Models\\Opsi\:\:satuanUntukTipe\(\)\.$#'
+			identifier: staticMethod.notFound
+			count: 1
+			path: app/Http/Controllers/P3M/ProdukUnggulanController.php
+
+		-
+			message: '#^Access to undefined constant App\\Models\\Opsi\:\:JENIS\.$#'
+			identifier: classConstant.notFound
+			count: 1
+			path: app/Http/Controllers/Rtpu/LayananController.php
+
+		-
+			message: '#^Call to an undefined static method App\\Models\\Opsi\:\:satuanUntukTipe\(\)\.$#'
+			identifier: staticMethod.notFound
+			count: 1
+			path: app/Http/Controllers/Rtpu/LayananController.php
+
+		-
+			message: '#^Access to undefined constant App\\Models\\Opsi\:\:JENIS\.$#'
+			identifier: classConstant.notFound
+			count: 2
+			path: app/Http/Controllers/Rtpu/OpsiController.php
+
+		-
+			message: '#^Call to an undefined static method App\\Models\\Opsi\:\:satuanUntukTipe\(\)\.$#'
+			identifier: staticMethod.notFound
+			count: 2
+			path: app/Http/Controllers/Rtpu/OpsiController.php
+
+		-
+			message: '#^Access to undefined constant App\\Models\\Pengajuan\:\:NEXT\.$#'
+			identifier: classConstant.notFound
+			count: 1
+			path: app/Http/Controllers/Rtpu/StatusController.php
+
+		-
+			message: '#^Access to undefined constant App\\Http\\Controllers\\SuperAdmin\\FiturController\:\:PROTECTED\.$#'
+			identifier: classConstant.notFound
+			count: 2
+			path: app/Http/Controllers/SuperAdmin/FiturController.php
+
+		-
+			message: '#^Access to undefined constant App\\Models\\Fitur\:\:PROTECTED\.$#'
+			identifier: classConstant.notFound
+			count: 1
+			path: app/Http/Controllers/SuperAdmin/FiturController.php
+
+		-
+			message: '#^Access to undefined constant App\\Models\\Permission\:\:AKSI\.$#'
+			identifier: classConstant.notFound
+			count: 3
+			path: app/Http/Controllers/SuperAdmin/FiturController.php
+
+		-
+			message: '#^Access to undefined constant App\\Models\\Permission\:\:AKSI\.$#'
+			identifier: classConstant.notFound
+			count: 2
+			path: app/Http/Controllers/SuperAdmin/HakAksesController.php
+
+		-
+			message: '#^Call to an undefined static method App\\Models\\User\:\:flushPermissionCache\(\)\.$#'
+			identifier: staticMethod.notFound
+			count: 1
+			path: app/Http/Controllers/SuperAdmin/HakAksesController.php
+
+		-
+			message: '#^Call to an undefined method App\\Http\\Requests\\Api\\StorePengajuanApiRequest\:\:user\(\)\.$#'
+			identifier: method.notFound
+			count: 1
+			path: app/Http/Requests/Api/StorePengajuanApiRequest.php
+
+		-
+			message: '#^Call to an undefined method App\\Http\\Requests\\Auth\\LoginRequest\:\:boolean\(\)\.$#'
+			identifier: method.notFound
+			count: 1
+			path: app/Http/Requests/Auth/LoginRequest.php
+
+		-
+			message: '#^Call to an undefined method App\\Http\\Requests\\Auth\\LoginRequest\:\:ip\(\)\.$#'
+			identifier: method.notFound
+			count: 1
+			path: app/Http/Requests/Auth/LoginRequest.php
+
+		-
+			message: '#^Call to an undefined method App\\Http\\Requests\\Auth\\LoginRequest\:\:only\(\)\.$#'
+			identifier: method.notFound
+			count: 1
+			path: app/Http/Requests/Auth/LoginRequest.php
+
+		-
+			message: '#^Call to an undefined method App\\Http\\Requests\\Auth\\LoginRequest\:\:string\(\)\.$#'
+			identifier: method.notFound
+			count: 1
+			path: app/Http/Requests/Auth/LoginRequest.php
+
+		-
+			message: '#^Call to an undefined method App\\Http\\Requests\\ProfileUpdateRequest\:\:user\(\)\.$#'
+			identifier: method.notFound
+			count: 1
+			path: app/Http/Requests/ProfileUpdateRequest.php
+
+		-
+			message: '#^Access to an undefined property App\\Http\\Resources\\Api\\V1\\OrderResource\:\:\$total_amount\.$#'
+			identifier: property.notFound
+			count: 2
+			path: app/Http/Resources/Api/V1/OrderResource.php
+
+		-
+			message: '#^Access to an undefined property App\\Http\\Resources\\Api\\V1\\PengajuanResource\:\:\$jumlah_peserta\.$#'
+			identifier: property.notFound
+			count: 1
+			path: app/Http/Resources/Api/V1/PengajuanResource.php
+
+		-
+			message: '#^Access to an undefined property App\\Http\\Resources\\Api\\V1\\PengajuanResource\:\:\$tanggal_mulai\.$#'
+			identifier: property.notFound
+			count: 1
+			path: app/Http/Resources/Api/V1/PengajuanResource.php
+
+		-
+			message: '#^Access to an undefined property App\\Http\\Resources\\Api\\V1\\PengajuanResource\:\:\$tanggal_selesai\.$#'
+			identifier: property.notFound
+			count: 1
+			path: app/Http/Resources/Api/V1/PengajuanResource.php
+
+		-
+			message: '#^Access to an undefined property App\\Http\\Resources\\Api\\V1\\PengajuanResource\:\:\$total_biaya\.$#'
+			identifier: property.notFound
+			count: 2
+			path: app/Http/Resources/Api/V1/PengajuanResource.php
+
+		-
+			message: '#^Access to an undefined property App\\Models\\Fitur\:\:\$aksi_tersedia\.$#'
+			identifier: property.notFound
+			count: 1
+			path: app/Models/Fitur.php
+
+		-
+			message: '#^Access to an undefined property App\\Models\\Fitur\:\:\$key\.$#'
+			identifier: property.notFound
+			count: 1
+			path: app/Models/Fitur.php
+
+		-
+			message: '#^Access to an undefined property App\\Models\\Fitur\:\:\$terkunci\.$#'
+			identifier: property.notFound
+			count: 1
+			path: app/Models/Fitur.php
+
+		-
+			message: '#^Access to undefined constant App\\Models\\Permission\:\:AKSI\.$#'
+			identifier: classConstant.notFound
+			count: 1
+			path: app/Models/Fitur.php
+
+		-
+			message: '#^Access to an undefined property App\\Models\\Opsi\:\:\$jenis\.$#'
+			identifier: property.notFound
+			count: 2
+			path: app/Models/Opsi.php
+
+		-
+			message: '#^Access to an undefined property App\\Models\\Order\:\:\$status\.$#'
+			identifier: property.notFound
+			count: 2
+			path: app/Models/Order.php
+
+		-
+			message: '#^Access to an undefined property App\\Models\\Pengajuan\:\:\$history\.$#'
+			identifier: property.notFound
+			count: 1
+			path: app/Models/Pengajuan.php
+
+		-
+			message: '#^Access to an undefined property App\\Models\\Pengajuan\:\:\$status\.$#'
+			identifier: property.notFound
+			count: 2
+			path: app/Models/Pengajuan.php
+
+		-
+			message: '#^Access to an undefined property App\\Models\\Product\:\:\$curation_status\.$#'
+			identifier: property.notFound
+			count: 4
+			path: app/Models/Product.php
+
+		-
+			message: '#^Access to an undefined property App\\Models\\ProdukUnggulan\:\:\$history\.$#'
+			identifier: property.notFound
+			count: 1
+			path: app/Models/ProdukUnggulan.php
+
+		-
+			message: '#^Access to an undefined property App\\Models\\ProdukUnggulan\:\:\$status\.$#'
+			identifier: property.notFound
+			count: 2
+			path: app/Models/ProdukUnggulan.php
+
+		-
+			message: '#^Access to an undefined property App\\Models\\TenantProfile\:\:\$verification_status\.$#'
+			identifier: property.notFound
+			count: 1
+			path: app/Models/TenantProfile.php
+
+		-
+			message: '#^Access to an undefined property App\\Models\\User\:\:\$account_origin\.$#'
+			identifier: property.notFound
+			count: 1
+			path: app/Models/User.php
+
+		-
+			message: '#^Access to an undefined property App\\Models\\User\:\:\$role\.$#'
+			identifier: property.notFound
+			count: 11
+			path: app/Models/User.php

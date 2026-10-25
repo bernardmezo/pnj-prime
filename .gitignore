@@ -20,11 +20,32 @@
 /public/storage
 /storage/*.key
 /storage/pail
+/storage/app/*
+!/storage/app/.gitignore
+!/storage/app/public/
+!/storage/app/public/.gitignore
+/storage/framework/cache/*
+!/storage/framework/cache/.gitignore
+/storage/framework/sessions/*
+!/storage/framework/sessions/.gitignore
+/storage/framework/testing/*
+!/storage/framework/testing/.gitignore
+/storage/framework/views/*
+!/storage/framework/views/.gitignore
+/storage/logs/*
+!/storage/logs/.gitignore
 /vendor
 _ide_helper.php
+_ide_helper_models.php
+.phpstorm.meta.php
 Homestead.json
 Homestead.yaml
 Thumbs.db
 
 # empty placeholder favicon
 /public/favicon.ico
+
+# Local documentation & analysis (kept untracked)
+/docs/
+.phpstan.cache
+coverage

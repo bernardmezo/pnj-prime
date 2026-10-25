@@ -79,12 +79,6 @@ parameters:
 			path: app/Http/Controllers/Rtpu/StatusController.php
 
 		-
-			message: '#^Access to undefined constant App\\Http\\Controllers\\SuperAdmin\\FiturController\:\:PROTECTED\.$#'
-			identifier: classConstant.notFound
-			count: 2
-			path: app/Http/Controllers/SuperAdmin/FiturController.php
-
-		-
 			message: '#^Access to undefined constant App\\Models\\Fitur\:\:PROTECTED\.$#'
 			identifier: classConstant.notFound
 			count: 1

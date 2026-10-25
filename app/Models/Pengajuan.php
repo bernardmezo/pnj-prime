@@ -22,9 +22,11 @@ class Pengajuan extends Model
     public const CLOSED = ['Selesai', 'Dibatalkan', 'Ditolak'];
 
     public const NEXT = [
+        'Diajukan' => ['Menunggu Pembayaran', 'Menunggu Persetujuan Pimpinan', 'Ditolak'],
+        'Menunggu Persetujuan Pimpinan' => ['Menunggu Pembayaran', 'Ditolak'],
+        'Menunggu Pembayaran' => ['Menunggu Verifikasi Pembayaran', 'Dibatalkan'],
         'Menunggu Verifikasi Pembayaran' => ['Diproses', 'Menunggu Pembayaran'],
         'Diproses' => ['Selesai', 'Dibatalkan'],
-        'Diajukan' => ['Menunggu Pembayaran', 'Ditolak'],
     ];
 
     protected $fillable = [
@@ -56,6 +58,11 @@ class Pengajuan extends Model
     public function opsi(): HasMany
     {
         return $this->hasMany(PengajuanOpsi::class, 'pengajuan_id');
+    }
+
+    public function roomBookings(): HasMany
+    {
+        return $this->hasMany(RoomBooking::class, 'pengajuan_id');
     }
 
     public function orders(): HasMany

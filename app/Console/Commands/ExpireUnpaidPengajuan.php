@@ -5,6 +5,7 @@ namespace App\Console\Commands;
 use App\Models\Pengajuan;
 use Illuminate\Console\Command;
 use Illuminate\Support\Carbon;
+use Illuminate\Support\Facades\DB;
 
 class ExpireUnpaidPengajuan extends Command
 {
@@ -30,22 +31,24 @@ class ExpireUnpaidPengajuan extends Command
         $hours = (int) $this->option('hours');
         $cutoff = Carbon::now()->subHours($hours);
 
-        $expired = Pengajuan::query()
+        $count = 0;
+        Pengajuan::query()
             ->where('status', 'Menunggu Pembayaran')
             ->where('updated_at', '<=', $cutoff)
-            ->get();
-
-        $count = 0;
-        foreach ($expired as $item) {
-            $item->pushHistory(
-                'Dibatalkan',
-                "Kedaluwarsa otomatis: batas waktu pembayaran ({$hours} jam) terlampaui.",
-                'Sistem'
-            );
-            $item->status = 'Dibatalkan';
-            $item->save();
-            $count++;
-        }
+            ->chunkById(100, function ($batch) use (&$count, $hours) {
+                DB::transaction(function () use ($batch, &$count, $hours) {
+                    foreach ($batch as $item) {
+                        $item->pushHistory(
+                            'Dibatalkan',
+                            "Kedaluwarsa otomatis: batas waktu pembayaran ({$hours} jam) terlampaui.",
+                            'Sistem'
+                        );
+                        $item->status = 'Dibatalkan';
+                        $item->save();
+                        $count++;
+                    }
+                });
+            });
 
         $this->info("Berhasil membatalkan {$count} pengajuan kedaluwarsa.");
 

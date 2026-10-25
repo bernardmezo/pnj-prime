@@ -43,23 +43,26 @@ class FileController extends Controller
                 $proof->order->buyer_id === $user->id || $role === 'admin_rtpu' || $role === 'super_admin',
                 403
             );
-            abort_unless(Storage::disk('local')->exists($proof->file_path), 404);
+            $disk = Storage::disk('local')->exists($proof->file_path) ? 'local' : 'public';
+            abort_unless(Storage::disk($disk)->exists($proof->file_path), 404);
 
-            return Storage::disk('local')->download($proof->file_path, $proof->file_name);
+            return Storage::disk($disk)->download($proof->file_path, $proof->file_name);
         } else {
             abort(404);
         }
 
         abort_unless($doc && (! empty($doc['path']) || ! empty($doc['url'])), 404);
 
-        // Support both new 'path' key (private disk) and legacy 'url' key.
+        // Support both new 'path' key (private disk) and legacy 'url' fallback.
         if (! empty($doc['path'])) {
             $path = $doc['path'];
+            $disk = 'local';
         } else {
             $path = ltrim(preg_replace('#^/?storage/#', '', $doc['url']), '/');
+            $disk = Storage::disk('local')->exists($path) ? 'local' : 'public';
         }
-        abort_unless($path !== '' && Storage::disk('local')->exists($path), 404);
+        abort_unless($path !== '' && Storage::disk($disk)->exists($path), 404);
 
-        return Storage::disk('local')->download($path, $doc['name'] ?? basename($path));
+        return Storage::disk($disk)->download($path, $doc['name'] ?? basename($path));
     }
 }

@@ -18,6 +18,7 @@ import {
 } from 'lucide-react';
 import { useState } from 'react';
 import Logo from '@/Components/Logo';
+import FlashToast from '@/Components/FlashToast';
 import { EASE, menuForRole, roleLabel } from '@/Components/ui';
 import { filterMenuByFitur } from '@/lib/roles';
 import { href as navHref } from '@/lib/nav';
@@ -244,6 +245,7 @@ export default function DashboardLayout({ title, breadcrumb, activeKey, children
 
                 <main className="mx-auto w-full max-w-[1240px] px-4 py-6 sm:px-6">{children}</main>
             </div>
+            <FlashToast />
         </div>
     );
 }

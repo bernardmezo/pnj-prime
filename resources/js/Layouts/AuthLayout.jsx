@@ -1,5 +1,6 @@
 import { motion, useReducedMotion } from 'framer-motion';
 import Logo from '@/Components/Logo';
+import FlashToast from '@/Components/FlashToast';
 import { EASE } from '@/Components/ui';
 
 /**
@@ -58,6 +59,7 @@ export default function AuthLayout({ title, subtitle, children }) {
                     <div className="mt-8">{children}</div>
                 </motion.div>
             </div>
+            <FlashToast />
         </div>
     );
 }

@@ -1,5 +1,6 @@
 import PublicFooter from '@/Components/Public/PublicFooter';
 import PublicHeader from '@/Components/Public/PublicHeader';
+import FlashToast from '@/Components/FlashToast';
 
 /**
  * PublicLayout, guests + Customer pages.
@@ -11,6 +12,7 @@ export default function PublicLayout({ auth, children }) {
             <PublicHeader auth={auth} />
             <main className="flex-1">{children}</main>
             <PublicFooter auth={auth} />
+            <FlashToast />
         </div>
     );
 }

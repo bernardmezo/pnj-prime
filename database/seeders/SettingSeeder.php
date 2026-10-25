@@ -66,6 +66,14 @@ class SettingSeeder extends Seeder
                 'description' => 'Tampilkan halaman maintenance ke pengunjung publik.',
                 'is_public' => false,
             ],
+            [
+                'key' => 'sewa_perlu_persetujuan_pimpinan',
+                'value' => '1',
+                'type' => 'boolean',
+                'label' => 'Persetujuan Sewa oleh Pimpinan',
+                'description' => 'Apakah pemesanan ruangan dan alat wajib disetujui Pimpinan RTPU sebelum pembayaran?',
+                'is_public' => false,
+            ],
         ];
 
         foreach ($settings as $setting) {

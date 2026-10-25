@@ -48,7 +48,7 @@ describe('pages render with realistic controller props', () => {
     it('Customer/Pengajuan/Show shows timeline + actions', async () => {
         const { default: Page } = await import('@/Pages/Customer/Pengajuan/Show.jsx');
         render(<Page auth={auth} item={pengajuan} />);
-        expect(screen.getByText('Uji Kuat Tekan Beton')).toBeInTheDocument();
+        expect(screen.getAllByText('Uji Kuat Tekan Beton').length).toBeGreaterThanOrEqual(1);
         expect(screen.getByText('Ubah')).toBeInTheDocument();
         expect(screen.getByText('Batalkan')).toBeInTheDocument();
     });

@@ -4,33 +4,64 @@
 
 Platform Marketplace Digital Politeknik Negeri Jakarta untuk hilirisasi dan komersialisasi produk fisik, jasa/layanan, sewa fasilitas, dan inovasi unggulan PNJ.
 
-> **Status:** Draft/Prototype — dikembangkan oleh Tim PBL iKAMAS sebagai bagian dari Project-Based Learning.
-> Sejumlah keputusan bisnis-teknis masih TBD (lihat bagian [Area yang Masih Sementara](#area-yang-masih-sementara)).
+> **Status:** Backend Development Complete & Validated — dikembangkan oleh Tim PBL Kelompok 2 "Suka Suka" (TI 5C) untuk Unit Layanan RTPU & P3M Politeknik Negeri Jakarta, mengacu pada Dokumen Spesifikasi Kebutuhan Perangkat Lunak (SRS v1.1), SDPLN v1.1, dan Project Charter.
 
 ---
 
 ## Daftar Isi
 
+- [Fitur Utama](#fitur-utama)
 - [Tech Stack](#tech-stack)
+- [Arsitektur & Keamanan](#arsitektur--keamanan)
 - [Instalasi & Setup](#instalasi--setup)
-- [Menjalankan Dev Server](#menjalankan-dev-server)
-- [Struktur Folder](#struktur-folder)
-- [Akun Demo (Seeder)](#akun-demo-seeder)
-- [Area yang Masih Sementara](#area-yang-masih-sementara)
+- [Menjalankan Dev Server & Scheduler](#menjalankan-dev-server--scheduler)
+- [Akun Demo & Role Matrix](#akun-demo--role-matrix)
+- [Pengujian & Validasi Kualitas](#pengujian--validasi-kualitas)
+- [Struktur Direktori](#struktur-direktori)
+
+---
+
+## Fitur Utama
+
+- **Katalog & Kurasi Layanan (FR1, FR2, FR3):** Penjelajahan publik produk hilirisasi, jasa konsultasi/uji lab, dan sewa ruang/alat. Alur kurasi publikasi dari draft usulan P3M menjadi listing terkurasi di katalog.
+- **Pemesanan Multi-Opsi & Dynamic Addons (FR4, FR5):** Kalkulasi biaya server-side (`PricingService`) berbasis durasi sewa, jumlah peserta, kuantitas, dan opsi varian/layanan tambahan.
+- **Anti-Bentrok Jadwal Sewa (FR4, FR5):** Pengecekan jadwal sewa ruangan dan alat laboratorium menggunakan native PostgreSQL GiST exclusion constraint (`tstzrange` + extension `btree_gist`) serta application-level defense-in-depth (`RoomBookingService`).
+- **Verifikasi Bertingkat & Approval Gate Pimpinan (FR7, FR14, D-04):** Pengajuan sewa ruangan/alat diverifikasi berkas oleh Admin RTPU, lalu diteruskan ke antrean persetujuan Pimpinan RTPU sebelum penerbitan tagihan.
+- **Master Pajak & Snapshot Tagihan (FR9, FR10, FR17, NFR2):** Kelola tarif PPN/pajak kategori via `TaxRate` dan `TaxService`. Snapshot nilai tarif, kode, dan kalkulasi PPN disimpan permanen (immutable) ke dalam tagihan `Order` dan `OrderItem`.
+- **Profil Tenant & Kepatuhan UU PDP (FR6, FR14, NFR7, NFR10):** Pendaftaran profil usaha penyewa dengan enkripsi data sensitif (NIK, NPWP) via Laravel `encrypted` cast, penyimpanan privat dokumen KTP/bukti transfer (`'serve' => false`), otorisasi berkas via controller, serta pencatatan persetujuan PDP consent.
+- **Verifikasi Pembayaran & Rekonsiliasi BLU (FR8, FR11):** Kanal resmi Mandiri BLU PNJ, verifikasi bukti bayar berjenjang, dan cron scheduler otomatis pembatalan pesanan kadaluwarsa (>72 jam).
+- **Laporan, Statistik, dan Audit Trail (FR12, FR18, NFR1, WP-3.1, WP-3.3):** Dashboard ringkasan pendapatan, rekapitulasi PPN terdistribusi, serta pencatatan audit komprehensif (`AuditLogger`) atas setiap aksi administratif (user, IP, timestamp, old/new payload).
 
 ---
 
 ## Tech Stack
 
-| Layer | Teknologi |
-|---|---|
-| Backend | Laravel 13 (PHP 8.4+) |
-| Frontend | React 18 via Inertia.js v2 |
-| Styling | Tailwind CSS v3 + PostCSS |
-| Database | PostgreSQL (rekomendasi) |
-| Auth Starter | Laravel Breeze (React/Inertia preset) |
-| Testing | Pest |
-| Build Tool | Vite 8 + laravel-vite-plugin |
+| Layer | Komponen | Detail Versi |
+|---|---|---|
+| Backend Framework | Laravel | 13.x (PHP 8.4+) |
+| Frontend Interface | Inertia.js | v2.x (React 18) |
+| Styling & UI | Tailwind CSS | v3.x + PostCSS |
+| Database Engine | PostgreSQL | 14+ (dengan ekstensi `btree_gist`) |
+| Autentikasi & RBAC | Breeze + RBAC 3-Lapis | Role, Permission, Fitur Matriks |
+| Asset Bundler | Vite | 8.x |
+| Code Formatter | Laravel Pint | Standar PSR-12 / Laravel |
+| Testing Suites | PHPUnit & Vitest | Feature, Unit, dan React DOM Tests |
+
+---
+
+## Arsitektur & Keamanan
+
+1. **RBAC 3-Lapis:**
+   - **Lapis 1 (Role):** 6 backed enum role (`Role: string`).
+   - **Lapis 2 (Fitur):** Modul fungsional dapat diaktifkan/dinonaktifkan secara global melalui `FiturController`.
+   - **Lapis 3 (Permission):** Matriks hak akses per role (Lihat, Tambah, Ubah, Hapus, Verifikasi) dikelola lewat UI `HakAksesController`.
+2. **Keamanan Berkas Sensitif:**
+   - Disk penyimpanan dokumen lokal diset ke `'serve' => false`.
+   - Berkas KTP tenant, dokumen MoU pengajuan, dan bukti transfer pembayaran diunduh secara terkontrol melalui `FileController` dengan verifikasi kepemilikan dan hak akses role staf.
+3. **Integritas Konkurensi Jadwal:**
+   - Menggunakan indeks PostgreSQL GiST dengan rumus:
+     `EXCLUDE USING gist (product_id WITH =, tstzrange(starts_at, ends_at) WITH &&) WHERE (released_at IS NULL AND status = 'ACTIVE')`
+   - Mencegah double-booking pada level storage engine PostgreSQL.
 
 ---
 
@@ -38,141 +69,129 @@ Platform Marketplace Digital Politeknik Negeri Jakarta untuk hilirisasi dan kome
 
 ### Prasyarat
 
-- PHP 8.2+
-- Composer 2+
+- PHP 8.4+ (dengan ekstensi `pdo_pgsql`, `pgsql`, `fileinfo`, `sodium`, `openssl`)
+- Composer 2.x
 - Node.js 20+ & npm
-- PostgreSQL 14+ (atau MySQL 8+)
+- PostgreSQL 14+
 
 ### Langkah Instalasi
 
 ```bash
 # 1. Clone repository
-git clone <url-repo> pnj-prime
+git clone <repository_url> pnj-prime
 cd pnj-prime
 
-# 2. Install PHP dependencies
+# 2. Pasang dependensi PHP & JavaScript
 composer install
-
-# 3. Install Node dependencies
 npm install
 
-# 4. Salin environment file
+# 3. Salin environment file dan generate key
 cp .env.example .env
-
-# 5. Generate application key
 php artisan key:generate
 
-# 6. Konfigurasi database di .env
-#    DB_CONNECTION=pgsql
-#    DB_DATABASE=pnj_prime
-#    DB_USERNAME=postgres
-#    DB_PASSWORD=your_password
+# 4. Sesuaikan konfigurasi database PostgreSQL di .env
+DB_CONNECTION=pgsql
+DB_HOST=127.0.0.1
+DB_PORT=5432
+DB_DATABASE=pnj_prime
+DB_USERNAME=postgres
+DB_PASSWORD=your_postgres_password
 
-# 7. Buat database (PostgreSQL)
-psql -U postgres -c "CREATE DATABASE pnj_prime;"
+# 5. Jalankan migrasi dan seeder
+php artisan migrate:fresh --seed
 
-# 8. Jalankan migration
-php artisan migrate
-
-# 9. Jalankan seeder (data demo)
-php artisan db:seed
+# 6. Kompilasi asset antarmuka
+npm run build
 ```
 
 ---
 
-## Menjalankan Dev Server
+## Menjalankan Dev Server & Scheduler
 
-Jalankan dua terminal secara bersamaan:
+Jalankan perintah berikut pada terminal terpisah:
 
 ```bash
-# Terminal 1 — Laravel backend
+# Terminal 1 — Backend Laravel
 php artisan serve
 
-# Terminal 2 — Vite frontend
+# Terminal 2 — Frontend Hot Reload (Vite)
 npm run dev
+
+# Terminal 3 — Scheduler Worker (Pembatalan Tagihan Kadaluwarsa 72 Jam)
+php artisan schedule:work
 ```
 
-Akses di: **http://localhost:8000**
+Aplikasi dapat diakses melalui browser pada: **http://localhost:8000**
 
 ---
 
-## Struktur Folder
+## Akun Demo & Role Matrix
+
+Setelah `php artisan migrate:fresh --seed`, seluruh akun peran baku berikut siap digunakan (Password default: `password`):
+
+| Role | Email | Wewenang Utama |
+|---|---|---|
+| **Super Admin** | `superadmin@pnjprime.test` | Kelola akun, matriks hak akses RBAC, konfigurasi fitur sistem |
+| **Admin RTPU** | `admin.rtpu@pnjprime.test` | Kurasi katalog, verifikasi pengajuan & bukti bayar, validasi tenant, kelola master pajak |
+| **Admin P3M** | `admin.p3m@pnjprime.test` | Pengajuan produk riset unggulan dosen/peneliti dan varian opsi |
+| **Pimpinan RTPU** | `pimpinan.rtpu@pnjprime.test` | Verifikasi persetujuan usulan produk riset, approval sewa fasilitas/alat, laporan |
+| **Direktur** | `direktur@pnjprime.test` | Pemantauan produk hilirisasi, dashboard pelaporan & audit trail (read-only) |
+| **Customer** | `customer@pnjprime.test` | Pemesanan layanan, pendaftaran profil tenant/PDP, pembayaran via BLU Mandiri |
+
+---
+
+## Pengujian & Validasi Kualitas
+
+Proyek dilengkapi dengan pengujian terotomasi menyeluruh:
+
+```bash
+# 1. Jalankan pengujian backend (PHPUnit) — 131 tests, 979 assertions
+php artisan test
+
+# 2. Jalankan pengujian frontend (Vitest) — 7 test files, 75 tests
+npx vitest run
+
+# 3. Jalankan linter dan formatter kode (Pint)
+./vendor/bin/pint --test
+```
+
+---
+
+## Struktur Direktori
 
 ```
 pnj-prime/
 ├── app/
-│   ├── Http/
-│   │   ├── Controllers/
-│   │   │   ├── Admin/           # UserManagement, Curation, Setting, ExternalLink
-│   │   │   ├── Catalog/         # CatalogController (public)
-│   │   │   ├── Products/        # ProductController
-│   │   │   ├── Reports/         # ReportController
-│   │   │   └── Transactions/    # TransactionController
-│   │   └── Middleware/
-│   │       └── EnsureRole.php   # Role guard (usage: middleware('role:admin_rtpu'))
-│   ├── Models/                  # User, Product, Order, OrderItem, PaymentProof,
-│   │                            # ProductCategory, Setting, ExternalLink
-│   ├── Services/
-│   │   ├── Auth/
-│   │   │   ├── AuthServiceInterface.php   # Contract (swap untuk SSO)
-│   │   │   └── LocalAuthService.php       # Implementasi simulasi
-│   │   └── SettingService.php             # Cached setting accessor
-│   └── Providers/
-│       └── AppServiceProvider.php         # IoC bindings
+│   ├── Enums/
+│   │   ├── PengajuanStatus.php      # State machine siklus hidup pengajuan
+│   │   └── Role.php                 # Backed string enum 6 peran baku
+│   ├── Http/Controllers/
+│   │   ├── Admin/                   # Pengaturan umum, master pajak, tautan luar
+│   │   ├── Auth/                    # Autentikasi Breeze, registrasi, SSO handler
+│   │   ├── Catalog/                 # Halaman beranda dan detail katalog publik
+│   │   ├── Customer/                # Alur pemesanan customer & kelola profil tenant
+│   │   ├── Direktur/                # Dashboard pemantauan dan laporan eksekutif
+│   │   ├── P3M/                     # Pengajuan & opsi produk riset unggulan
+│   │   ├── Pimpinan/                # Verifikasi produk unggulan & persetujuan sewa
+│   │   ├── Rtpu/                    # Layanan, verifikasi berkas/bayar, validasi tenant
+│   │   ├── SuperAdmin/              # Kelola pengguna, izin hak akses, modul fitur
+│   │   ├── FileController.php       # Penyajian dokumen privat dengan otorisasi ketat
+│   │   └── ReportController.php     # Rekapitulasi transaksi, pendapatan, pajak & audit
+│   ├── Models/                      # Model Eloquent (User, Product, Order, TaxRate, RoomBooking, dll)
+│   └── Services/
+│       ├── AuditLogger.php          # Pencatat log aktivitas administratif
+│       ├── PengajuanWorkflow.php    # Transisi status pesanan dan snapshot tagihan
+│       ├── PricingService.php       # Kalkulator rincian harga opsi & kuantitas
+│       ├── RoomBookingService.php   # Manajemen reservasi slot anti-overlap
+│       └── TaxService.php           # Logika perhitungan dan ambang batas PPN
 ├── database/
-│   ├── migrations/              # 10 migration files
-│   └── seeders/                 # User, ProductCategory, Setting, ExternalLink
-├── resources/
-│   └── js/
-│       ├── Pages/               # Inertia React pages per modul
-│       │   ├── Admin/           # Settings, ExternalLinks
-│       │   ├── Catalog/         # Index, Show
-│       │   ├── Curation/        # Index
-│       │   ├── Products/        # Index, Create
-│       │   ├── Reports/         # AdminReport, OwnerReport
-│       │   ├── Transactions/    # Index, Checkout
-│       │   └── UserManagement/  # Index
-│       └── Layouts/             # AuthenticatedLayout, GuestLayout
-├── routes/
-│   └── web.php                  # Route groups per modul
-├── tailwind.config.js           # PNJ Prime brand tokens
-└── .env.example                 # Environment template
+│   ├── migrations/                  # 28 file migrasi database terstruktur
+│   └── seeders/                     # Seeder kategori, setting, pajak, pengguna, dan hak akses
+├── resources/js/
+│   ├── Components/                  # Reusable React components (UI, form, modal)
+│   ├── Layouts/                     # AuthenticatedLayout, GuestLayout, DashboardLayout
+│   └── Pages/                       # Halaman antarmuka Inertia per modul peran
+└── tests/
+    ├── Feature/                     # Pengujian end-to-end alur transaksi & bisnis
+    └── Unit/                        # Pengujian logika terisolasi
 ```
-
----
-
-## Akun Demo (Seeder)
-
-Setelah `php artisan db:seed`, akun berikut tersedia:
-
-| Email | Password | Role |
-|---|---|---|
-| `admin@pnjprime.test` | `password` | admin_rtpu |
-| `dosen@pnjprime.test` | `password` | dosen_peneliti |
-| `mahasiswa@pnjprime.test` | `password` | mahasiswa |
-| `mitra@pnjprime.test` | `password` | eksternal |
-
----
-
-## Area yang Masih Sementara
-
-Arsitektur dirancang **mudah diubah** untuk keputusan bisnis yang belum final (Bab 14):
-
-| Area | Status | Catatan Teknis |
-|---|---|---|
-| **Autentikasi SSO PNJ** | TBD | Swap `LocalAuthService` → `SsoAuthService` di `AppServiceProvider`. Tidak ada perubahan lain. |
-| **Payment Gateway** | Out-of-scope (fase ini) | Gunakan upload bukti transfer. Tambahkan gateway hanya setelah ada keputusan. |
-| **PPN** | TBD (Bab 14) | Konfigurasi di `/admin/settings`. Default: nonaktif, tarif null. |
-| **KTP/NPWP wajib** | TBD (Bab 14) | Field ada di tabel `users`, saat ini nullable/opsional. |
-| **Model B2B** | TBD (Bab 14) | Kolom `order_type` (b2c/b2b) ada di tabel `orders`, belum diaktifkan. |
-| **Status pesanan final** | TBD (Bab 14) | Enum mudah ditambah dengan migration baru. |
-| **URL LMS/RTPU** | Perlu konfirmasi | Update di `/admin/external-links` setelah URL resmi tersedia. |
-
----
-
-## Catatan Developer
-
-- Proyek ini adalah **MVP/Prototype** untuk demonstrasi ke RTPU dan dosen pembimbing.
-- Semua `// TODO:` di controller menandai implementasi yang belum selesai.
-- Gunakan `php artisan route:list` untuk melihat semua route yang tersedia.
-- Konfigurasi `legacy-peer-deps=true` di `.npmrc` diperlukan karena `@vitejs/plugin-react` belum update peer dep untuk Vite 8 — tidak mempengaruhi runtime.

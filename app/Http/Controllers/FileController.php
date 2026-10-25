@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Models\PaymentProof;
 use App\Models\Pengajuan;
 use App\Models\ProdukUnggulan;
+use App\Models\TenantProfile;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Storage;
 
@@ -37,6 +38,15 @@ class FileController extends Controller
                 403
             );
             $doc = ($item->documents ?? [])[$index] ?? null;
+        } elseif ($kind === 'tenant-ktp') {
+            $tp = TenantProfile::findOrFail($id);
+            abort_unless(
+                $tp->user_id === $user->id || in_array($role, ['admin_rtpu', 'pimpinan_rtpu', 'super_admin'], true),
+                403
+            );
+            abort_unless($tp->ktp_path && Storage::disk('local')->exists($tp->ktp_path), 404);
+
+            return Storage::disk('local')->download($tp->ktp_path, 'KTP-Tenant-'.$tp->id.'.'.pathinfo($tp->ktp_path, PATHINFO_EXTENSION));
         } elseif ($kind === 'bukti') {
             $proof = PaymentProof::with('order')->findOrFail($id);
             abort_unless(

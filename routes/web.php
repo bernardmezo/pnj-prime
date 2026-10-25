@@ -2,10 +2,12 @@
 
 use App\Http\Controllers\Admin\ExternalLinkController;
 use App\Http\Controllers\Admin\SettingController;
+use App\Http\Controllers\Admin\TaxRateController;
 use App\Http\Controllers\Auth\SsoController;
 use App\Http\Controllers\Catalog\CatalogController;
 use App\Http\Controllers\Customer\PengajuanController as CustomerPengajuanController;
 use App\Http\Controllers\Customer\RiwayatController as CustomerRiwayatController;
+use App\Http\Controllers\Customer\TenantProfileController as CustomerTenantProfileController;
 use App\Http\Controllers\Direktur\DashboardController as DirekturDashboardController;
 use App\Http\Controllers\Direktur\PemantauanController as DirekturController;
 use App\Http\Controllers\FileController;
@@ -15,12 +17,14 @@ use App\Http\Controllers\P3M\ProdukUnggulanController;
 use App\Http\Controllers\Pimpinan\DashboardController as PimpinanDashboardController;
 use App\Http\Controllers\Pimpinan\VerifikasiController as PimpinanController;
 use App\Http\Controllers\ProfileController;
+use App\Http\Controllers\ReportController;
 use App\Http\Controllers\Rtpu\DashboardController as RtpuDashboardController;
 use App\Http\Controllers\Rtpu\LayananController as RtpuLayananController;
 use App\Http\Controllers\Rtpu\MetodeController as RtpuMetodeController;
 use App\Http\Controllers\Rtpu\OpsiController as RtpuOpsiController;
 use App\Http\Controllers\Rtpu\RiwayatController as RtpuRiwayatController;
 use App\Http\Controllers\Rtpu\StatusController as RtpuStatusController;
+use App\Http\Controllers\Rtpu\TenantVerificationController;
 use App\Http\Controllers\Rtpu\VerifikasiController as RtpuVerifikasiController;
 use App\Http\Controllers\SuperAdmin\DashboardController as SuperAdminDashboardController;
 use App\Http\Controllers\SuperAdmin\FiturController as SuperAdminFiturController;
@@ -40,7 +44,7 @@ Route::middleware(['auth', 'verified'])->group(function () {
 
     Route::get('/berkas/{kind}/{id}/{index}', [FileController::class, 'show'])
         ->whereNumber(['id', 'index'])
-        ->whereIn('kind', ['pengajuan-dokumen', 'produk-dokumen', 'bukti'])
+        ->whereIn('kind', ['pengajuan-dokumen', 'produk-dokumen', 'bukti', 'tenant-ktp'])
         ->name('berkas.show');
 
     Route::get('/profile', [ProfileController::class, 'edit'])->name('profile.edit');
@@ -61,6 +65,11 @@ Route::middleware(['auth', 'verified'])->group(function () {
         Route::post('/{pengajuan}/bukti', [CustomerPengajuanController::class, 'proof'])->name('proof')->middleware(['fitur:pembayaran', 'permission:pembayaran,Tambah']);
     });
     Route::get('/riwayat', [CustomerRiwayatController::class, 'index'])->name('customer.riwayat')->middleware('role:customer', 'fitur:pengajuan', 'permission:pengajuan,Lihat');
+    Route::middleware('role:customer')->group(function () {
+        Route::get('/tenant-profile', [CustomerTenantProfileController::class, 'show'])->name('customer.tenant.show');
+        Route::post('/tenant-profile', [CustomerTenantProfileController::class, 'store'])->name('customer.tenant.store');
+        Route::post('/pdp-consent', [CustomerTenantProfileController::class, 'consentPdp'])->name('customer.pdp.consent');
+    });
 
     // ---- Use-case model: Admin P3M ----
     Route::middleware('role:admin_p3m')->prefix('p3m/produk-unggulan')->name('p3m.produk.')->group(function () {
@@ -104,6 +113,9 @@ Route::middleware(['auth', 'verified'])->group(function () {
         Route::patch('/metode/{metode}', [RtpuMetodeController::class, 'update'])->name('metode.update')->middleware(['fitur:pembayaran', 'permission:pembayaran,Ubah']);
         Route::delete('/metode/{metode}', [RtpuMetodeController::class, 'destroy'])->name('metode.destroy')->middleware(['fitur:pembayaran', 'permission:pembayaran,Hapus']);
         Route::get('/riwayat', [RtpuRiwayatController::class, 'index'])->name('riwayat')->middleware(['fitur:pengajuan', 'permission:pengajuan,Lihat']);
+        Route::get('/tenants', [TenantVerificationController::class, 'index'])->name('tenants.index')->middleware(['fitur:tenant', 'permission:tenant,Lihat']);
+        Route::patch('/tenants/{tenantProfile}/verify', [TenantVerificationController::class, 'verify'])->name('tenants.verify')->middleware(['fitur:tenant', 'permission:tenant,Verifikasi']);
+        Route::get('/reports', [ReportController::class, 'index'])->name('reports')->middleware(['fitur:laporan', 'permission:laporan,Lihat']);
     });
 
     // ---- Use-case model: Pimpinan RTPU ----
@@ -112,8 +124,12 @@ Route::middleware(['auth', 'verified'])->group(function () {
         Route::get('/verifikasi', [PimpinanController::class, 'index'])->name('verify')->middleware(['fitur:produk-unggulan', 'permission:produk-unggulan,Lihat']);
         Route::patch('/verifikasi/{produk}/approve', [PimpinanController::class, 'approve'])->name('verify.approve')->middleware(['fitur:produk-unggulan', 'permission:produk-unggulan,Verifikasi']);
         Route::patch('/verifikasi/{produk}/reject', [PimpinanController::class, 'reject'])->name('verify.reject')->middleware(['fitur:produk-unggulan', 'permission:produk-unggulan,Verifikasi']);
+        Route::get('/pengajuan', [PimpinanController::class, 'pengajuan'])->name('pengajuan')->middleware(['fitur:pengajuan', 'permission:pengajuan,Lihat']);
+        Route::patch('/pengajuan/{pengajuan}/approve', [PimpinanController::class, 'approvePengajuan'])->name('pengajuan.approve')->middleware(['fitur:pengajuan', 'permission:pengajuan,Verifikasi']);
+        Route::patch('/pengajuan/{pengajuan}/reject', [PimpinanController::class, 'rejectPengajuan'])->name('pengajuan.reject')->middleware(['fitur:pengajuan', 'permission:pengajuan,Verifikasi']);
         Route::get('/pemantauan', [PimpinanController::class, 'monitor'])->name('monitor')->middleware(['fitur:produk-unggulan', 'permission:produk-unggulan,Lihat']);
         Route::get('/riwayat', [PimpinanController::class, 'riwayat'])->name('riwayat')->middleware(['fitur:produk-unggulan', 'permission:produk-unggulan,Lihat']);
+        Route::get('/reports', [ReportController::class, 'index'])->name('reports')->middleware(['fitur:laporan', 'permission:laporan,Lihat']);
     });
 
     // ---- Use-case model: Direktur (read-only) ----
@@ -121,6 +137,7 @@ Route::middleware(['auth', 'verified'])->group(function () {
         Route::get('/dashboard', DirekturDashboardController::class)->name('dashboard')->middleware(['fitur:produk-unggulan', 'permission:produk-unggulan,Lihat']);
         Route::get('/pemantauan', [DirekturController::class, 'monitor'])->name('monitor')->middleware(['fitur:produk-unggulan', 'permission:produk-unggulan,Lihat']);
         Route::get('/riwayat', [DirekturController::class, 'riwayat'])->name('riwayat')->middleware(['fitur:produk-unggulan', 'permission:produk-unggulan,Lihat']);
+        Route::get('/reports', [ReportController::class, 'index'])->name('reports')->middleware(['fitur:laporan', 'permission:laporan,Lihat']);
     });
 
     // ---- Use-case model: Super Admin ----
@@ -142,6 +159,10 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::middleware('role:admin_rtpu')->prefix('admin')->name('admin.')->group(function () {
         Route::get('settings', [SettingController::class, 'index'])->name('settings.index');
         Route::patch('settings', [SettingController::class, 'update'])->name('settings.update');
+        Route::get('tax-rates', [TaxRateController::class, 'index'])->name('tax-rates.index')->middleware(['fitur:master-pajak', 'permission:master-pajak,Lihat']);
+        Route::post('tax-rates', [TaxRateController::class, 'store'])->name('tax-rates.store')->middleware(['fitur:master-pajak', 'permission:master-pajak,Tambah']);
+        Route::patch('tax-rates/{taxRate}', [TaxRateController::class, 'update'])->name('tax-rates.update')->middleware(['fitur:master-pajak', 'permission:master-pajak,Ubah']);
+        Route::delete('tax-rates/{taxRate}', [TaxRateController::class, 'destroy'])->name('tax-rates.destroy')->middleware(['fitur:master-pajak', 'permission:master-pajak,Hapus']);
         Route::resource('external-links', ExternalLinkController::class)
             ->except(['show', 'create', 'edit'])
             ->names('external-links');

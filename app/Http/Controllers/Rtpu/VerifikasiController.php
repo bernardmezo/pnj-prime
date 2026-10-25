@@ -6,6 +6,8 @@ use App\Http\Controllers\Controller;
 use App\Models\Order;
 use App\Models\PaymentProof;
 use App\Models\Pengajuan;
+use App\Models\Setting;
+use App\Services\PengajuanWorkflow;
 use App\Services\SettingService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -50,40 +52,34 @@ class VerifikasiController extends Controller
         ]);
     }
 
-    public function approveLayanan(Pengajuan $pengajuan)
+    public function approveLayanan(Pengajuan $pengajuan, PengajuanWorkflow $workflow)
     {
         abort_unless($pengajuan->status === 'Diajukan', 403);
 
-        $total = $pengajuan->total ?? (int) ($pengajuan->product?->final_price ?? 0);
-        $tax = $this->settings->calculateTax($total);
-        $pengajuan->total = $total;
-        $pengajuan->setStatus('Menunggu Pembayaran', null, Auth::user()->name);
-        $pengajuan->save();
+        $isRental = in_array($pengajuan->tipe, ['ruangan', 'alat'], true);
+        $needsPimpinanApproval = $isRental && Setting::where('key', 'sewa_perlu_persetujuan_pimpinan')->value('value') === '1';
 
-        $existing = $pengajuan->order()->where('status', 'menunggu_pembayaran')->first();
-        if (! $existing) {
-            $pengajuan->order()->create([
-                'order_number' => $this->orderNumber($pengajuan),
-                'buyer_id' => $pengajuan->buyer_id,
-                'subtotal' => $total,
-                'tax_amount' => $tax,
-                'total' => $total + $tax,
-                'status' => 'menunggu_pembayaran',
-            ]);
-        }
+        $targetStatus = $needsPimpinanApproval ? 'Menunggu Persetujuan Pimpinan' : 'Menunggu Pembayaran';
+        $note = $needsPimpinanApproval
+            ? 'Diverifikasi berkas oleh Admin RTPU, diteruskan ke Pimpinan RTPU untuk persetujuan sewa.'
+            : 'Diverifikasi oleh Admin RTPU, menunggu pembayaran Customer.';
 
-        return back()->with('success', 'Pengajuan diverifikasi, menunggu pembayaran Customer.');
+        $workflow->transition($pengajuan, $targetStatus, $note, Auth::user()->name);
+
+        $msg = $needsPimpinanApproval
+            ? 'Pengajuan sewa diteruskan ke Pimpinan RTPU.'
+            : 'Pengajuan diverifikasi, menunggu pembayaran Customer.';
+
+        return back()->with('success', $msg);
     }
 
-    public function rejectLayanan(Request $request, Pengajuan $pengajuan)
+    public function rejectLayanan(Request $request, Pengajuan $pengajuan, PengajuanWorkflow $workflow)
     {
         abort_unless($pengajuan->status === 'Diajukan', 403);
 
         $request->validate(['catatan' => 'required|string|max:1000']);
 
-        $pengajuan->catatan_peninjau = $request->catatan;
-        $pengajuan->setStatus('Ditolak', $request->catatan, Auth::user()->name);
-        $pengajuan->save();
+        $workflow->transition($pengajuan, 'Ditolak', $request->catatan, Auth::user()->name);
 
         return back()->with('success', 'Pengajuan ditolak dengan catatan.');
     }

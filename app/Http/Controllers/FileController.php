@@ -43,18 +43,23 @@ class FileController extends Controller
                 $proof->order->buyer_id === $user->id || $role === 'admin_rtpu' || $role === 'super_admin',
                 403
             );
-            abort_unless(Storage::disk('public')->exists($proof->file_path), 404);
+            abort_unless(Storage::disk('local')->exists($proof->file_path), 404);
 
-            return Storage::disk('public')->download($proof->file_path, $proof->file_name);
+            return Storage::disk('local')->download($proof->file_path, $proof->file_name);
         } else {
             abort(404);
         }
 
-        abort_unless($doc && ! empty($doc['url']), 404);
+        abort_unless($doc && (! empty($doc['path']) || ! empty($doc['url'])), 404);
 
-        $path = ltrim(preg_replace('#^/?storage/#', '', $doc['url']), '/');
-        abort_unless($path !== '' && Storage::disk('public')->exists($path), 404);
+        // Support both new 'path' key (private disk) and legacy 'url' key.
+        if (! empty($doc['path'])) {
+            $path = $doc['path'];
+        } else {
+            $path = ltrim(preg_replace('#^/?storage/#', '', $doc['url']), '/');
+        }
+        abort_unless($path !== '' && Storage::disk('local')->exists($path), 404);
 
-        return Storage::disk('public')->download($path, $doc['name'] ?? basename($path));
+        return Storage::disk('local')->download($path, $doc['name'] ?? basename($path));
     }
 }

@@ -234,11 +234,10 @@ export default function P3mDashboard({ auth, stats = {}, daftar = [] }) {
                 </div>
 
                 {/* ── Metric KPI Cards ── */}
-                <div className="mb-8 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+                <div className="mb-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
                     <MetricKpiCard
                         title="Total Pengajuan"
                         value={stats.total ?? 0}
-                        desc="Seluruh portofolio produk unggulan yang didaftarkan."
                         icon={Award}
                         tone="teal"
                         index={0}
@@ -246,7 +245,6 @@ export default function P3mDashboard({ auth, stats = {}, daftar = [] }) {
                     <MetricKpiCard
                         title="Sedang Diproses"
                         value={stats.diproses ?? 0}
-                        desc="Menunggu review atau verifikasi dari Pimpinan RTPU."
                         icon={Clock}
                         tone="gold"
                         badge={(stats.diproses ?? 0) > 0 ? 'Dalam Antrean' : null}
@@ -255,55 +253,18 @@ export default function P3mDashboard({ auth, stats = {}, daftar = [] }) {
                     <MetricKpiCard
                         title="Disetujui"
                         value={stats.disetujui ?? 0}
-                        desc={`Tingkat persetujuan: ${approvedRate}% dari total pengajuan.`}
                         icon={CheckCircle2}
                         tone="emerald"
                         badge={`${approvedRate}% Sukses`}
                         index={2}
                     />
                     <MetricKpiCard
-                        title="Ditolak / Dibatalkan"
+                        title="Ditolak / Batal"
                         value={stats.ditolak ?? 0}
-                        desc="Pengajuan yang ditolak dengan catatan atau dibatalkan."
                         icon={XCircle}
                         tone="danger"
                         index={3}
                     />
-                </div>
-
-                {/* ── Quick Action Tiles ── */}
-                <div className="mb-8">
-                    <div className="mb-3">
-                        <h2 className="font-display text-base font-bold text-slate-900">
-                            Akses Cepat & Tindakan
-                        </h2>
-                        <p className="text-xs text-slate-500">Shortcut menu pengajuan dan arsip dokumen P3M</p>
-                    </div>
-
-                    <div className="grid gap-2.5 sm:grid-cols-3">
-                        <ActionTile
-                            label="Ajukan Produk Unggulan"
-                            meta="Buka formulir registrasi modal baru"
-                            icon={FilePlus2}
-                            onClick={() => setModalOpen(true)}
-                            index={0}
-                        />
-                        <ActionTile
-                            label="Riwayat Pengajuan P3M"
-                            meta="Semua log dan jejak arsip terdahulu"
-                            icon={History}
-                            href={navHref('p3m.riwayat', {}, role)}
-                            badge={`${stats.total ?? 0} Data`}
-                            index={1}
-                        />
-                        <ActionTile
-                            label="Jelajahi Katalog Publik"
-                            meta="Lihat produk yang tayang di etalase"
-                            icon={Package}
-                            href={navHref('catalog', {}, role)}
-                            index={2}
-                        />
-                    </div>
                 </div>
 
                 {/* ── Active Pengajuan Table ── */}

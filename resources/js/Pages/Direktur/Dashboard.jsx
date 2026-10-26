@@ -214,11 +214,10 @@ export default function DirekturDashboard({ auth, stats = {}, recentProduk = [] 
                 </div>
 
                 {/* ── Metric KPI Cards ── */}
-                <div className="mb-8 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+                <div className="mb-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
                     <MetricKpiCard
                         title="Produk Unggulan"
                         value={stats.total_produk ?? 0}
-                        desc="Total invensi dan produk riset yang terdaftar."
                         icon={Award}
                         tone="teal"
                         index={0}
@@ -226,7 +225,6 @@ export default function DirekturDashboard({ auth, stats = {}, recentProduk = [] 
                     <MetricKpiCard
                         title="Produk Disetujui"
                         value={stats.produk_disetujui ?? 0}
-                        desc={`Tingkat kelulusan kurasi riset: ${approvedRate}%.`}
                         icon={CheckCircle2}
                         tone="emerald"
                         badge={`${approvedRate}% Disetujui`}
@@ -235,7 +233,6 @@ export default function DirekturDashboard({ auth, stats = {}, recentProduk = [] 
                     <MetricKpiCard
                         title="Total Layanan"
                         value={stats.total_layanan ?? 0}
-                        desc="Permohonan layanan publik dan industri yang masuk."
                         icon={Package}
                         tone="teal"
                         index={2}
@@ -243,46 +240,11 @@ export default function DirekturDashboard({ auth, stats = {}, recentProduk = [] 
                     <MetricKpiCard
                         title="Layanan Aktif"
                         value={stats.layanan_aktif ?? 0}
-                        desc="Layanan yang saat ini sedang aktif berjalan."
                         icon={Activity}
                         tone="gold"
                         badge={(stats.layanan_aktif ?? 0) > 0 ? 'Sedang Berjalan' : null}
                         index={3}
                     />
-                </div>
-
-                {/* ── Quick Action Tiles ── */}
-                <div className="mb-8">
-                    <div className="mb-3">
-                        <h2 className="font-display text-base font-bold text-slate-900">
-                            Pusat Tugas & Akses Menu
-                        </h2>
-                        <p className="text-xs text-slate-500">Shortcut pemantauan portofolio dan audit laporan</p>
-                    </div>
-
-                    <div className="grid gap-2.5 sm:grid-cols-3">
-                        <ActionTile
-                            label="Pemantauan Eksekutif"
-                            meta="Monitoring menyeluruh riset & layanan"
-                            icon={Eye}
-                            href={navHref('direktur.monitor', {}, role)}
-                            index={0}
-                        />
-                        <ActionTile
-                            label="Riwayat & Arsip Capaian"
-                            meta="Audit jejak rekam permohonan masa lalu"
-                            icon={History}
-                            href={navHref('direktur.riwayat', {}, role)}
-                            index={1}
-                        />
-                        <ActionTile
-                            label="Katalog Publik Resmi"
-                            meta="Etalase layanan dan produk unggulan PNJ"
-                            icon={Package}
-                            href={navHref('catalog', {}, role)}
-                            index={2}
-                        />
-                    </div>
                 </div>
 
                 {/* ── Recent Produk Unggulan Table ── */}

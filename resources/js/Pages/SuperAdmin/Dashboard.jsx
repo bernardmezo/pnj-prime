@@ -221,11 +221,10 @@ export default function SuperAdminDashboard({ auth, stats = {}, recentUsers = []
                 </div>
 
                 {/* ── Metric KPI Cards ── */}
-                <div className="mb-8 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+                <div className="mb-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
                     <MetricKpiCard
                         title="Total Pengguna"
                         value={stats.total_users ?? 0}
-                        desc="Semua akun pengguna yang terdaftar di sistem."
                         icon={Users}
                         tone="teal"
                         href={navHref('superadmin.users', {}, role)}
@@ -235,7 +234,6 @@ export default function SuperAdminDashboard({ auth, stats = {}, recentUsers = []
                     <MetricKpiCard
                         title="Pengguna Aktif"
                         value={stats.active_users ?? 0}
-                        desc={`Rasio keaktifan akun: ${activeRate}% aktif.`}
                         icon={CheckCircle2}
                         tone="emerald"
                         badge={`${activeRate}% Aktif`}
@@ -244,7 +242,6 @@ export default function SuperAdminDashboard({ auth, stats = {}, recentUsers = []
                     <MetricKpiCard
                         title="Akun Nonaktif"
                         value={stats.inactive_users ?? 0}
-                        desc="Pengguna yang ditangguhkan atau belum aktif."
                         icon={XCircle}
                         tone="danger"
                         index={2}
@@ -252,7 +249,6 @@ export default function SuperAdminDashboard({ auth, stats = {}, recentUsers = []
                     <MetricKpiCard
                         title="Total Modul Fitur"
                         value={stats.total_fitur ?? 0}
-                        desc="Fitur sistem yang dikendalikan melalui sakelar."
                         icon={LayoutGrid}
                         tone="gold"
                         badge="Modul Sistem"
@@ -260,42 +256,6 @@ export default function SuperAdminDashboard({ auth, stats = {}, recentUsers = []
                         actionLabel="Kelola Fitur"
                         index={3}
                     />
-                </div>
-
-                {/* ── Quick Action Tiles ── */}
-                <div className="mb-8">
-                    <div className="mb-3">
-                        <h2 className="font-display text-base font-bold text-slate-900">
-                            Pusat Tugas & Akses Menu
-                        </h2>
-                        <p className="text-xs text-slate-500">Shortcut pengelolaan pengguna, hak akses, dan fitur sistem</p>
-                    </div>
-
-                    <div className="grid gap-2.5 sm:grid-cols-3">
-                        <ActionTile
-                            label="Kelola Pengguna"
-                            meta="Tambah akun baru & atur status"
-                            icon={Users}
-                            href={navHref('superadmin.users', {}, role)}
-                            badge={`${stats.total_users ?? 0} Akun`}
-                            index={0}
-                        />
-                        <ActionTile
-                            label="Perizinan Hak Akses"
-                            meta="Konfigurasi matriks akses per peran"
-                            icon={KeyRound}
-                            href={navHref('superadmin.hakakses', {}, role)}
-                            index={1}
-                        />
-                        <ActionTile
-                            label="Tata Kelola Modul Fitur"
-                            meta="Sakelar aktif & nonaktif fitur aplikasi"
-                            icon={LayoutGrid}
-                            href={navHref('superadmin.fitur', {}, role)}
-                            badge={`${stats.total_fitur ?? 0} Modul`}
-                            index={2}
-                        />
-                    </div>
                 </div>
 
                 {/* ── Recent Users Table ── */}

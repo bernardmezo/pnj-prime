@@ -221,11 +221,10 @@ export default function PimpinanDashboard({ auth, stats = {}, antrean = [] }) {
                 </div>
 
                 {/* ── Metric KPI Cards ── */}
-                <div className="mb-8 grid gap-4 sm:grid-cols-3">
+                <div className="mb-6 grid gap-4 sm:grid-cols-3">
                     <MetricKpiCard
                         title="Menunggu Verifikasi"
                         value={stats.menunggu ?? 0}
-                        desc="Produk riset P3M yang menunggu keputusan persetujuan."
                         icon={ClipboardCheck}
                         tone="gold"
                         badge={(stats.menunggu ?? 0) > 0 ? 'Perlu Keputusan' : null}
@@ -236,7 +235,6 @@ export default function PimpinanDashboard({ auth, stats = {}, antrean = [] }) {
                     <MetricKpiCard
                         title="Disetujui"
                         value={stats.disetujui ?? 0}
-                        desc="Produk unggulan lolos kurasi dan siap dipublikasikan."
                         icon={Award}
                         tone="emerald"
                         badge="Lolos Kurasi"
@@ -245,47 +243,10 @@ export default function PimpinanDashboard({ auth, stats = {}, antrean = [] }) {
                     <MetricKpiCard
                         title="Ditolak"
                         value={stats.ditolak ?? 0}
-                        desc="Pengajuan yang ditolak dengan catatan perbaikan."
                         icon={XCircle}
                         tone="danger"
                         index={2}
                     />
-                </div>
-
-                {/* ── Quick Action Tiles ── */}
-                <div className="mb-8">
-                    <div className="mb-3">
-                        <h2 className="font-display text-base font-bold text-slate-900">
-                            Pusat Tugas & Akses Menu
-                        </h2>
-                        <p className="text-xs text-slate-500">Shortcut verifikasi dan pengawasan pimpinan</p>
-                    </div>
-
-                    <div className="grid gap-2.5 sm:grid-cols-3">
-                        <ActionTile
-                            label="Verifikasi Produk Unggulan"
-                            meta="Tinjau berkas & kelayakan riset"
-                            icon={ClipboardCheck}
-                            href={navHref('pimpinan.verify', {}, role)}
-                            badge={stats.menunggu ?? 0}
-                            index={0}
-                        />
-                        <ActionTile
-                            label="Pemantauan Portofolio"
-                            meta="Pantau seluruh riset dan layanan"
-                            icon={Eye}
-                            href={navHref('pimpinan.monitor', {}, role)}
-                            index={1}
-                        />
-                        <ActionTile
-                            label="Riwayat Keputusan"
-                            meta="Log keputusan verifikasi terdahulu"
-                            icon={History}
-                            href={navHref('pimpinan.riwayat', {}, role)}
-                            badge={totalVerified > 0 ? `${totalVerified} Data` : null}
-                            index={2}
-                        />
-                    </div>
                 </div>
 
                 {/* ── Antrean Verifikasi Table ── */}

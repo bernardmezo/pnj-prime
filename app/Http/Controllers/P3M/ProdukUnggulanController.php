@@ -191,11 +191,11 @@ class ProdukUnggulanController extends Controller
 
         $docs = [];
         foreach ($request->file('dokumen', []) as $file) {
-            $path = $file->store('dokumen', 'public');
+            $path = $file->store('dokumen', 'local');
             $docs[] = [
                 'name' => $file->getClientOriginalName(),
                 'size' => round($file->getSize() / 1024).' KB',
-                'url' => '/storage/'.$path,
+                'path' => $path,
             ];
         }
 

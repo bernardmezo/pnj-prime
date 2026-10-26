@@ -152,11 +152,11 @@ class PengajuanController extends Controller
 
         $docs = [];
         foreach ($request->file('dokumen', []) as $file) {
-            $path = $file->store('dokumen-pengajuan', 'public');
+            $path = $file->store('dokumen-pengajuan', 'local');
             $docs[] = [
                 'name' => $file->getClientOriginalName(),
                 'size' => round($file->getSize() / 1024).' KB',
-                'url' => '/storage/'.$path,
+                'path' => $path,
             ];
         }
 
@@ -411,7 +411,7 @@ class PengajuanController extends Controller
         }
 
         $file = $request->file('bukti');
-        $path = $file->store('bukti', 'public');
+        $path = $file->store('bukti', 'local');
 
         PaymentProof::create([
             'order_id' => $order->id,

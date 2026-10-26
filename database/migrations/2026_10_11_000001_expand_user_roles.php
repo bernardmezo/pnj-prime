@@ -34,10 +34,26 @@ return new class extends Migration
                 'mahasiswa' => 'customer',
             ]);
         }
-        // pgsql: native enum alteration is environment-specific; run the
-        // data mapping below manually if needed.
         if ($driver === 'pgsql') {
+            // Drop the old CHECK constraint that only allows 4 legacy roles,
+            // add a superset constraint (legacy + new) so mapUp() can write
+            // 'customer', then tighten to the final 6 roles.
+            $legacy = ['admin_rtpu', 'dosen_peneliti', 'mahasiswa', 'eksternal'];
+            $superset = array_unique(array_merge($legacy, $final));
+            $supersetSql = implode(',', array_map(fn ($v) => "'".$v."'", $superset));
+            $finalSql = implode(',', array_map(fn ($v) => "'".$v."'", $final));
+
+            DB::statement('ALTER TABLE users DROP CONSTRAINT IF EXISTS users_role_check');
+            DB::statement("ALTER TABLE users ADD CONSTRAINT users_role_check CHECK (role IN ({$supersetSql}))");
+
             $this->mapUp();
+
+            // Tighten to only the 6 PNJ PRIME roles.
+            DB::statement('ALTER TABLE users DROP CONSTRAINT IF EXISTS users_role_check');
+            DB::statement("ALTER TABLE users ADD CONSTRAINT users_role_check CHECK (role IN ({$finalSql}))");
+
+            // Update default value.
+            DB::statement("ALTER TABLE users ALTER COLUMN role SET DEFAULT 'customer'");
         }
     }
 
@@ -67,7 +83,20 @@ return new class extends Migration
             ]);
         }
         if ($driver === 'pgsql') {
+            $final = ['customer', 'admin_rtpu', 'admin_p3m', 'pimpinan_rtpu', 'direktur', 'super_admin'];
+            $superset = array_unique(array_merge($legacy, $final));
+            $supersetSql = implode(',', array_map(fn ($v) => "'".$v."'", $superset));
+            $legacySql = implode(',', array_map(fn ($v) => "'".$v."'", $legacy));
+
+            DB::statement('ALTER TABLE users DROP CONSTRAINT IF EXISTS users_role_check');
+            DB::statement("ALTER TABLE users ADD CONSTRAINT users_role_check CHECK (role IN ({$supersetSql}))");
+
             $this->mapDown();
+
+            DB::statement('ALTER TABLE users DROP CONSTRAINT IF EXISTS users_role_check');
+            DB::statement("ALTER TABLE users ADD CONSTRAINT users_role_check CHECK (role IN ({$legacySql}))");
+
+            DB::statement("ALTER TABLE users ALTER COLUMN role SET DEFAULT 'eksternal'");
         }
     }
 

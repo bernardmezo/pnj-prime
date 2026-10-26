@@ -103,6 +103,7 @@ class LayananController extends Controller
                 'curation_status' => 'approved',
                 'approved_at' => now(),
                 'approved_by' => Auth::id(),
+                'thumbnail' => $data['photo'] ?? null,
                 'meta' => [
                     'location' => $data['location'] ?? null,
                     'capacity' => $data['capacity'] ?? null,
@@ -152,7 +153,8 @@ class LayananController extends Controller
         $data = $request->validate($this->layananRules() + $this->opsiRules($tipe));
 
         DB::transaction(function () use ($product, $data, $request) {
-            $product->update([
+            $isActivating = ! empty($data['active']) && ! $product->is_active;
+            $updates = [
                 'name' => $data['name'],
                 'short_description' => $data['desc'] ?? null,
                 'description' => $data['desc'] ?? null,
@@ -169,7 +171,19 @@ class LayananController extends Controller
                     'photo' => $data['photo'] ?? null,
                     'satuan' => $data['satuan'] ?? 'hari',
                 ],
-            ]);
+                'thumbnail' => $data['photo'] ?? $product->thumbnail,
+            ];
+
+            // If this product was spawned from a Produk Unggulan and is now
+            // being activated, promote it from 'draft' to 'approved' so it appears
+            // in the public catalog.
+            if ($product->produk_unggulan_id && $isActivating) {
+                $updates['curation_status'] = 'approved';
+                $updates['approved_at'] = now();
+                $updates['approved_by'] = Auth::id();
+            }
+
+            $product->update($updates);
 
             if ($request->has('opsi')) {
                 $this->syncOpsi($product, $data['opsi'] ?? []);

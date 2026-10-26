@@ -105,19 +105,19 @@ return new class extends Migration
         }
 
         // --- CHECK constraints: nilai uang >= 0 (BR-08) ---
-        DB::statement("ALTER TABLE tax_rates ADD CONSTRAINT ck_tax_pct
-            CHECK (percentage >= 0 AND percentage <= 100)");
-        DB::statement("ALTER TABLE tax_rates ADD CONSTRAINT ck_tax_threshold
-            CHECK (threshold_amount IS NULL OR threshold_amount >= 0)");
-        DB::statement("ALTER TABLE tax_rates ADD CONSTRAINT ck_tax_period
+        DB::statement('ALTER TABLE tax_rates ADD CONSTRAINT ck_tax_pct
+            CHECK (percentage >= 0 AND percentage <= 100)');
+        DB::statement('ALTER TABLE tax_rates ADD CONSTRAINT ck_tax_threshold
+            CHECK (threshold_amount IS NULL OR threshold_amount >= 0)');
+        DB::statement('ALTER TABLE tax_rates ADD CONSTRAINT ck_tax_period
             CHECK (effective_until IS NULL OR effective_from IS NULL
-                   OR effective_until >= effective_from)");
-        DB::statement("ALTER TABLE services ADD CONSTRAINT ck_services_price
-            CHECK (base_price >= 0)");
-        DB::statement("ALTER TABLE services ADD CONSTRAINT ck_services_stock
-            CHECK (stock IS NULL OR stock >= 0)");
-        DB::statement("ALTER TABLE services ADD CONSTRAINT ck_services_cap
-            CHECK (capacity IS NULL OR capacity > 0)");
+                   OR effective_until >= effective_from)');
+        DB::statement('ALTER TABLE services ADD CONSTRAINT ck_services_price
+            CHECK (base_price >= 0)');
+        DB::statement('ALTER TABLE services ADD CONSTRAINT ck_services_stock
+            CHECK (stock IS NULL OR stock >= 0)');
+        DB::statement('ALTER TABLE services ADD CONSTRAINT ck_services_cap
+            CHECK (capacity IS NULL OR capacity > 0)');
 
         // --- CHECK enum: nilai status tertutup ---
         DB::statement("ALTER TABLE service_categories ADD CONSTRAINT ck_sc_tx_type
@@ -129,8 +129,8 @@ return new class extends Migration
                    rate_unit IN ('PER_HOUR','PER_DAY','FLAT','PER_UNIT'))");
         DB::statement("ALTER TABLE customers ADD CONSTRAINT ck_customers_verif_status
             CHECK (verification_status IN ('PENDING','VERIFIED','REJECTED'))");
-        DB::statement("ALTER TABLE documents ADD CONSTRAINT ck_documents_size
-            CHECK (file_size > 0)");
+        DB::statement('ALTER TABLE documents ADD CONSTRAINT ck_documents_size
+            CHECK (file_size > 0)');
         DB::statement("ALTER TABLE documents ADD CONSTRAINT ck_documents_dtype
             CHECK (document_type IN ('KTP','NPWP','PAYMENT_PROOF','POSTER',
                                      'SUPPORTING_DOC','OTHER'))");

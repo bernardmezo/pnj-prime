@@ -26,15 +26,16 @@ export default function CatalogShow({ auth, product }) {
         type === 'jasa'
             ? [
                 ['Kategori', product.category?.name ?? '-'],
-                ['Lokasi', product.location ?? 'Gedung RTPU PNJ'],
-                ['Estimasi', product.duration ?? '-'],
+                ['Lokasi', product.meta?.location ?? product.location ?? 'Gedung RTPU PNJ'],
+                ['Estimasi', product.meta?.duration ?? product.duration ?? '-'],
                 ['Status', 'Tersedia'],
             ]
             : type === 'ruangan'
               ? [
                 ['Kategori', product.category?.name ?? '-'],
-                ['Lokasi', product.location ?? 'Kampus PNJ Depok'],
-                ['Kapasitas', product.capacity ?? '-'],
+                ['Lokasi', product.meta?.location ?? product.location ?? 'Kampus PNJ Depok'],
+                ['Kapasitas', product.meta?.capacity ? `${product.meta.capacity} orang` : (product.capacity ?? '-')],
+                ['Fasilitas', product.meta?.facilities ?? '-'],
                 ['Status', 'Tersedia'],
             ]
               : [
@@ -72,7 +73,7 @@ export default function CatalogShow({ auth, product }) {
                             {/* Gallery */}
                             <div className="p-4 sm:p-6">
                                 <div className="overflow-hidden rounded-2xl border" style={{ borderColor: 'var(--color-border)' }}>
-                                    <VisualPlaceholder icon={Building2} image={product.image ?? null} alt={product.name} className="aspect-[4/3] w-full" />
+                                    <VisualPlaceholder icon={Building2} image={product.thumbnail ?? product.meta?.photo ?? product.image ?? null} alt={product.name} className="aspect-[4/3] w-full" />
                                 </div>
                             </div>
                             {/* Info */}

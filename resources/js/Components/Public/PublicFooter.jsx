@@ -1,5 +1,5 @@
-import { Link } from '@inertiajs/react';
-import { AtSign, Globe, Mail, MapPin, MessageCircle, Phone, Rss } from 'lucide-react';
+import { Link, usePage } from '@inertiajs/react';
+import { AtSign, ExternalLink as ExtIcon, Globe, Mail, MapPin, MessageCircle, Phone, Rss } from 'lucide-react';
 import Logo from '@/Components/Logo';
 import { href as navHref } from '@/lib/nav';
 
@@ -11,6 +11,7 @@ const SOCIALS = [
 ];
 
 export default function PublicFooter({ auth }) {
+    const { external_links = [] } = usePage().props;
     return (
         <footer
             style={{
@@ -51,6 +52,19 @@ export default function PublicFooter({ auth }) {
                             <li key={label}>
                                 <a href={href} className="footer-link hover:text-white">
                                     {label}
+                                </a>
+                            </li>
+                        ))}
+                        {external_links.map((link) => (
+                            <li key={link.id}>
+                                <a
+                                    href={link.url}
+                                    target={link.target || '_blank'}
+                                    rel="noopener noreferrer"
+                                    className="footer-link inline-flex items-center gap-1.5 hover:text-white"
+                                >
+                                    {link.label}
+                                    <ExtIcon className="h-3 w-3 opacity-60" />
                                 </a>
                             </li>
                         ))}

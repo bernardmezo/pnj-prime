@@ -14,7 +14,7 @@ class StatusController extends Controller
     public function index(): Response
     {
         $rows = Pengajuan::with(['product', 'buyer:id,name'])
-            ->whereNotIn('status', ['Selesai', 'Dibatalkan'])
+            ->whereNotIn('status', Pengajuan::CLOSED)
             ->latest()
             ->get()
             ->map(fn ($p) => [

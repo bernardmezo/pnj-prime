@@ -12,14 +12,34 @@ class DashboardController extends Controller
 {
     public function __invoke(): Response
     {
+        $totalUsers = User::count();
+        $activeUsers = User::where('is_active', true)->count();
+        $inactiveUsers = $totalUsers - $activeUsers;
+
         $stats = [
-            'total_users' => User::count(),
-            'active_users' => User::where('is_active', true)->count(),
+            'total_users' => $totalUsers,
+            'active_users' => $activeUsers,
+            'inactive_users' => $inactiveUsers,
             'total_fitur' => Fitur::count(),
         ];
 
+        $recentUsers = User::query()
+            ->select(['id', 'name', 'email', 'role', 'is_active', 'created_at'])
+            ->latest()
+            ->limit(8)
+            ->get()
+            ->map(fn ($u) => [
+                'id' => $u->id,
+                'name' => $u->name,
+                'email' => $u->email,
+                'role' => $u->role,
+                'status' => $u->is_active ? 'Aktif' : 'Nonaktif',
+                'date' => optional($u->created_at)->format('Y-m-d'),
+            ]);
+
         return Inertia::render('SuperAdmin/Dashboard', [
             'stats' => $stats,
+            'recentUsers' => $recentUsers,
         ]);
     }
 }

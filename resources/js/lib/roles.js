@@ -16,7 +16,7 @@
 // direktur, super_admin. Until then those roles exist only as normalized
 // frontend keys (preview + display).
 export const ROLES = {
-    customer:      { label: 'Customer',      layout: 'public',    home: 'customer.pengajuan.index' },
+    customer:      { label: 'Customer',      layout: 'public',    home: 'landing' },
     admin_rtpu:    { label: 'Admin RTPU',    layout: 'dashboard', home: 'rtpu.dashboard' },
     admin_p3m:     { label: 'Admin P3M',     layout: 'dashboard', home: 'p3m.dashboard' },
     pimpinan_rtpu: { label: 'Pimpinan RTPU', layout: 'dashboard', home: 'pimpinan.dashboard' },

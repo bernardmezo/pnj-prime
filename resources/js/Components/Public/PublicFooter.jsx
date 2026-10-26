@@ -47,12 +47,11 @@ export default function PublicFooter({ auth }) {
                         {[
                             ['Beranda', '/'],
                             ['Katalog', '/katalog'],
-                            ['Tentang', '/#tentang'],
                         ].map(([label, href]) => (
                             <li key={label}>
-                                <a href={href} className="footer-link hover:text-white">
+                                <Link href={href} className="footer-link hover:text-white">
                                     {label}
-                                </a>
+                                </Link>
                             </li>
                         ))}
                         {external_links.map((link) => (

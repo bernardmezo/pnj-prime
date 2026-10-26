@@ -39,7 +39,7 @@ class RegisteredUserController extends Controller
             'institution' => 'nullable|string|max:255',
             'user_type' => 'nullable|string|max:64',
             'nik_npwp' => 'nullable|string|max:32',
-            'terms' => 'sometimes|accepted',
+            'terms' => 'required|accepted',
         ]);
 
         $user = User::create([

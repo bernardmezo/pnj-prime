@@ -12,6 +12,8 @@ use App\Services\PricingService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Arr;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Validation\Rule;
+use Illuminate\Validation\Rules\Exists;
 use Inertia\Inertia;
 use Inertia\Response;
 
@@ -186,7 +188,7 @@ class PengajuanController extends Controller
     {
         $data = $request->validate([
             'tipe' => 'required|in:jasa,ruangan,produk',
-            'product_id' => 'required|exists:products,id',
+            'product_id' => ['required', $this->activeCatalogRule()],
             'jumlah' => 'nullable|string|max:100',
             'peserta' => 'nullable|integer|min:1|max:10000',
             'jam_mulai' => 'nullable|date_format:H:i',
@@ -202,13 +204,24 @@ class PengajuanController extends Controller
     }
 
     /**
+     * Catalog items a pengajuan may reference: must exist, be approved, and be
+     * active (UC-05 include UC-09). Mirrors the create-form query.
+     */
+    private function activeCatalogRule(): Exists
+    {
+        return Rule::exists('products', 'id')
+            ->where('curation_status', 'approved')
+            ->where('is_active', true);
+    }
+
+    /**
      * @return array<string, mixed>
      */
     private function storeRules(): array
     {
         return [
             'tipe' => 'required|in:jasa,ruangan,produk',
-            'product_id' => 'nullable|exists:products,id',
+            'product_id' => ['nullable', $this->activeCatalogRule()],
             'keperluan' => 'nullable|string|max:2000',
             'jumlah' => 'nullable|string|max:100',
             'tanggal' => 'nullable|date|after_or_equal:today',

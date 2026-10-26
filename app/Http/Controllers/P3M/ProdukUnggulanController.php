@@ -185,7 +185,7 @@ class ProdukUnggulanController extends Controller
             'team' => 'nullable|string|max:255',
             'category' => 'nullable|string|max:100',
             'price' => 'nullable|integer|min:0|max:10000000000',
-            'dokumen' => 'nullable|array|max:5',
+            'dokumen' => 'required|array|min:1|max:5',
             'dokumen.*' => 'file|mimes:pdf,jpg,jpeg,png|max:5120',
         ] + $this->opsiRules());
 

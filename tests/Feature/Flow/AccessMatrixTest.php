@@ -181,10 +181,12 @@ class AccessMatrixTest extends TestCase
 
     public function test_pimpinan_approve_creates_inactive_layanan_once(): void
     {
+        Storage::fake('public');
         $this->actingAs($this->users['admin_p3m']);
         $this->post(route('p3m.produk.store'), [
             'name' => 'Filter Air Gambut', 'desc' => 'Filter tiga tahap.',
             'researcher' => 'Dr. B', 'category' => 'Lingkungan', 'price' => 1250000,
+            'dokumen' => [UploadedFile::fake()->create('proposal.pdf', 100, 'application/pdf')],
         ])->assertRedirect();
         $pu = ProdukUnggulan::latest('id')->first();
 

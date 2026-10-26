@@ -1,11 +1,12 @@
 import { Head, Link } from '@inertiajs/react';
 import { motion, useReducedMotion } from 'framer-motion';
 import { ArrowLeft, ArrowRight, Building2, Check, ShieldCheck } from 'lucide-react';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import PublicLayout from '@/Layouts/PublicLayout';
 import { VisualPlaceholder } from '@/Components/Public/shared';
 import { Card, EASE, StatusBadge } from '@/Components/ui';
 import { href as navHref } from '@/lib/nav';
+import { calculateQuote } from '@/api/quote';
 
 const TYPE_LABEL = { jasa: 'Jasa', ruangan: 'Ruangan', produk: 'Produk' };
 
@@ -19,9 +20,27 @@ function typeFromSlug(slug) {
 export default function CatalogShow({ auth, product }) {
     const reduce = useReducedMotion();
     const [tab, setTab] = useState('deskripsi');
+    const [quoteData, setQuoteData] = useState(null);
     const user = auth?.user;
     const type = typeFromSlug(product.category?.slug);
     const price = `Rp ${Number(product.final_price ?? 0).toLocaleString('id-ID')}`;
+
+    useEffect(() => {
+        if (!product?.id) return;
+        let active = true;
+        calculateQuote({ productId: product.id })
+            .then((res) => {
+                if (active && res?.success && res?.data) {
+                    setQuoteData(res.data);
+                }
+            })
+            .catch(() => {
+                // Keep static pricing if API call fails
+            });
+        return () => {
+            active = false;
+        };
+    }, [product?.id]);
     const specs =
         type === 'jasa'
             ? [
@@ -96,7 +115,16 @@ export default function CatalogShow({ auth, product }) {
                                 <p className="mt-5 font-display text-3xl font-bold" style={{ color: 'var(--color-ink)' }}>
                                     {price}
                                 </p>
-                                <div className="mt-5 flex flex-wrap items-center gap-2 text-[13px]" style={{ color: 'var(--color-muted)' }}>
+                                {quoteData?.tax && (
+                                    <div className="mt-1.5 flex flex-wrap items-center gap-1.5 text-xs" style={{ color: 'var(--color-muted)' }}>
+                                        <span>Estimasi PPN {quoteData.tax.rate_percent}% (Rp {Number(quoteData.tax.tax_amount ?? 0).toLocaleString('id-ID')})</span>
+                                        <span>·</span>
+                                        <span className="font-semibold" style={{ color: 'var(--color-ink)' }}>
+                                            Total: Rp {Number(quoteData.tax.total ?? 0).toLocaleString('id-ID')}
+                                        </span>
+                                    </div>
+                                )}
+                                <div className="mt-4 flex flex-wrap items-center gap-2 text-[13px]" style={{ color: 'var(--color-muted)' }}>
                                     <ShieldCheck className="h-4 w-4" style={{ color: 'var(--color-accent)' }} />
                                     Terkurasi Admin RTPU · pembayaran ke rekening resmi PNJ
                                 </div>

@@ -29,6 +29,7 @@ class Product extends Model
         'approved_by',
         'stock',
         'is_active',
+        'tax_rate_id',
         'meta',
         'produk_unggulan_id',
     ];
@@ -58,6 +59,11 @@ class Product extends Model
     public function category(): BelongsTo
     {
         return $this->belongsTo(ProductCategory::class, 'category_id');
+    }
+
+    public function taxRate(): BelongsTo
+    {
+        return $this->belongsTo(TaxRate::class, 'tax_rate_id');
     }
 
     public function orderItems(): HasMany

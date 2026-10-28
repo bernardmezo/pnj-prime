@@ -47,6 +47,9 @@ class HandleInertiaRequests extends Middleware
             // Active feature keys drive menu visibility (see lib/roles.js +
             // DashboardLayout/CustomerTabs filtering). Missing table (fresh
             // install) yields null = show everything.
+            'active_fitur' => Schema::hasTable('fitur')
+                ? Fitur::where('aktif', true)->pluck('key')->all()
+                : null,
             'fitur' => Schema::hasTable('fitur')
                 ? Fitur::where('aktif', true)->pluck('key')->all()
                 : null,

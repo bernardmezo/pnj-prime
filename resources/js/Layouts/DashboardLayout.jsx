@@ -128,7 +128,32 @@ function isItemActive(item, activeKey, currentUrl) {
         return cleanUrl.startsWith('/rtpu/riwayat') || cleanUrl.includes('/riwayat');
     }
 
-    // 10. Fallback: check Ziggy route if available
+    // 10. Super Admin pages matching by path
+    if (key === 'users' || page === 'superadmin.users') {
+        return cleanUrl.startsWith('/superadmin/users');
+    }
+    if (key === 'hak' || page === 'superadmin.hakakses') {
+        return cleanUrl.startsWith('/superadmin/hak-akses');
+    }
+    if (key === 'fitur' || page === 'superadmin.fitur') {
+        return cleanUrl.startsWith('/superadmin/fitur');
+    }
+
+    // 11. P3M & Pimpinan & Direktur pages matching by path
+    if (key === 'pantau' || page === 'p3m.produk.index') {
+        return cleanUrl.startsWith('/p3m/produk') || cleanUrl.startsWith('/p3m/pemantauan');
+    }
+    if (key === 'verify' || page === 'pimpinan.verify') {
+        return cleanUrl.startsWith('/pimpinan/verifikasi');
+    }
+    if (page === 'pimpinan.monitor') {
+        return cleanUrl.startsWith('/pimpinan/pemantauan');
+    }
+    if (page === 'direktur.monitor') {
+        return cleanUrl.startsWith('/direktur/pemantauan');
+    }
+
+    // 12. Fallback: check Ziggy route if available
     try {
         if (typeof route === 'function') {
             if (page && route().current(page)) return true;
@@ -274,10 +299,14 @@ function SidebarBody({ user, menu, activeKey, pendingCounts, currentUrl, onNavig
  * Full width content next to sidebar, centered and max 1400px only on screens > 1600px.
  */
 export default function DashboardLayout({ title, activeKey, children }) {
-    const { auth, fitur: activeFitur, pending_counts } = usePage().props;
+    const pageProps = usePage().props;
+    const { auth, pending_counts } = pageProps;
+    const activeFitur = pageProps.active_fitur ?? pageProps.fitur;
     const { url = '' } = usePage();
     const user = auth?.user ?? {};
-    const menu = filterMenuByFitur(menuFor(user.role), activeFitur);
+    // Super Admin has access to all modules by definition; other roles filter by active features
+    const allMenuItems = menuFor(user.role);
+    const menu = user.role === 'super_admin' ? allMenuItems : filterMenuByFitur(allMenuItems, activeFitur);
     const [drawer, setDrawer] = useState(false);
     const reduce = useReducedMotion();
     const userInitials = getInitials(user?.name);

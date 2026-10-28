@@ -115,7 +115,11 @@ export function previewMenuForRole(raw, matrix, fiturList = []) {
  */
 export function filterMenuByFitur(menu, activeKeys) {
     if (!Array.isArray(activeKeys)) return menu;
-    return menu.filter((m) => !m.fitur || activeKeys.includes(m.fitur));
+    // activeKeys can be ['fitur-a', 'fitur-b'] or [{ key: 'fitur-a', ... }]
+    const keySet = new Set(
+        activeKeys.map((k) => (typeof k === 'object' && k !== null ? k.key : k)).filter(Boolean)
+    );
+    return menu.filter((m) => !m.fitur || keySet.has(m.fitur));
 }
 
 // Customer header user menu (PublicLayout).

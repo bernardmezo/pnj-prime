@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Controllers\Api\MidtransWebhookController;
 use App\Http\Controllers\Api\V1\AuthController;
 use App\Http\Controllers\Api\V1\CatalogController;
 use App\Http\Controllers\Api\V1\HealthController;
@@ -40,3 +41,7 @@ Route::prefix('v1')->group(function () {
         Route::get('/pengajuan/{id}', [PengajuanController::class, 'show']);
     });
 });
+
+// Midtrans Snap Webhook Notification (CSRF-exempt, public)
+Route::post('/midtrans/notification', [MidtransWebhookController::class, 'handle'])
+    ->name('api.midtrans.notification');

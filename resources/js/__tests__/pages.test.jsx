@@ -60,11 +60,11 @@ describe('pages render with realistic controller props', () => {
                 auth={auth}
                 item={{ ...pengajuan, status: 'Menunggu Pembayaran', total: 2220000 }}
                 tagihan={{ subtotal: 2000000, ppn: 220000, total: 2220000 }}
-                metode={[{ id: 1, name: 'Mandiri BLU PNJ', type: 'Transfer Bank', account: '8899', holder: 'PNJ', instructions: 'Transfer.' }]}
+                clientKey="SB-Mid-client-test"
             />,
         );
-        expect(screen.getByText('Cara membayar')).toBeInTheDocument();
-        expect(screen.getByText('Mandiri BLU PNJ')).toBeInTheDocument();
+        expect(screen.getByText('Total tagihan')).toBeInTheDocument();
+        expect(screen.getByText('Bayar sekarang')).toBeInTheDocument();
     });
 
     it('Customer/Riwayat shows closed items', async () => {

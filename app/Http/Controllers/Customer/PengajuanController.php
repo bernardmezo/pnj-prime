@@ -8,10 +8,13 @@ use App\Models\Order;
 use App\Models\PaymentProof;
 use App\Models\Pengajuan;
 use App\Models\Product;
+use App\Services\MidtransService;
 use App\Services\PricingService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Arr;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Validation\Rule;
 use Illuminate\Validation\Rules\Exists;
 use Inertia\Inertia;
@@ -19,7 +22,10 @@ use Inertia\Response;
 
 class PengajuanController extends Controller
 {
-    public function __construct(private PricingService $pricing) {}
+    public function __construct(
+        private PricingService $pricing,
+        private MidtransService $midtrans,
+    ) {}
 
     private function own(Pengajuan $p): Pengajuan
     {
@@ -52,6 +58,8 @@ class PengajuanController extends Controller
             'total' => $p->total,
             'note' => $p->catatan_peninjau,
             'history' => $p->history ?? [],
+            'payment_method' => $p->payments?->where('status', 'paid')->first()?->payment_type ?? $p->order?->paymentProofs?->where('verification_status', 'verified')->first()?->notes,
+            'paid_at' => optional($p->payments?->where('status', 'paid')->first()?->paid_at ?? $p->order?->confirmed_at)->format('Y-m-d H:i'),
             'opsi' => collect($p->opsi)->map(fn ($o) => [
                 'opsi_id' => $o->opsi_id,
                 'jenis' => $o->jenis,
@@ -257,7 +265,7 @@ class PengajuanController extends Controller
     public function show(Pengajuan $pengajuan): Response
     {
         $this->own($pengajuan);
-        $pengajuan->load(['product', 'buyer:id,name', 'opsi']);
+        $pengajuan->load(['product', 'buyer:id,name', 'opsi', 'payments', 'order.paymentProofs']);
 
         return Inertia::render('Customer/Pengajuan/Show', [
             'item' => $this->serialize($pengajuan),
@@ -369,12 +377,23 @@ class PengajuanController extends Controller
     public function bayar(Pengajuan $pengajuan): Response
     {
         $this->own($pengajuan);
-        abort_unless($pengajuan->status === 'Menunggu Pembayaran', 403);
-        $pengajuan->load(['order', 'opsi']);
+        $pengajuan->load(['order', 'opsi', 'payments']);
 
         $order = $pengajuan->order;
         $subtotal = (int) ($order?->subtotal ?? $pengajuan->total ?? 0);
         $ppn = (int) ($order?->tax_amount ?? 0);
+        $latestPayment = $pengajuan->payments()->latest()->first();
+
+        $items = [];
+        if ($pengajuan->opsi && $pengajuan->opsi->count() > 0) {
+            foreach ($pengajuan->opsi as $op) {
+                $items[] = [
+                    'nama' => $op->nama,
+                    'qty' => $op->qty,
+                    'total' => (int) $op->subtotal,
+                ];
+            }
+        }
 
         return Inertia::render('Customer/Pembayaran', [
             'item' => $this->serialize($pengajuan),
@@ -382,10 +401,100 @@ class PengajuanController extends Controller
                 'subtotal' => $subtotal,
                 'ppn' => $ppn,
                 'total' => (int) ($order?->total ?? ($subtotal + $ppn)),
+                'items' => $items,
             ],
+            'clientKey' => $this->midtrans->getClientKey(),
+            'isProduction' => $this->midtrans->isProduction(),
+            'snapScriptUrl' => $this->midtrans->getSnapScriptUrl(),
             'metode' => MetodePembayaran::where('aktif', true)
                 ->orderBy('nama')
                 ->get(['id', 'nama as name', 'tipe as type', 'rekening as account', 'holder', 'instruksi as instructions']),
+            'latestPayment' => $latestPayment ? [
+                'status' => $latestPayment->status,
+                'order_id' => $latestPayment->order_id,
+                'paid_at' => optional($latestPayment->paid_at)->format('Y-m-d H:i'),
+                'payment_type' => $latestPayment->payment_type,
+            ] : null,
+        ]);
+    }
+
+    public function createPayment(Pengajuan $pengajuan)
+    {
+        $this->own($pengajuan);
+        abort_unless($pengajuan->status === 'Menunggu Pembayaran', 403);
+
+        $payment = $this->midtrans->createSnapPayment($pengajuan);
+
+        return response()->json([
+            'token' => $payment->snap_token,
+            'order_id' => $payment->order_id,
+        ]);
+    }
+
+    public function paymentStatus(Pengajuan $pengajuan)
+    {
+        $this->own($pengajuan);
+        $latestPayment = $pengajuan->payments()->latest()->first();
+
+        // On localhost/dev, webhooks from Midtrans cannot reach localhost directly.
+        // If payment is still pending, proactively query Midtrans status API to sync immediately.
+        if ($latestPayment && $latestPayment->status === 'pending') {
+            try {
+                $statusRes = $this->midtrans->getTransactionStatus($latestPayment->order_id);
+                $trxStatus = $statusRes['transaction_status'] ?? '';
+                $fraudStatus = $statusRes['fraud_status'] ?? '';
+                $paymentType = $statusRes['payment_type'] ?? null;
+                $trxId = $statusRes['transaction_id'] ?? null;
+                $settlementTime = $statusRes['settlement_time'] ?? $statusRes['transaction_time'] ?? null;
+
+                $targetStatus = match ($trxStatus) {
+                    'capture' => ($fraudStatus === 'accept') ? 'paid' : 'failed',
+                    'settlement' => 'paid',
+                    'pending' => 'pending',
+                    'deny', 'failure' => 'failed',
+                    'expire' => 'expired',
+                    'cancel' => 'failed',
+                    'refund', 'partial_refund' => 'refunded',
+                    default => 'pending',
+                };
+
+                if ($targetStatus === 'paid') {
+                    DB::transaction(function () use ($latestPayment, $pengajuan, $paymentType, $trxId, $statusRes, $settlementTime) {
+                        $latestPayment->update([
+                            'status' => 'paid',
+                            'payment_type' => $paymentType,
+                            'transaction_id' => $trxId,
+                            'raw_response' => $statusRes,
+                            'paid_at' => $settlementTime ? now()->parse($settlementTime) : now(),
+                        ]);
+
+                        if ($pengajuan->status !== 'Diproses' && $pengajuan->status !== 'Selesai') {
+                            $pengajuan->setStatus('Diproses', 'Pembayaran terverifikasi otomatis via Midtrans ('.($paymentType ?? 'Online').').', 'Midtrans Gateway');
+                            $pengajuan->save();
+                        }
+
+                        if ($pengajuan->order) {
+                            $pengajuan->order->update([
+                                'status' => 'diproses',
+                                'confirmed_at' => $latestPayment->paid_at ?? now(),
+                            ]);
+                        }
+                    });
+
+                    $latestPayment->refresh();
+                    $pengajuan->refresh();
+                }
+            } catch (\Exception $e) {
+                // Ignore API sync errors during polling, fall back to stored DB status
+                Log::warning('Payment status sync check error: '.$e->getMessage());
+            }
+        }
+
+        return response()->json([
+            'status' => $pengajuan->status,
+            'payment_status' => $latestPayment?->status ?? 'none',
+            'paid_at' => optional($latestPayment?->paid_at)->format('Y-m-d H:i'),
+            'payment_type' => $latestPayment?->payment_type,
         ]);
     }
 

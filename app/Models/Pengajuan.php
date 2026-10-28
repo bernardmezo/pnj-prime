@@ -63,6 +63,11 @@ class Pengajuan extends Model
         return $this->hasMany(Order::class, 'pengajuan_id');
     }
 
+    public function payments(): HasMany
+    {
+        return $this->hasMany(Payment::class, 'request_id');
+    }
+
     public function pushHistory(string $status, ?string $note = null, ?string $by = null): void
     {
         $history = $this->history ?? [];

@@ -53,6 +53,8 @@ export default function PengajuanShow({ auth, item }) {
         ...(p.need ? [['Keperluan', p.need]] : []),
         ...(p.date ? [['Tanggal Diharapkan', p.date]] : []),
         ...(p.total ? [['Total tagihan', `Rp ${Number(p.total).toLocaleString('id-ID')}`]] : []),
+        ...(p.payment_method ? [['Metode Pembayaran', p.payment_method]] : []),
+        ...(p.paid_at ? [['Waktu Pembayaran', p.paid_at]] : []),
     ];
 
     return (

@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Rtpu;
 
 use App\Http\Controllers\Controller;
 use App\Models\Order;
+use App\Models\Payment;
 use App\Models\PaymentProof;
 use App\Models\Pengajuan;
 use App\Services\SettingService;
@@ -92,25 +93,57 @@ class VerifikasiController extends Controller
 
     public function pembayaran(): Response
     {
+        // 1. Online Midtrans Payments
+        $payments = Payment::with(['request.buyer:id,name', 'request.product:id,name'])
+            ->latest()
+            ->get()
+            ->map(fn ($p) => [
+                'id' => 'midtrans-'.$p->id,
+                'db_id' => $p->id,
+                'is_midtrans' => true,
+                'order_id' => $p->order_id,
+                'code' => $p->request?->code ?? $p->order_id,
+                'request_id' => $p->request_id,
+                'customer' => $p->request?->buyer?->name ?? 'Customer',
+                'layanan' => $p->request?->product?->name ?? 'Layanan Pengajuan',
+                'amount' => $p->gross_amount,
+                'method' => $p->payment_type ? strtoupper(str_replace('_', ' ', $p->payment_type)) : 'Midtrans',
+                'status' => $p->status === 'paid' ? 'Lunas' : ($p->status === 'pending' ? 'Menunggu Pembayaran' : ucfirst($p->status)),
+                'raw_status' => $p->status,
+                'paid_at' => optional($p->paid_at)->format('Y-m-d H:i') ?? '-',
+                'at' => optional($p->created_at)->format('Y-m-d H:i'),
+                'request_url' => $p->request_id ? route('customer.pengajuan.show', $p->request_id) : null,
+            ]);
+
+        // 2. Legacy Manual Proofs (for compatibility and audit)
         $proofs = PaymentProof::with(['order.buyer:id,name'])
-            ->where('verification_status', 'pending')
             ->latest()
             ->get()
             ->map(fn ($pf) => [
-                'id' => $pf->id,
+                'id' => (string) $pf->id,
+                'db_id' => $pf->id,
+                'is_midtrans' => false,
+                'order_id' => $pf->order?->order_number,
                 'code' => $pf->order?->order_number,
+                'request_id' => $pf->order?->pengajuan_id,
                 'customer' => $pf->order?->buyer?->name,
                 'layanan' => 'Tagihan '.$pf->order?->order_number,
                 'amount' => $pf->order?->total,
-                'method' => $pf->notes,
+                'method' => $pf->notes ?? 'Manual Transfer',
                 'at' => optional($pf->created_at)->format('Y-m-d H:i'),
+                'paid_at' => optional($pf->verified_at)->format('Y-m-d H:i') ?? '-',
                 'proof' => route('berkas.show', ['kind' => 'bukti', 'id' => $pf->id, 'index' => 0]),
-                'status' => 'Menunggu Verifikasi Pembayaran',
+                'status' => $pf->verification_status === 'verified' ? 'Lunas' : ($pf->verification_status === 'pending' ? 'Menunggu Verifikasi Pembayaran' : 'Ditolak'),
+                'raw_status' => $pf->verification_status,
+                'can_verify' => $pf->verification_status === 'pending',
+                'request_url' => $pf->order?->pengajuan_id ? route('customer.pengajuan.show', $pf->order->pengajuan_id) : null,
             ]);
 
+        $combined = $payments->concat($proofs);
+
         return Inertia::render('Rtpu/Verifikasi/Pembayaran', [
-            'antrean' => $proofs,
-            'selected' => $proofs->first(),
+            'antrean' => $combined,
+            'selected' => $combined->first(),
         ]);
     }
 

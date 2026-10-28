@@ -47,4 +47,14 @@ return [
         'endpoint' => env('SSO_PNJ_ENDPOINT'),
     ],
 
+    /*
+    | Midtrans Payment Gateway
+    */
+    'midtrans' => [
+        'server_key' => env('MIDTRANS_SERVER_KEY'),
+        'client_key' => env('MIDTRANS_CLIENT_KEY'),
+        'is_production' => (bool) env('MIDTRANS_IS_PRODUCTION', false),
+        'ssl_verify' => (bool) env('MIDTRANS_SSL_VERIFY', env('APP_ENV') === 'production'),
+    ],
+
 ];

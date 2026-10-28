@@ -58,6 +58,8 @@ Route::middleware(['auth', 'verified'])->group(function () {
         Route::patch('/{pengajuan}', [CustomerPengajuanController::class, 'update'])->name('update')->middleware(['fitur:pengajuan', 'permission:pengajuan,Ubah']);
         Route::patch('/{pengajuan}/cancel', [CustomerPengajuanController::class, 'cancel'])->name('cancel')->middleware(['fitur:pengajuan', 'permission:pengajuan,Ubah']);
         Route::get('/{pengajuan}/bayar', [CustomerPengajuanController::class, 'bayar'])->name('bayar')->middleware(['fitur:pembayaran', 'permission:pembayaran,Lihat']);
+        Route::post('/{pengajuan}/pembayaran', [CustomerPengajuanController::class, 'createPayment'])->name('pembayaran.create')->middleware(['fitur:pembayaran', 'permission:pembayaran,Tambah']);
+        Route::get('/{pengajuan}/status-pembayaran', [CustomerPengajuanController::class, 'paymentStatus'])->name('pembayaran.status')->middleware(['fitur:pembayaran', 'permission:pembayaran,Lihat']);
         Route::post('/{pengajuan}/bukti', [CustomerPengajuanController::class, 'proof'])->name('proof')->middleware(['fitur:pembayaran', 'permission:pembayaran,Tambah']);
     });
     Route::get('/riwayat', [CustomerRiwayatController::class, 'index'])->name('customer.riwayat')->middleware('role:customer', 'fitur:pengajuan', 'permission:pengajuan,Lihat');

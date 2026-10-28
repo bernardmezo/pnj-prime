@@ -28,7 +28,7 @@ export const MENU_BY_ROLE = {
     admin_p3m: LIB_MENUS.admin_p3m.map((m) => ({ label: m.label, href: m.page, icon: m.icon })),
     customer: LIB_MENUS.customer.map((m) => ({ label: m.label, href: m.page, icon: m.icon })),
 };
-export const menuForRole = (role) => libMenuForRole(role).map((m) => ({ label: m.label, href: m.page, icon: m.icon }));
+export const menuForRole = (role) => libMenuForRole(role).map((m) => ({ ...m, href: m.page ?? m.href }));
 
 /* ---------- Status badges (small rounded rectangles, never pills) ---------- */
 const BADGE_STYLES = {

@@ -16,11 +16,18 @@ class DashboardController extends Controller
         $activeUsers = User::where('is_active', true)->count();
         $inactiveUsers = $totalUsers - $activeUsers;
 
+        $rolesCount = User::query()
+            ->selectRaw('role, count(*) as count')
+            ->groupBy('role')
+            ->pluck('count', 'role')
+            ->toArray();
+
         $stats = [
             'total_users' => $totalUsers,
             'active_users' => $activeUsers,
             'inactive_users' => $inactiveUsers,
             'total_fitur' => Fitur::count(),
+            'role_breakdown' => $rolesCount,
         ];
 
         $recentUsers = User::query()

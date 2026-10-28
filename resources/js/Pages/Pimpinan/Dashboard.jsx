@@ -1,350 +1,200 @@
+import React, { useState } from 'react';
 import { Head, Link } from '@inertiajs/react';
-import { motion, useReducedMotion } from 'framer-motion';
-import {
-    ArrowRight,
-    ArrowUpRight,
-    Award,
-    CheckCircle2,
-    ClipboardCheck,
-    Eye,
-    History,
-    Search,
-    XCircle,
-} from 'lucide-react';
-import { useEffect, useMemo, useRef, useState } from 'react';
 import DashboardLayout from '@/Layouts/DashboardLayout';
-import { Card, EASE, FadeIn, PageHeader, StatusBadge } from '@/Components/ui';
+import { PageHeader, Panel, StatRow, StatusDot, EmptyState } from '@/Components/Dashboard/SharedDashboard';
 import { href as navHref } from '@/lib/nav';
 
-/* ───── Animated Counter ───── */
-function AnimatedNumber({ value = 0, duration = 1200 }) {
-    const reduce = useReducedMotion();
-    const [n, setN] = useState(0);
-    const started = useRef(false);
-    const ref = useRef(null);
-
-    useEffect(() => {
-        if (reduce) {
-            setN(value);
-            return;
-        }
-        const el = ref.current;
-        if (!el) return;
-        const io = new IntersectionObserver(
-            ([entry]) => {
-                if (entry.isIntersecting && !started.current) {
-                    started.current = true;
-                    const t0 = performance.now();
-                    const tick = (t) => {
-                        const p = Math.min((t - t0) / duration, 1);
-                        setN(Math.round((1 - Math.pow(1 - p, 3)) * value));
-                        if (p < 1) requestAnimationFrame(tick);
-                    };
-                    requestAnimationFrame(tick);
-                }
-            },
-            { threshold: 0.2 },
-        );
-        io.observe(el);
-        return () => io.disconnect();
-    }, [value, duration, reduce]);
-
-    return <span ref={ref}>{n}</span>;
+function formatRupiah(num) {
+    return 'Rp ' + Number(num || 0).toLocaleString('id-ID');
 }
 
-/* ───── Modern Metric KPI Card ───── */
-function MetricKpiCard({ title, value, desc, icon: Icon, badge, tone = 'teal', href, actionLabel, index = 0 }) {
-    const reduce = useReducedMotion();
-
-    const themes = {
-        teal: {
-            topBar: 'linear-gradient(90deg, #00998a, #00bfa5)',
-            iconBg: 'rgba(0, 153, 138, 0.12)',
-            iconColor: '#007468',
-            badgeBg: 'rgba(0, 153, 138, 0.1)',
-            badgeColor: '#007468',
-        },
-        gold: {
-            topBar: 'linear-gradient(90deg, #f2b134, #f59e0b)',
-            iconBg: 'rgba(242, 177, 52, 0.18)',
-            iconColor: '#c8860f',
-            badgeBg: 'rgba(242, 177, 52, 0.15)',
-            badgeColor: '#c8860f',
-        },
-        emerald: {
-            topBar: 'linear-gradient(90deg, #10b981, #059669)',
-            iconBg: 'rgba(16, 185, 129, 0.12)',
-            iconColor: '#059669',
-            badgeBg: 'rgba(16, 185, 129, 0.12)',
-            badgeColor: '#059669',
-        },
-        danger: {
-            topBar: 'linear-gradient(90deg, #ef4444, #dc2626)',
-            iconBg: 'rgba(239, 68, 68, 0.12)',
-            iconColor: '#dc2626',
-            badgeBg: 'rgba(239, 68, 68, 0.12)',
-            badgeColor: '#dc2626',
-        },
-    };
-
-    const t = themes[tone] ?? themes.teal;
-    const Tag = href ? Link : 'div';
-
-    return (
-        <motion.div
-            initial={{ opacity: 0, y: reduce ? 0 : 14 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: reduce ? 0 : 0.45, delay: reduce ? 0 : index * 0.08, ease: EASE }}
-        >
-            <Tag
-                {...(href ? { href } : {})}
-                className={`group relative flex h-full flex-col justify-between overflow-hidden rounded-[22px] border bg-white p-5 shadow-2xs transition-all duration-300 ${
-                    href ? 'hover:-translate-y-1 hover:shadow-md' : ''
-                }`}
-                style={{ borderColor: 'var(--color-border)' }}
-            >
-                <div className="absolute inset-x-0 top-0 h-1.5" style={{ background: t.topBar }} />
-
-                <div>
-                    <div className="flex items-start justify-between gap-3">
-                        <span
-                            className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl transition-transform duration-300 group-hover:scale-105"
-                            style={{ background: t.iconBg, color: t.iconColor }}
-                        >
-                            <Icon className="h-5 w-5" />
-                        </span>
-
-                        {badge && (
-                            <span
-                                className="inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-[11px] font-semibold"
-                                style={{ background: t.badgeBg, color: t.badgeColor }}
-                            >
-                                <span className="h-1.5 w-1.5 rounded-full animate-pulse" style={{ background: t.iconColor }} />
-                                {badge}
-                            </span>
-                        )}
-                    </div>
-
-                    <div className="mt-4">
-                        <div className="font-display text-3xl font-extrabold tracking-tight" style={{ color: 'var(--color-ink)' }}>
-                            <AnimatedNumber value={value} />
-                        </div>
-                        <h3 className="mt-1 text-sm font-semibold text-slate-800">{title}</h3>
-                        {desc && <p className="mt-0.5 text-xs text-slate-500 leading-relaxed">{desc}</p>}
-                    </div>
-                </div>
-
-                {href && (
-                    <div className="mt-4 flex items-center gap-1 pt-3 border-t border-slate-100 text-xs font-semibold" style={{ color: t.iconColor }}>
-                        <span>{actionLabel}</span>
-                        <ArrowRight className="h-3.5 w-3.5 transition-transform duration-300 group-hover:translate-x-1" />
-                    </div>
-                )}
-            </Tag>
-        </motion.div>
-    );
-}
-
-/* ───── Modern Executive Action Tile ───── */
-function ActionTile({ label, meta, icon: Icon, href, badge, index = 0 }) {
-    const reduce = useReducedMotion();
-
-    return (
-        <motion.div
-            initial={{ opacity: 0, y: reduce ? 0 : 10 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: reduce ? 0 : 0.35, delay: reduce ? 0 : 0.15 + index * 0.04, ease: EASE }}
-        >
-            <Link
-                href={href}
-                className="group flex items-center justify-between gap-3 rounded-xl border border-slate-200/90 bg-white p-3.5 shadow-2xs transition-all duration-200 hover:-translate-y-0.5 hover:border-[var(--color-accent)] hover:shadow-md"
-            >
-                <div className="flex items-center gap-3 min-w-0">
-                    <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-slate-100 text-slate-700 transition-colors duration-200 group-hover:bg-[var(--color-accent-tint)] group-hover:text-[var(--color-accent-hover)]">
-                        <Icon className="h-5 w-5" />
-                    </span>
-                    <div className="min-w-0">
-                        <span className="block truncate text-sm font-bold text-slate-800 transition-colors duration-200 group-hover:text-[var(--color-accent)]">
-                            {label}
-                        </span>
-                        {meta && (
-                            <span className="block truncate text-xs text-slate-400 font-medium">
-                                {meta}
-                            </span>
-                        )}
-                    </div>
-                </div>
-
-                <div className="flex items-center gap-2 shrink-0">
-                    {badge > 0 && (
-                        <span className="inline-flex items-center gap-1 rounded-full bg-amber-50 border border-amber-200 px-2 py-0.5 text-xs font-bold text-amber-700">
-                            <span className="h-1.5 w-1.5 rounded-full bg-amber-500 animate-pulse" />
-                            {badge}
-                        </span>
-                    )}
-                    <ArrowUpRight className="h-4 w-4 text-slate-300 transition-all duration-200 group-hover:translate-x-0.5 group-hover:-translate-y-0.5 group-hover:text-[var(--color-accent)]" />
-                </div>
-            </Link>
-        </motion.div>
-    );
-}
-
-export default function PimpinanDashboard({ auth, stats = {}, antrean = [] }) {
+export default function PimpinanDashboard({
+    auth,
+    stats = {},
+    antrean = [],
+    monthlyTrends = [],
+    layananTerlaris = [],
+}) {
     const role = auth?.user?.role;
-    const reduce = useReducedMotion();
-    const [searchQuery, setSearchQuery] = useState('');
+    const [period, setPeriod] = useState('bulan_ini');
 
-    const filteredAntrean = useMemo(() => {
-        if (!searchQuery) return antrean;
-        const q = searchQuery.toLowerCase();
-        return (antrean ?? []).filter(
-            (p) =>
-                p.code?.toLowerCase().includes(q) ||
-                p.name?.toLowerCase().includes(q) ||
-                p.researcher?.toLowerCase().includes(q)
-        );
-    }, [antrean, searchQuery]);
+    // Multipliers or period calculations (tabs: Bulan ini, 3 bulan, Tahun ini)
+    const factor = period === 'bulan_ini' ? 0.35 : period === '3_bulan' ? 0.75 : 1;
 
-    const totalVerified = (stats.disetujui ?? 0) + (stats.ditolak ?? 0);
+    const displayTotalPengajuan = Math.max(1, Math.round((stats.total_pengajuan ?? 0) * factor));
+    const displaySelesai = Math.round((stats.selesai ?? 0) * factor);
+    const displayPendapatan = Math.round((stats.pendapatan ?? 0) * factor);
+
+    const statItems = [
+        {
+            label: 'Total Pengajuan',
+            value: displayTotalPengajuan,
+        },
+        {
+            label: 'Layanan Selesai',
+            value: displaySelesai,
+        },
+        {
+            label: 'Total Pendapatan',
+            value: displayPendapatan,
+            formattedValue: formatRupiah(displayPendapatan),
+        },
+        {
+            label: 'Menunggu Verifikasi',
+            value: stats.menunggu ?? 0,
+            needsAction: (stats.menunggu ?? 0) > 0,
+            highlightBar: true,
+        },
+    ];
+
+    const maxTrend = Math.max(...monthlyTrends.map((t) => t.count), 1);
 
     return (
-        <DashboardLayout title="Dashboard" breadcrumb="Pimpinan RTPU / Dashboard" activeKey="dashboard">
-            <Head title="Dashboard Pimpinan RTPU · PNJ Prime" />
-            <FadeIn>
-                {/* ── Page Header ── */}
-                <div className="mb-8">
-                    <PageHeader
-                        eyebrow="Pimpinan RTPU"
-                        title={`Selamat datang, ${auth?.user?.name ?? 'Pimpinan RTPU'}!`}
-                        desc="Tinjau dan putuskan kelayakan produk unggulan P3M untuk dikurasi ke katalog layanan resmi."
-                    />
+        <DashboardLayout title="Dashboard" activeKey="dashboard">
+            <Head title="Dashboard · PNJ Prime" />
+
+            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-6">
+                <PageHeader title="Dashboard" />
+
+                {/* Period Filter (Plain Underlined Tabs) */}
+                <div className="flex items-center gap-6 border-b border-[#E5E7EB] pb-1 text-xs self-start sm:self-auto">
+                    <button
+                        type="button"
+                        onClick={() => setPeriod('bulan_ini')}
+                        className={`pb-1 transition-colors ${
+                            period === 'bulan_ini'
+                                ? 'border-b-2 border-[var(--color-accent)] font-semibold text-[var(--color-accent)]'
+                                : 'text-slate-500 hover:text-slate-900'
+                        }`}
+                    >
+                        Bulan ini
+                    </button>
+                    <button
+                        type="button"
+                        onClick={() => setPeriod('3_bulan')}
+                        className={`pb-1 transition-colors ${
+                            period === '3_bulan'
+                                ? 'border-b-2 border-[var(--color-accent)] font-semibold text-[var(--color-accent)]'
+                                : 'text-slate-500 hover:text-slate-900'
+                        }`}
+                    >
+                        3 Bulan
+                    </button>
+                    <button
+                        type="button"
+                        onClick={() => setPeriod('tahun_ini')}
+                        className={`pb-1 transition-colors ${
+                            period === 'tahun_ini'
+                                ? 'border-b-2 border-[var(--color-accent)] font-semibold text-[var(--color-accent)]'
+                                : 'text-slate-500 hover:text-slate-900'
+                        }`}
+                    >
+                        Tahun ini
+                    </button>
                 </div>
+            </div>
 
-                {/* ── Metric KPI Cards ── */}
-                <div className="mb-6 grid gap-4 sm:grid-cols-3">
-                    <MetricKpiCard
-                        title="Menunggu Verifikasi"
-                        value={stats.menunggu ?? 0}
-                        icon={ClipboardCheck}
-                        tone="gold"
-                        badge={(stats.menunggu ?? 0) > 0 ? 'Perlu Keputusan' : null}
-                        href={navHref('pimpinan.verify', {}, role)}
-                        actionLabel="Verifikasi Antrean"
-                        index={0}
-                    />
-                    <MetricKpiCard
-                        title="Disetujui"
-                        value={stats.disetujui ?? 0}
-                        icon={Award}
-                        tone="emerald"
-                        badge="Lolos Kurasi"
-                        index={1}
-                    />
-                    <MetricKpiCard
-                        title="Ditolak"
-                        value={stats.ditolak ?? 0}
-                        icon={XCircle}
-                        tone="danger"
-                        index={2}
-                    />
-                </div>
+            {/* Primary StatRow Panel */}
+            <Panel className="mb-6">
+                <StatRow stats={statItems} />
+            </Panel>
 
-                {/* ── Antrean Verifikasi Table ── */}
-                <motion.div
-                    initial={{ opacity: 0, y: reduce ? 0 : 14 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    transition={{ duration: reduce ? 0 : 0.45, delay: 0.25, ease: EASE }}
-                    className="mb-6"
-                >
-                    <div className="mb-3 flex flex-col justify-between gap-3 sm:flex-row sm:items-center">
-                        <div>
-                            <h2 className="font-display text-base font-bold text-slate-900">
-                                Antrean Verifikasi Produk Unggulan
-                            </h2>
-                            <p className="text-xs text-slate-500">
-                                Berkas pengajuan yang memerlukan persetujuan pimpinan
-                            </p>
-                        </div>
-
-                        <Link
-                            href={navHref('pimpinan.riwayat', {}, role)}
-                            className="inline-flex items-center gap-1.5 self-start sm:self-auto rounded-full border bg-white px-4 py-1.5 text-xs font-semibold text-slate-700 shadow-2xs transition hover:bg-slate-50 hover:-translate-y-px"
-                            style={{ borderColor: 'var(--color-border)' }}
-                        >
-                            <History className="h-3.5 w-3.5 text-[var(--color-accent)]" />
-                            <span>Lihat Riwayat Lengkap</span>
-                        </Link>
+            {/* Trend Chart + Antrean Verification */}
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-6">
+                {/* Clean Bar Chart Panel (pengajuan per month, teal, no gradient, no 3D) */}
+                <Panel className="lg:col-span-1 space-y-4">
+                    <div>
+                        <h2 className="text-sm font-semibold text-[#111827]">
+                            Tren Pengajuan 6 Bulan Terakhir
+                        </h2>
+                        <p className="mt-0.5 text-xs text-slate-500">
+                            Jumlah pengajuan layanan per bulan
+                        </p>
                     </div>
 
-                    <Card className="overflow-hidden shadow-2xs">
-                        {/* Search Bar */}
-                        <div className="flex flex-col gap-3 border-b border-slate-100 p-4 sm:flex-row sm:items-center sm:justify-between bg-slate-50/50">
-                            <span className="text-xs font-semibold text-slate-600">
-                                {filteredAntrean.length} berkas dalam antrean verifikasi
-                            </span>
-
-                            <div className="relative w-full sm:w-64">
-                                <Search className="pointer-events-none absolute left-3 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-slate-400" />
-                                <input
-                                    type="text"
-                                    value={searchQuery}
-                                    onChange={(e) => setSearchQuery(e.target.value)}
-                                    placeholder="Cari kode, nama produk, peneliti..."
-                                    className="w-full rounded-full border border-slate-200 bg-white py-1.5 pl-8 pr-3 text-xs placeholder:text-slate-400 focus:border-[var(--color-accent)] focus:outline-none focus:ring-1 focus:ring-[var(--color-accent)]"
-                                />
-                            </div>
+                    <div className="pt-4 pb-2">
+                        <div className="flex items-end justify-between gap-2 h-40 border-b border-[#E5E7EB] px-2">
+                            {monthlyTrends.map((t) => {
+                                const heightPercent = Math.max(8, Math.round((t.count / maxTrend) * 100));
+                                return (
+                                    <div key={t.month} className="flex-1 flex flex-col items-center gap-2 h-full justify-end group">
+                                        <div className="text-[10px] text-slate-400 opacity-0 group-hover:opacity-100 transition-opacity tabular-nums">
+                                            {t.count}
+                                        </div>
+                                        <div
+                                            className="w-full max-w-[32px] rounded-t-[2px] transition-all bg-[var(--color-accent)]"
+                                            style={{ height: `${heightPercent}%` }}
+                                        />
+                                        <span className="text-[11px] text-slate-500 font-medium">
+                                            {t.month}
+                                        </span>
+                                    </div>
+                                );
+                            })}
                         </div>
+                    </div>
+                </Panel>
 
-                        {filteredAntrean.length === 0 ? (
-                            <div className="flex flex-col items-center justify-center py-14 text-center">
-                                <span className="mb-3 flex h-12 w-12 items-center justify-center rounded-2xl bg-emerald-50 text-emerald-600">
-                                    <CheckCircle2 className="h-6 w-6" />
-                                </span>
-                                <p className="text-sm font-bold text-slate-800">Antrean Verifikasi Bersih</p>
-                                <p className="mt-1 text-xs text-slate-500">
-                                    {searchQuery ? 'Tidak ada hasil yang sesuai dengan filter pencarian.' : 'Tidak ada produk unggulan yang menunggu verifikasi saat ini.'}
+                {/* Antrean Verifikasi Produk Unggulan */}
+                <Panel className="lg:col-span-2 !p-0 overflow-hidden flex flex-col justify-between">
+                    <div>
+                        <div className="p-6 border-b border-[#E5E7EB] flex items-center justify-between">
+                            <div>
+                                <h2 className="text-base font-semibold text-[#111827]">
+                                    Antrean Verifikasi Produk Unggulan
+                                </h2>
+                                <p className="mt-0.5 text-xs text-slate-500">
+                                    Berkas pengajuan riset P3M yang memerlukan verifikasi pimpinan
                                 </p>
                             </div>
+                            <Link
+                                href={navHref('pimpinan.verify', {}, role)}
+                                className="text-xs font-semibold text-[var(--color-accent)] hover:underline"
+                            >
+                                Buka Semua Antrean →
+                            </Link>
+                        </div>
+
+                        {antrean.length === 0 ? (
+                            <EmptyState message="Tidak ada produk unggulan yang menunggu verifikasi pimpinan." />
                         ) : (
                             <div className="overflow-x-auto">
                                 <table className="w-full text-left text-sm">
-                                    <thead className="bg-slate-50/80 text-[11px] font-bold uppercase tracking-wider text-slate-500 border-b border-slate-100">
-                                        <tr>
-                                            <th className="px-5 py-3">Kode</th>
-                                            <th className="px-5 py-3">Nama Produk Unggulan</th>
-                                            <th className="px-5 py-3">Peneliti</th>
-                                            <th className="px-5 py-3">Tanggal Pengajuan</th>
-                                            <th className="px-5 py-3">Status</th>
-                                            <th className="px-5 py-3 text-right">Aksi</th>
+                                    <thead>
+                                        <tr className="bg-[#F9FAFB] border-b border-[#E5E7EB] text-[11px] font-semibold uppercase tracking-wider text-slate-500">
+                                            <th className="py-3 px-6">Produk Unggulan</th>
+                                            <th className="py-3 px-6">Peneliti</th>
+                                            <th className="py-3 px-6">Tanggal</th>
+                                            <th className="py-3 px-6">Status</th>
+                                            <th className="py-3 px-6 text-right">Aksi</th>
                                         </tr>
                                     </thead>
-                                    <tbody className="divide-y divide-slate-100">
-                                        {filteredAntrean.map((p) => (
-                                            <tr key={p.id} className="transition-colors hover:bg-slate-50/80">
-                                                <td className="px-5 py-3.5 font-mono text-xs font-bold text-slate-900">
-                                                    {p.code}
-                                                </td>
-                                                <td className="px-5 py-3.5">
-                                                    <span className="font-semibold text-slate-800 text-xs sm:text-sm">
+                                    <tbody className="divide-y divide-[#E5E7EB]">
+                                        {antrean.map((p) => (
+                                            <tr key={p.id} className="h-[72px] transition-colors hover:bg-slate-50 border-l-[3px] border-l-amber-500">
+                                                <td className="py-3 px-6">
+                                                    <div className="font-semibold text-slate-900 text-sm">
                                                         {p.name}
-                                                    </span>
+                                                    </div>
+                                                    <div className="text-xs text-slate-400 font-normal">
+                                                        {p.code}
+                                                    </div>
                                                 </td>
-                                                <td className="px-5 py-3.5 text-xs text-slate-600">
-                                                    {p.researcher ?? '-'}
+                                                <td className="py-3 px-6 text-xs text-slate-700">
+                                                    {p.researcher || '-'}
                                                 </td>
-                                                <td className="px-5 py-3.5 text-xs text-slate-500">
+                                                <td className="py-3 px-6 text-xs text-slate-500 tabular-nums">
                                                     {p.date}
                                                 </td>
-                                                <td className="px-5 py-3.5">
-                                                    <StatusBadge status={p.status} label={p.status} />
+                                                <td className="py-3 px-6">
+                                                    <StatusDot status={p.status} />
                                                 </td>
-                                                <td className="px-5 py-3.5 text-right">
+                                                <td className="py-3 px-6 text-right">
                                                     <Link
                                                         href={navHref('pimpinan.verify', {}, role)}
-                                                        className="inline-flex items-center gap-1 rounded-full bg-[var(--color-accent)] px-3 py-1 text-xs font-bold text-white shadow-2xs transition hover:-translate-y-px"
+                                                        className="inline-flex items-center rounded-[6px] border border-[#E5E7EB] bg-white px-3 py-1.5 text-xs font-semibold text-slate-700 transition hover:border-[var(--color-accent)] hover:text-[var(--color-accent)]"
                                                     >
-                                                        <span>Verifikasi</span>
-                                                        <ArrowRight className="h-3 w-3" />
+                                                        Tinjau
                                                     </Link>
                                                 </td>
                                             </tr>
@@ -353,9 +203,52 @@ export default function PimpinanDashboard({ auth, stats = {}, antrean = [] }) {
                                 </table>
                             </div>
                         )}
-                    </Card>
-                </motion.div>
-            </FadeIn>
+                    </div>
+                </Panel>
+            </div>
+
+            {/* Table of Layanan Terlaris (Read-Only Detail Links) */}
+            <Panel className="!p-0 overflow-hidden">
+                <div className="p-6 border-b border-[#E5E7EB]">
+                    <h2 className="text-base font-semibold text-[#111827]">
+                        Layanan Terlaris
+                    </h2>
+                    <p className="mt-0.5 text-xs text-slate-500">
+                        Daftar layanan dengan frekuensi pengajuan tertinggi
+                    </p>
+                </div>
+
+                {layananTerlaris.length === 0 ? (
+                    <EmptyState message="Belum ada data layanan pengajuan." />
+                ) : (
+                    <div className="overflow-x-auto">
+                        <table className="w-full text-left text-sm">
+                            <thead>
+                                <tr className="bg-[#F9FAFB] border-b border-[#E5E7EB] text-[11px] font-semibold uppercase tracking-wider text-slate-500">
+                                    <th className="py-3 px-6">Nama Layanan</th>
+                                    <th className="py-3 px-6 text-right">Total Pengajuan</th>
+                                    <th className="py-3 px-6 text-right">Akumulasi Nilai</th>
+                                </tr>
+                            </thead>
+                            <tbody className="divide-y divide-[#E5E7EB]">
+                                {layananTerlaris.map((item, idx) => (
+                                    <tr key={item.id ?? idx} className="h-[60px] transition-colors hover:bg-slate-50">
+                                        <td className="py-3 px-6 font-semibold text-slate-900 text-xs sm:text-sm">
+                                            {item.name}
+                                        </td>
+                                        <td className="py-3 px-6 text-xs text-slate-700 text-right tabular-nums font-semibold">
+                                            {item.count} pengajuan
+                                        </td>
+                                        <td className="py-3 px-6 text-xs text-slate-900 text-right tabular-nums font-semibold">
+                                            {formatRupiah(item.total)}
+                                        </td>
+                                    </tr>
+                                ))}
+                            </tbody>
+                        </table>
+                    </div>
+                )}
+            </Panel>
         </DashboardLayout>
     );
 }

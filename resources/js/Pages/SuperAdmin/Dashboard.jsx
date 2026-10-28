@@ -1,197 +1,23 @@
+import React, { useMemo, useState } from 'react';
 import { Head, Link } from '@inertiajs/react';
-import { motion, useReducedMotion } from 'framer-motion';
-import {
-    ArrowRight,
-    ArrowUpRight,
-    CheckCircle2,
-    History,
-    KeyRound,
-    LayoutGrid,
-    Search,
-    Shield,
-    Users,
-    XCircle,
-} from 'lucide-react';
-import { useEffect, useMemo, useRef, useState } from 'react';
 import DashboardLayout from '@/Layouts/DashboardLayout';
-import { Card, EASE, FadeIn, PageHeader, RoleBadge, StatusBadge } from '@/Components/ui';
+import { PageHeader, Panel, StatRow, StatusDot, EmptyState } from '@/Components/Dashboard/SharedDashboard';
 import { href as navHref } from '@/lib/nav';
 
-/* ───── Animated Counter ───── */
-function AnimatedNumber({ value = 0, duration = 1200 }) {
-    const reduce = useReducedMotion();
-    const [n, setN] = useState(0);
-    const started = useRef(false);
-    const ref = useRef(null);
-
-    useEffect(() => {
-        if (reduce) {
-            setN(value);
-            return;
-        }
-        const el = ref.current;
-        if (!el) return;
-        const io = new IntersectionObserver(
-            ([entry]) => {
-                if (entry.isIntersecting && !started.current) {
-                    started.current = true;
-                    const t0 = performance.now();
-                    const tick = (t) => {
-                        const p = Math.min((t - t0) / duration, 1);
-                        setN(Math.round((1 - Math.pow(1 - p, 3)) * value));
-                        if (p < 1) requestAnimationFrame(tick);
-                    };
-                    requestAnimationFrame(tick);
-                }
-            },
-            { threshold: 0.2 },
-        );
-        io.observe(el);
-        return () => io.disconnect();
-    }, [value, duration, reduce]);
-
-    return <span ref={ref}>{n}</span>;
-}
-
-/* ───── Modern Metric KPI Card ───── */
-function MetricKpiCard({ title, value, desc, icon: Icon, badge, tone = 'teal', href, actionLabel, index = 0 }) {
-    const reduce = useReducedMotion();
-
-    const themes = {
-        teal: {
-            topBar: 'linear-gradient(90deg, #00998a, #00bfa5)',
-            iconBg: 'rgba(0, 153, 138, 0.12)',
-            iconColor: '#007468',
-            badgeBg: 'rgba(0, 153, 138, 0.1)',
-            badgeColor: '#007468',
-        },
-        gold: {
-            topBar: 'linear-gradient(90deg, #f2b134, #f59e0b)',
-            iconBg: 'rgba(242, 177, 52, 0.18)',
-            iconColor: '#c8860f',
-            badgeBg: 'rgba(242, 177, 52, 0.15)',
-            badgeColor: '#c8860f',
-        },
-        emerald: {
-            topBar: 'linear-gradient(90deg, #10b981, #059669)',
-            iconBg: 'rgba(16, 185, 129, 0.12)',
-            iconColor: '#059669',
-            badgeBg: 'rgba(16, 185, 129, 0.12)',
-            badgeColor: '#059669',
-        },
-        danger: {
-            topBar: 'linear-gradient(90deg, #ef4444, #dc2626)',
-            iconBg: 'rgba(239, 68, 68, 0.12)',
-            iconColor: '#dc2626',
-            badgeBg: 'rgba(239, 68, 68, 0.12)',
-            badgeColor: '#dc2626',
-        },
-    };
-
-    const t = themes[tone] ?? themes.teal;
-    const Tag = href ? Link : 'div';
-
-    return (
-        <motion.div
-            initial={{ opacity: 0, y: reduce ? 0 : 14 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: reduce ? 0 : 0.45, delay: reduce ? 0 : index * 0.08, ease: EASE }}
-        >
-            <Tag
-                {...(href ? { href } : {})}
-                className={`group relative flex h-full flex-col justify-between overflow-hidden rounded-[22px] border bg-white p-5 shadow-2xs transition-all duration-300 ${
-                    href ? 'hover:-translate-y-1 hover:shadow-md' : ''
-                }`}
-                style={{ borderColor: 'var(--color-border)' }}
-            >
-                <div className="absolute inset-x-0 top-0 h-1.5" style={{ background: t.topBar }} />
-
-                <div>
-                    <div className="flex items-start justify-between gap-3">
-                        <span
-                            className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl transition-transform duration-300 group-hover:scale-105"
-                            style={{ background: t.iconBg, color: t.iconColor }}
-                        >
-                            <Icon className="h-5 w-5" />
-                        </span>
-
-                        {badge && (
-                            <span
-                                className="inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-[11px] font-semibold"
-                                style={{ background: t.badgeBg, color: t.badgeColor }}
-                            >
-                                <span className="h-1.5 w-1.5 rounded-full animate-pulse" style={{ background: t.iconColor }} />
-                                {badge}
-                            </span>
-                        )}
-                    </div>
-
-                    <div className="mt-4">
-                        <div className="font-display text-3xl font-extrabold tracking-tight" style={{ color: 'var(--color-ink)' }}>
-                            <AnimatedNumber value={value} />
-                        </div>
-                        <h3 className="mt-1 text-sm font-semibold text-slate-800">{title}</h3>
-                        {desc && <p className="mt-0.5 text-xs text-slate-500 leading-relaxed">{desc}</p>}
-                    </div>
-                </div>
-
-                {href && (
-                    <div className="mt-4 flex items-center gap-1 pt-3 border-t border-slate-100 text-xs font-semibold" style={{ color: t.iconColor }}>
-                        <span>{actionLabel}</span>
-                        <ArrowRight className="h-3.5 w-3.5 transition-transform duration-300 group-hover:translate-x-1" />
-                    </div>
-                )}
-            </Tag>
-        </motion.div>
-    );
-}
-
-/* ───── Modern Executive Action Tile ───── */
-function ActionTile({ label, meta, icon: Icon, href, badge, index = 0 }) {
-    const reduce = useReducedMotion();
-
-    return (
-        <motion.div
-            initial={{ opacity: 0, y: reduce ? 0 : 10 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: reduce ? 0 : 0.35, delay: reduce ? 0 : 0.15 + index * 0.04, ease: EASE }}
-        >
-            <Link
-                href={href}
-                className="group flex items-center justify-between gap-3 rounded-xl border border-slate-200/90 bg-white p-3.5 shadow-2xs transition-all duration-200 hover:-translate-y-0.5 hover:border-[var(--color-accent)] hover:shadow-md"
-            >
-                <div className="flex items-center gap-3 min-w-0">
-                    <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-slate-100 text-slate-700 transition-colors duration-200 group-hover:bg-[var(--color-accent-tint)] group-hover:text-[var(--color-accent-hover)]">
-                        <Icon className="h-5 w-5" />
-                    </span>
-                    <div className="min-w-0">
-                        <span className="block truncate text-sm font-bold text-slate-800 transition-colors duration-200 group-hover:text-[var(--color-accent)]">
-                            {label}
-                        </span>
-                        {meta && (
-                            <span className="block truncate text-xs text-slate-400 font-medium">
-                                {meta}
-                            </span>
-                        )}
-                    </div>
-                </div>
-
-                <div className="flex items-center gap-2 shrink-0">
-                    {badge && (
-                        <span className="rounded-full bg-slate-100 px-2 py-0.5 text-xs font-bold text-slate-600">
-                            {badge}
-                        </span>
-                    )}
-                    <ArrowUpRight className="h-4 w-4 text-slate-300 transition-all duration-200 group-hover:translate-x-0.5 group-hover:-translate-y-0.5 group-hover:text-[var(--color-accent)]" />
-                </div>
-            </Link>
-        </motion.div>
-    );
-}
+const ROLE_LABELS = {
+    super_admin: 'Super Admin',
+    admin_rtpu: 'Admin RTPU',
+    admin_p3m: 'Admin P3M',
+    pimpinan_rtpu: 'Pimpinan RTPU',
+    direktur: 'Direktur',
+    dosen: 'Dosen',
+    mahasiswa: 'Mahasiswa',
+    mitra: 'Mitra',
+    umum: 'Umum',
+};
 
 export default function SuperAdminDashboard({ auth, stats = {}, recentUsers = [] }) {
     const role = auth?.user?.role;
-    const reduce = useReducedMotion();
     const [searchQuery, setSearchQuery] = useState('');
 
     const filteredUsers = useMemo(() => {
@@ -205,183 +31,142 @@ export default function SuperAdminDashboard({ auth, stats = {}, recentUsers = []
         );
     }, [recentUsers, searchQuery]);
 
-    const activeRate = (stats.total_users ?? 0) > 0 ? Math.round(((stats.active_users ?? 0) / stats.total_users) * 100) : 0;
+    const statItems = [
+        {
+            label: 'Total Pengguna',
+            value: stats.total_users ?? 0,
+        },
+        {
+            label: 'Pengguna Aktif',
+            value: stats.active_users ?? 0,
+        },
+        {
+            label: 'Akun Nonaktif',
+            value: stats.inactive_users ?? 0,
+            needsAction: (stats.inactive_users ?? 0) > 0,
+        },
+        {
+            label: 'Modul Fitur Sistem',
+            value: stats.total_fitur ?? 0,
+        },
+    ];
+
+    const roleBreakdown = stats.role_breakdown || {};
+    const roleEntries = Object.entries(roleBreakdown).filter(([_, count]) => count > 0);
 
     return (
-        <DashboardLayout title="Dashboard" breadcrumb="Super Admin / Dashboard" activeKey="dashboard">
-            <Head title="Dashboard Super Admin · PNJ Prime" />
-            <FadeIn>
-                {/* ── Page Header ── */}
-                <div className="mb-8">
-                    <PageHeader
-                        eyebrow="Super Admin"
-                        title={`Selamat datang, ${auth?.user?.name ?? 'Super Admin'}!`}
-                        desc="Pusat kendali manajemen pengguna, konfigurasi hak akses per role, dan tata kelola modul fitur aplikasi."
-                    />
-                </div>
+        <DashboardLayout title="Dashboard" activeKey="dashboard">
+            <Head title="Dashboard · PNJ Prime" />
 
-                {/* ── Metric KPI Cards ── */}
-                <div className="mb-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-                    <MetricKpiCard
-                        title="Total Pengguna"
-                        value={stats.total_users ?? 0}
-                        icon={Users}
-                        tone="teal"
-                        href={navHref('superadmin.users', {}, role)}
-                        actionLabel="Kelola Pengguna"
-                        index={0}
-                    />
-                    <MetricKpiCard
-                        title="Pengguna Aktif"
-                        value={stats.active_users ?? 0}
-                        icon={CheckCircle2}
-                        tone="emerald"
-                        badge={`${activeRate}% Aktif`}
-                        index={1}
-                    />
-                    <MetricKpiCard
-                        title="Akun Nonaktif"
-                        value={stats.inactive_users ?? 0}
-                        icon={XCircle}
-                        tone="danger"
-                        index={2}
-                    />
-                    <MetricKpiCard
-                        title="Total Modul Fitur"
-                        value={stats.total_fitur ?? 0}
-                        icon={LayoutGrid}
-                        tone="gold"
-                        badge="Modul Sistem"
-                        href={navHref('superadmin.fitur', {}, role)}
-                        actionLabel="Kelola Fitur"
-                        index={3}
-                    />
-                </div>
-
-                {/* ── Recent Users Table ── */}
-                <motion.div
-                    initial={{ opacity: 0, y: reduce ? 0 : 14 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    transition={{ duration: reduce ? 0 : 0.45, delay: 0.25, ease: EASE }}
-                    className="mb-6"
+            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-6">
+                <PageHeader title="Dashboard" />
+                <Link
+                    href={navHref('superadmin.users', {}, role)}
+                    className="inline-flex items-center justify-center rounded-[6px] border border-[#E5E7EB] bg-white px-4 py-2 text-sm font-semibold text-slate-700 transition hover:border-[var(--color-accent)] hover:text-[var(--color-accent)] self-start sm:self-auto"
                 >
-                    <div className="mb-3 flex flex-col justify-between gap-3 sm:flex-row sm:items-center">
-                        <div>
-                            <h2 className="font-display text-base font-bold text-slate-900">
-                                Pengguna Terdaftar Terbaru
-                            </h2>
-                            <p className="text-xs text-slate-500">
-                                Akun pengguna yang baru didaftarkan ke dalam sistem
-                            </p>
-                        </div>
+                    Kelola Semua Pengguna →
+                </Link>
+            </div>
 
-                        <Link
-                            href={navHref('superadmin.users', {}, role)}
-                            className="inline-flex items-center gap-1.5 self-start sm:self-auto rounded-full border bg-white px-4 py-1.5 text-xs font-semibold text-slate-700 shadow-2xs transition hover:bg-slate-50 hover:-translate-y-px"
-                            style={{ borderColor: 'var(--color-border)' }}
-                        >
-                            <Users className="h-3.5 w-3.5 text-[var(--color-accent)]" />
-                            <span>Lihat Semua Pengguna</span>
-                        </Link>
+            {/* Primary StatRow Panel */}
+            <Panel className="mb-6 space-y-6">
+                <StatRow stats={statItems} />
+
+                {/* Plain text role breakdown (no chart) */}
+                {roleEntries.length > 0 && (
+                    <div className="pt-4 border-t border-[#E5E7EB] flex flex-wrap items-center gap-x-4 gap-y-1.5 text-xs text-slate-500">
+                        <span className="font-semibold text-slate-700">Distribusi Peran:</span>
+                        {roleEntries.map(([rKey, count], idx) => (
+                            <span key={rKey} className="inline-flex items-center gap-1.5">
+                                <span>{ROLE_LABELS[rKey] ?? rKey}:</span>
+                                <strong className="font-semibold text-slate-900 tabular-nums">{count}</strong>
+                                {idx < roleEntries.length - 1 && <span className="text-slate-300">·</span>}
+                            </span>
+                        ))}
+                    </div>
+                )}
+            </Panel>
+
+            {/* Panel: Pengguna Terbaru */}
+            <Panel className="!p-0 overflow-hidden">
+                <div className="p-6 border-b border-[#E5E7EB] flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+                    <div>
+                        <h2 className="text-base font-semibold text-[#111827]">
+                            Pengguna Terdaftar Terbaru
+                        </h2>
+                        <p className="mt-0.5 text-xs text-slate-500">
+                            Akun pengguna yang baru didaftarkan ke dalam sistem
+                        </p>
                     </div>
 
-                    <Card className="overflow-hidden shadow-2xs">
-                        {/* Search Bar */}
-                        <div className="flex flex-col gap-3 border-b border-slate-100 p-4 sm:flex-row sm:items-center sm:justify-between bg-slate-50/50">
-                            <span className="text-xs font-semibold text-slate-600">
-                                Menampilkan {filteredUsers.length} pengguna
-                            </span>
+                    <div className="relative w-full sm:w-64">
+                        <input
+                            type="text"
+                            value={searchQuery}
+                            onChange={(e) => setSearchQuery(e.target.value)}
+                            placeholder="Cari nama, email, role..."
+                            className="w-full rounded-[6px] border border-[#E5E7EB] bg-white py-1.5 px-3 text-xs placeholder:text-slate-400 focus:border-[var(--color-accent)] focus:outline-none focus:ring-1 focus:ring-[var(--color-accent)]"
+                        />
+                    </div>
+                </div>
 
-                            <div className="relative w-full sm:w-64">
-                                <Search className="pointer-events-none absolute left-3 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-slate-400" />
-                                <input
-                                    type="text"
-                                    value={searchQuery}
-                                    onChange={(e) => setSearchQuery(e.target.value)}
-                                    placeholder="Cari nama, email, role..."
-                                    className="w-full rounded-full border border-slate-200 bg-white py-1.5 pl-8 pr-3 text-xs placeholder:text-slate-400 focus:border-[var(--color-accent)] focus:outline-none focus:ring-1 focus:ring-[var(--color-accent)]"
-                                />
-                            </div>
-                        </div>
-
-                        {filteredUsers.length === 0 ? (
-                            <div className="flex flex-col items-center justify-center py-14 text-center">
-                                <span className="mb-3 flex h-12 w-12 items-center justify-center rounded-2xl bg-slate-100 text-slate-400">
-                                    <Users className="h-6 w-6" />
-                                </span>
-                                <p className="text-sm font-bold text-slate-800">Tidak ada pengguna ditemukan</p>
-                                <p className="mt-1 text-xs text-slate-500">
-                                    {searchQuery ? 'Coba gunakan kata kunci pencarian yang lain.' : 'Belum ada data pengguna.'}
-                                </p>
-                            </div>
-                        ) : (
-                            <div className="overflow-x-auto">
-                                <table className="w-full text-left text-sm">
-                                    <thead className="bg-slate-50/80 text-[11px] font-bold uppercase tracking-wider text-slate-500 border-b border-slate-100">
-                                        <tr>
-                                            <th className="px-5 py-3">Pengguna</th>
-                                            <th className="px-5 py-3">Role / Peran</th>
-                                            <th className="px-5 py-3">Status</th>
-                                            <th className="px-5 py-3">Terdaftar</th>
-                                            <th className="px-5 py-3 text-right">Aksi</th>
+                {filteredUsers.length === 0 ? (
+                    <EmptyState message={searchQuery ? 'Tidak ada pengguna yang sesuai dengan filter pencarian.' : 'Belum ada pengguna terdaftar.'} />
+                ) : (
+                    <div className="overflow-x-auto">
+                        <table className="w-full text-left text-sm">
+                            <thead>
+                                <tr className="bg-[#F9FAFB] border-b border-[#E5E7EB] text-[11px] font-semibold uppercase tracking-wider text-slate-500">
+                                    <th className="py-3 px-6">Pengguna</th>
+                                    <th className="py-3 px-6">Peran (Role)</th>
+                                    <th className="py-3 px-6">Status Akun</th>
+                                    <th className="py-3 px-6">Terdaftar</th>
+                                    <th className="py-3 px-6 text-right">Aksi</th>
+                                </tr>
+                            </thead>
+                            <tbody className="divide-y divide-[#E5E7EB]">
+                                {filteredUsers.map((u) => {
+                                    const isNonaktif = u.status === 'Nonaktif';
+                                    return (
+                                        <tr
+                                            key={u.id}
+                                            className={`relative h-[72px] transition-colors hover:bg-slate-50 ${
+                                                isNonaktif ? 'border-l-[3px] border-l-amber-500' : ''
+                                            }`}
+                                        >
+                                            <td className="py-3 px-6">
+                                                <div className="font-semibold text-slate-900 text-sm">
+                                                    {u.name}
+                                                </div>
+                                                <div className="text-xs text-slate-400 font-normal">
+                                                    {u.email}
+                                                </div>
+                                            </td>
+                                            <td className="py-3 px-6 text-xs text-slate-700">
+                                                {ROLE_LABELS[u.role] ?? u.role}
+                                            </td>
+                                            <td className="py-3 px-6">
+                                                <StatusDot status={u.status} />
+                                            </td>
+                                            <td className="py-3 px-6 text-xs text-slate-500 tabular-nums">
+                                                {u.date ?? '-'}
+                                            </td>
+                                            <td className="py-3 px-6 text-right">
+                                                <Link
+                                                    href={navHref('superadmin.users', {}, role)}
+                                                    className="inline-flex items-center rounded-[6px] border border-[#E5E7EB] bg-white px-3 py-1.5 text-xs font-semibold text-slate-700 transition hover:border-[var(--color-accent)] hover:text-[var(--color-accent)]"
+                                                >
+                                                    Kelola
+                                                </Link>
+                                            </td>
                                         </tr>
-                                    </thead>
-                                    <tbody className="divide-y divide-slate-100">
-                                        {filteredUsers.map((u) => {
-                                            const initials = u.name
-                                                ? u.name
-                                                      .split(' ')
-                                                      .map((w) => w[0])
-                                                      .slice(0, 2)
-                                                      .join('')
-                                                      .toUpperCase()
-                                                : 'U';
-
-                                            return (
-                                                <tr key={u.id} className="transition-colors hover:bg-slate-50/80">
-                                                    <td className="px-5 py-3.5">
-                                                        <div className="flex items-center gap-3">
-                                                            <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-slate-100 text-xs font-extrabold text-slate-700">
-                                                                {initials}
-                                                            </div>
-                                                            <div className="min-w-0">
-                                                                <div className="font-semibold text-slate-900 text-xs sm:text-sm">
-                                                                    {u.name}
-                                                                </div>
-                                                                <div className="truncate text-xs text-slate-500">
-                                                                    {u.email}
-                                                                </div>
-                                                            </div>
-                                                        </div>
-                                                    </td>
-                                                    <td className="px-5 py-3.5">
-                                                        <RoleBadge role={u.role} />
-                                                    </td>
-                                                    <td className="px-5 py-3.5">
-                                                        <StatusBadge status={u.status} label={u.status} />
-                                                    </td>
-                                                    <td className="px-5 py-3.5 text-xs text-slate-500">
-                                                        {u.date ?? '-'}
-                                                    </td>
-                                                    <td className="px-5 py-3.5 text-right">
-                                                        <Link
-                                                            href={navHref('superadmin.users', {}, role)}
-                                                            className="inline-flex items-center gap-1 rounded-full border border-slate-200 bg-white px-3 py-1 text-xs font-bold text-slate-700 shadow-2xs transition hover:bg-slate-50 hover:-translate-y-px"
-                                                        >
-                                                            <span>Kelola</span>
-                                                            <ArrowRight className="h-3 w-3" />
-                                                        </Link>
-                                                    </td>
-                                                </tr>
-                                            );
-                                        })}
-                                    </tbody>
-                                </table>
-                            </div>
-                        )}
-                    </Card>
-                </motion.div>
-            </FadeIn>
+                                    );
+                                })}
+                            </tbody>
+                        </table>
+                    </div>
+                )}
+            </Panel>
         </DashboardLayout>
     );
 }

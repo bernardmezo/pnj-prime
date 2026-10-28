@@ -36,9 +36,20 @@ class DashboardController extends Controller
                 'status' => $p->status,
             ]);
 
+        $recentActivities = $all
+            ->sortByDesc('updated_at')
+            ->take(5)
+            ->map(fn ($p) => [
+                'id' => $p->id,
+                'text' => "Produk {$p->name} ({$p->code}) berstatus {$p->status}",
+                'timestamp' => optional($p->updated_at ?? $p->created_at)->format('d M, H:i'),
+            ])
+            ->values();
+
         return Inertia::render('P3M/Dashboard', [
             'stats' => $stats,
             'daftar' => $daftar,
+            'recentActivities' => $recentActivities,
         ]);
     }
 }

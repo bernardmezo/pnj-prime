@@ -92,10 +92,12 @@ class CatalogController extends Controller
 
     public function show(Product $product): Response
     {
-        abort_if(
-            $product->curation_status !== 'approved' || ! $product->is_active,
-            404
-        );
+        $user = auth()->user();
+        $isStaff = $user && $user->isStaff();
+
+        $isPubliclyAvailable = $product->curation_status === 'approved' && $product->is_active;
+
+        abort_if(! $isPubliclyAvailable && ! $isStaff, 404);
 
         return Inertia::render('Catalog/Show', [
             'product' => $product->load([
@@ -103,6 +105,7 @@ class CatalogController extends Controller
                 'owner:id,name',
                 'opsi' => fn ($q) => $q->where('aktif', true)->urut(),
             ]),
+            'isPreview' => ! $isPubliclyAvailable,
         ]);
     }
 }

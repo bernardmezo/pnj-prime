@@ -1,7 +1,7 @@
 import { Head, router } from '@inertiajs/react';
 import { motion, useReducedMotion } from 'framer-motion';
 import { PackageSearch, Search, SlidersHorizontal, X } from 'lucide-react';
-import { useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import CatalogCard, { formatRp, typeFromCategory } from '@/Components/Public/CatalogCard';
 import PublicLayout from '@/Layouts/PublicLayout';
 import { EASE, EmptyState, Pagination } from '@/Components/ui';
@@ -20,6 +20,8 @@ function toCard(p) {
 }
 
 function FilterPanel({ filters, categories, draft, setDraft, onApply, onReset }) {
+    const hasActiveFilters = Boolean(filters.category || filters.min_price || filters.max_price || filters.q);
+
     return (
         <div className="space-y-6">
             <div>
@@ -28,7 +30,10 @@ function FilterPanel({ filters, categories, draft, setDraft, onApply, onReset })
                     <li>
                         <button
                             type="button"
-                            onClick={() => setDraft((d) => ({ ...d, category: '' }))}
+                            onClick={() => {
+                                setDraft((d) => ({ ...d, category: '' }));
+                                onApply({ category: undefined });
+                            }}
                             className="w-full rounded-xl px-3 py-2 text-start text-sm transition"
                             style={
                                 !draft.category
@@ -45,7 +50,11 @@ function FilterPanel({ filters, categories, draft, setDraft, onApply, onReset })
                             <li key={c.id}>
                                 <button
                                     type="button"
-                                    onClick={() => setDraft((d) => ({ ...d, category: on ? '' : c.slug }))}
+                                    onClick={() => {
+                                        const newCat = on ? undefined : c.slug;
+                                        setDraft((d) => ({ ...d, category: newCat || '' }));
+                                        onApply({ category: newCat });
+                                    }}
                                     className="w-full rounded-xl px-3 py-2 text-start text-sm transition"
                                     style={
                                         on
@@ -65,34 +74,39 @@ function FilterPanel({ filters, categories, draft, setDraft, onApply, onReset })
                 <div className="grid grid-cols-2 gap-2">
                     <input
                         type="number" min="0" placeholder="Min Rp"
-                        value={draft.min_price} onChange={(e) => setDraft((d) => ({ ...d, min_price: e.target.value }))}
+                        value={draft.min_price}
+                        onChange={(e) => {
+                            const val = e.target.value;
+                            setDraft((d) => ({ ...d, min_price: val }));
+                            onApply({ min_price: val });
+                        }}
                         className={inputClass} {...inputStyleProps()} aria-label="Harga minimum"
                     />
                     <input
                         type="number" min="0" placeholder="Maks Rp"
-                        value={draft.max_price} onChange={(e) => setDraft((d) => ({ ...d, max_price: e.target.value }))}
+                        value={draft.max_price}
+                        onChange={(e) => {
+                            const val = e.target.value;
+                            setDraft((d) => ({ ...d, max_price: val }));
+                            onApply({ max_price: val });
+                        }}
                         className={inputClass} {...inputStyleProps()} aria-label="Harga maksimum"
                     />
                 </div>
             </div>
-            <div className="flex gap-2">
-                <button
-                    type="button" onClick={onApply}
-                    className="flex-1 rounded-full px-4 py-2.5 text-sm font-semibold text-white transition hover:-translate-y-px active:scale-[0.98]"
-                    style={{ background: 'var(--color-accent)' }}
-                >
-                    Terapkan
-                </button>
-                <button
-                    type="button" onClick={onReset}
-                    className="rounded-full border bg-white px-4 py-2.5 text-sm font-semibold transition"
-                    style={{ borderColor: 'var(--color-border)', color: 'var(--color-ink)' }}
-                >
-                    Reset
-                </button>
-            </div>
-            {filters.category || filters.min_price || filters.max_price || filters.q ? (
-                <p className="text-xs" style={{ color: 'var(--color-muted)' }}>Filter aktif, hasil diperbarui dari server.</p>
+            {hasActiveFilters ? (
+                <div>
+                    <button
+                        type="button" onClick={onReset}
+                        className="w-full rounded-full border bg-white px-4 py-2 text-sm font-semibold transition hover:bg-slate-50"
+                        style={{ borderColor: 'var(--color-border)', color: 'var(--color-ink)' }}
+                    >
+                        Reset filter
+                    </button>
+                    <p className="mt-2 text-center text-xs" style={{ color: 'var(--color-muted)' }}>
+                        Filter otomatis diterapkan
+                    </p>
+                </div>
             ) : null}
         </div>
     );
@@ -108,25 +122,83 @@ export default function CatalogBrowse({ auth, products, categories = [], filters
         max_price: filters.max_price ?? '',
     });
 
+    // Synchronize draft state when page filters prop changes (e.g. back/forward navigation or external links)
+    useEffect(() => {
+        setQ(filters.q ?? '');
+        setDraft({
+            category: filters.category ?? '',
+            min_price: filters.min_price ?? '',
+            max_price: filters.max_price ?? '',
+        });
+    }, [filters.q, filters.category, filters.min_price, filters.max_price]);
+
     const rows = products?.data ?? [];
 
-    function apply(next = {}) {
+    function pushQuery(targetQ, targetDraft) {
+        const queryText = (targetQ !== undefined ? targetQ : q).trim();
+        const activeDraft = targetDraft || draft;
         const params = {
-            q: q.trim() || undefined,
-            category: draft.category || undefined,
-            min_price: draft.min_price || undefined,
-            max_price: draft.max_price || undefined,
-            ...next,
+            q: queryText || undefined,
+            category: activeDraft.category || undefined,
+            min_price: activeDraft.min_price || undefined,
+            max_price: activeDraft.max_price || undefined,
         };
         Object.keys(params).forEach((k) => params[k] === undefined && delete params[k]);
-        router.get(route('catalog.index'), params, { preserveState: true, replace: true });
-        setDrawer(false);
+        router.get(route('catalog.index'), params, {
+            preserveState: true,
+            preserveScroll: true,
+            replace: true,
+        });
+    }
+
+    // Debounced apply for inputs like search and price
+    const debounceTimerRef = useRef(null);
+
+    function handleSearchChange(val) {
+        setQ(val);
+        if (debounceTimerRef.current) {
+            clearTimeout(debounceTimerRef.current);
+        }
+        debounceTimerRef.current = setTimeout(() => {
+            pushQuery(val, draft);
+        }, 350);
+    }
+
+    function handleFilterApply(override = {}) {
+        const nextDraft = {
+            ...draft,
+            ...override,
+        };
+        setDraft(nextDraft);
+
+        // If it's a category update, trigger immediately; if price, debounce slightly so typing multi digits is smooth
+        if (override.category !== undefined) {
+            if (debounceTimerRef.current) {
+                clearTimeout(debounceTimerRef.current);
+            }
+            pushQuery(q, nextDraft);
+        } else {
+            if (debounceTimerRef.current) {
+                clearTimeout(debounceTimerRef.current);
+            }
+            debounceTimerRef.current = setTimeout(() => {
+                pushQuery(q, nextDraft);
+            }, 400);
+        }
     }
 
     function resetAll() {
+        if (debounceTimerRef.current) {
+            clearTimeout(debounceTimerRef.current);
+        }
         setQ('');
         setDraft({ category: '', min_price: '', max_price: '' });
-        router.get(route('catalog.index'), {}, { preserveState: true, replace: true });
+        router.get(route('catalog.index'), {}, {
+            preserveState: true,
+            preserveScroll: true,
+            replace: true,
+        });
+        setDrawer(false);
     }
 
     return (
@@ -145,19 +217,23 @@ export default function CatalogBrowse({ auth, products, categories = [], filters
                     </p>
                     <form
                         className="relative mt-6 max-w-xl"
-                        onSubmit={(e) => { e.preventDefault(); apply(); }}
+                        onSubmit={(e) => {
+                            e.preventDefault();
+                            if (debounceTimerRef.current) clearTimeout(debounceTimerRef.current);
+                            pushQuery(q, draft);
+                        }}
                     >
                         <Search className="pointer-events-none absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2" style={{ color: 'var(--color-muted)' }} />
                         <input
                             type="search"
                             value={q}
-                            onChange={(e) => setQ(e.target.value)}
+                            onChange={(e) => handleSearchChange(e.target.value)}
                             placeholder="Cari produk, jasa, atau fasilitas…"
                             aria-label="Cari katalog"
                             className="w-full rounded-full border bg-white py-3 pl-11 pr-4 text-sm outline-none transition"
                             style={{ borderColor: 'var(--color-border)', color: 'var(--color-ink)' }}
                             onFocus={(e) => { e.currentTarget.style.borderColor = 'var(--color-accent)'; e.currentTarget.style.boxShadow = '0 0 0 3px var(--color-accent-tint)'; }}
-                            onBlur={(e) => { e.currentTarget.style.borderColor = 'var(--color-border)'; e.currentTarget.style.boxShadow = 'none'; }}
+                            onBlur={(e) => { e.currentTarget.style.borderColor = 'var(--color-border)', e.currentTarget.style.boxShadow = 'none'; }}
                         />
                     </form>
                 </div>
@@ -168,7 +244,14 @@ export default function CatalogBrowse({ auth, products, categories = [], filters
                     {/* Sidebar (desktop) */}
                     <aside className="hidden lg:block">
                         <div className="sticky top-24 rounded-[22px] border bg-white p-5" style={{ borderColor: 'var(--color-border)' }}>
-                            <FilterPanel filters={filters} categories={categories} draft={draft} setDraft={setDraft} onApply={() => apply()} onReset={resetAll} />
+                            <FilterPanel
+                                filters={filters}
+                                categories={categories}
+                                draft={draft}
+                                setDraft={setDraft}
+                                onApply={handleFilterApply}
+                                onReset={resetAll}
+                            />
                         </div>
                     </aside>
 
@@ -230,7 +313,14 @@ export default function CatalogBrowse({ auth, products, categories = [], filters
                                 <X className="h-5 w-5" />
                             </button>
                         </div>
-                        <FilterPanel filters={filters} categories={categories} draft={draft} setDraft={setDraft} onApply={() => apply()} onReset={resetAll} />
+                        <FilterPanel
+                            filters={filters}
+                            categories={categories}
+                            draft={draft}
+                            setDraft={setDraft}
+                            onApply={handleFilterApply}
+                            onReset={resetAll}
+                        />
                     </motion.div>
                 </motion.div>
             ) : drawer ? (
@@ -238,7 +328,14 @@ export default function CatalogBrowse({ auth, products, categories = [], filters
                     <button type="button" onClick={() => setDrawer(false)} aria-label="Tutup filter" className="mb-4 rounded-lg p-1.5" style={{ color: 'var(--color-muted)' }}>
                         <X className="h-5 w-5" />
                     </button>
-                    <FilterPanel filters={filters} categories={categories} draft={draft} setDraft={setDraft} onApply={() => apply()} onReset={resetAll} />
+                    <FilterPanel
+                        filters={filters}
+                        categories={categories}
+                        draft={draft}
+                        setDraft={setDraft}
+                        onApply={handleFilterApply}
+                        onReset={resetAll}
+                    />
                 </div>
             ) : null}
         </PublicLayout>

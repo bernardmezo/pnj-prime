@@ -4,6 +4,8 @@ namespace App\Http\Middleware;
 
 use App\Models\ExternalLink;
 use App\Models\Fitur;
+use App\Models\Pengajuan;
+use App\Models\ProdukUnggulan;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Schema;
 use Inertia\Middleware;
@@ -52,6 +54,14 @@ class HandleInertiaRequests extends Middleware
             'external_links' => Schema::hasTable('external_links')
                 ? ExternalLink::where('is_active', true)->orderBy('sort_order')->get(['id', 'label', 'url', 'target'])
                 : [],
+            // Pending counts for staff badges (only computed when staff is authenticated)
+            'pending_counts' => fn () => ($request->user() && $request->user()->isStaff() && Schema::hasTable('pengajuan'))
+                ? [
+                    'menunggu_verifikasi' => Pengajuan::where('status', 'Diajukan')->count(),
+                    'verifikasi_bayar' => Pengajuan::where('status', 'Menunggu Verifikasi Pembayaran')->count(),
+                    'menunggu_pimpinan' => Schema::hasTable('produk_unggulan') ? ProdukUnggulan::where('status', 'Diajukan')->count() : 0,
+                ]
+                : null,
             // SSO is off unless explicitly enabled; the login button reads this.
             'sso_enabled' => (bool) config('services.sso.enabled'),
         ];

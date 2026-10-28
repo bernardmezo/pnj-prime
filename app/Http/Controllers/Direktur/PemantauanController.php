@@ -47,14 +47,17 @@ class PemantauanController extends Controller
             'status' => $p->status,
         ]);
 
-        $layanan = Pengajuan::with(['product', 'buyer:id,name'])->latest()->get()->map(fn ($p) => [
-            'id' => $p->id,
-            'code' => $p->code,
-            'layanan' => $p->product?->name ?? ucfirst($p->tipe),
-            'customer' => $p->customer ?? $p->buyer?->name,
-            'date' => optional($p->created_at)->format('Y-m-d'),
-            'status' => $p->status,
-        ]);
+        $layanan = Pengajuan::with(['product', 'buyer:id,name'])
+            ->latest()
+            ->get()
+            ->map(fn ($p) => [
+                'id' => $p->id,
+                'code' => $p->code,
+                'layanan' => $p->product?->name ?? ucfirst($p->tipe),
+                'customer' => $p->customer ?? $p->buyer?->name,
+                'date' => optional($p->created_at)->format('Y-m-d'),
+                'status' => $p->status,
+            ]);
 
         return Inertia::render('Direktur/Riwayat', [
             'produk' => $produk,

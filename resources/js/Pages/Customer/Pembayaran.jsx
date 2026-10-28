@@ -1,17 +1,25 @@
-import { Head, Link, useForm } from '@inertiajs/react';
-import { ArrowLeft, Check, Copy, CreditCard, Landmark, ShieldCheck, UploadCloud } from 'lucide-react';
-import { useState } from 'react';
-import FileDropzone from '@/Components/FileDropzone';
+import { Head, useForm } from '@inertiajs/react';
+import { ArrowLeft } from 'lucide-react';
+import { useRef, useState } from 'react';
 import PublicLayout from '@/Layouts/PublicLayout';
 import { Field } from '@/Components/ui';
 import { href as navHref } from '@/lib/nav';
+
+function formatFileSize(bytes) {
+    if (!bytes && bytes !== 0) return '';
+    const kb = bytes / 1024;
+    if (kb < 1024) return `${kb.toFixed(1)} KB`;
+    return `${(kb / 1024).toFixed(1)} MB`;
+}
 
 export default function Pembayaran({ auth, item, tagihan = {}, metode = [] }) {
     const role = auth?.user?.role;
     const p = item;
     const methods = metode;
     const [methodId, setMethodId] = useState(methods[0]?.id ?? null);
-    const [files, setFiles] = useState([]);
+    const [file, setFile] = useState(null);
+    const fileInputRef = useRef(null);
+
     const { setData, post, processing, errors } = useForm({
         metode_id: methods[0]?.id ?? '',
         bukti: null,
@@ -22,13 +30,14 @@ export default function Pembayaran({ auth, item, tagihan = {}, metode = [] }) {
     const subtotal = Number(tagihan.subtotal ?? p?.total ?? 0);
     const ppn = Number(tagihan.ppn ?? 0);
     const total = Number(tagihan.total ?? subtotal + ppn);
+    const items = tagihan.items ?? [];
     const fmt = (n) => `Rp ${Number(n).toLocaleString('id-ID')}`;
 
     if (!p) {
         return (
             <PublicLayout auth={auth}>
                 <Head title="Pembayaran · PNJ Prime" />
-                <div className="mx-auto w-full max-w-xl px-4 py-16 text-center">
+                <div className="mx-auto w-full max-w-[560px] px-4 py-16 text-center">
                     <p className="text-sm text-slate-500">Data tagihan tidak ditemukan.</p>
                 </div>
             </PublicLayout>
@@ -45,163 +54,195 @@ export default function Pembayaran({ auth, item, tagihan = {}, metode = [] }) {
         }
     };
 
+    const handleFileSelect = (selectedFile) => {
+        if (!selectedFile) return;
+        setFile(selectedFile);
+        setData('bukti', selectedFile);
+    };
+
+    const handleFileRemove = () => {
+        setFile(null);
+        setData('bukti', null);
+        if (fileInputRef.current) {
+            fileInputRef.current.value = '';
+        }
+    };
+
     const submitPayment = (e) => {
         e?.preventDefault();
         post(route('customer.pengajuan.proof', p.id));
     };
 
+    const hasAccount = Boolean(method?.account && String(method.account).trim() !== '-' && String(method.account).trim() !== '');
+
     return (
         <PublicLayout auth={auth}>
             <Head title={`Pembayaran ${p.code} · PNJ Prime`} />
 
-            <div className="mx-auto w-full max-w-xl px-4 py-8 sm:px-6">
-                {/* Back button & official seal */}
-                <div className="flex items-center justify-between">
+            <div className="mx-auto w-full max-w-[560px] px-4 py-8 sm:px-6">
+                {/* 1. Header */}
+                <div>
                     <a
                         href={navHref('customer.pengajuan.show', { id: p.id }, role)}
-                        className="group inline-flex items-center gap-1.5 text-xs font-semibold text-slate-500 transition hover:text-[var(--color-deep)]"
+                        className="inline-flex items-center gap-1.5 text-xs text-slate-500 hover:text-slate-800 transition"
                     >
-                        <ArrowLeft className="h-3.5 w-3.5 transition-transform duration-200 group-hover:-translate-x-0.5" />
+                        <ArrowLeft className="h-3.5 w-3.5" />
                         <span>Kembali ke Detail</span>
                     </a>
-                    <div className="inline-flex items-center gap-1.5 rounded-full border border-teal-200/80 bg-teal-50/80 px-3 py-1 text-xs font-medium text-teal-800 shadow-2xs">
-                        <ShieldCheck className="h-3.5 w-3.5 text-teal-600" />
-                        <span>Pembayaran Resmi</span>
-                    </div>
                 </div>
 
-                {/* Header */}
                 <div className="mt-4">
-                    <span className="inline-block rounded-full bg-slate-100 px-2.5 py-0.5 font-mono text-[11px] font-semibold text-slate-600">
-                        {p.code}
-                    </span>
-                    <h1 className="mt-1 font-display text-2xl font-bold tracking-tight text-slate-900 sm:text-3xl">
+                    <h1 className="font-display text-2xl font-bold tracking-tight text-slate-900 sm:text-3xl">
                         Pembayaran Layanan
                     </h1>
-                    <p className="mt-0.5 text-xs text-slate-500">
-                        Silakan transfer sesuai nominal tertera ke rekening resmi PNJ di bawah ini.
+                    <p className="mt-1 text-xs text-slate-500">
+                        {p.code} · {p.layanan}
                     </p>
                 </div>
 
-                <div className="mt-6 space-y-5">
-                    {/* Bill Receipt Card */}
-                    <div className="rounded-2xl border border-slate-200/90 bg-white p-6 shadow-xs">
-                        <div className="flex items-center justify-between pb-3 border-b border-slate-100">
-                            <div>
-                                <span className="block text-[11px] font-semibold uppercase tracking-wider text-slate-400">
-                                    Total Tagihan
-                                </span>
-                                <div className="mt-0.5 font-mono text-3xl font-extrabold text-slate-900">
-                                    {fmt(total)}
-                                </div>
-                            </div>
-                            <span className="rounded-full bg-amber-50 border border-amber-200/80 px-2.5 py-1 text-xs font-bold text-amber-700">
-                                Menunggu Transfer
-                            </span>
-                        </div>
-
-                        <div className="mt-3.5 space-y-1.5 text-xs text-slate-500">
-                            <div className="flex justify-between">
-                                <span>Layanan:</span>
-                                <strong className="font-semibold text-slate-800">{p.layanan}</strong>
-                            </div>
-                            <div className="flex justify-between">
-                                <span>Subtotal:</span>
-                                <strong className="font-mono text-slate-700">{fmt(subtotal)}</strong>
-                            </div>
-                            {ppn > 0 && (
-                                <div className="flex justify-between">
-                                    <span>PPN (12%):</span>
-                                    <strong className="font-mono text-slate-700">{fmt(ppn)}</strong>
-                                </div>
-                            )}
-                        </div>
+                {/* 2. Amount (the hero of the page) */}
+                <div className="mt-8 border-b border-slate-200 pb-6">
+                    <span className="block text-xs text-slate-500">
+                        Total tagihan
+                    </span>
+                    <div className="mt-1 font-sans text-3xl sm:text-4xl font-bold tracking-tight text-slate-900 tabular-nums">
+                        {fmt(total)}
+                    </div>
+                    <div className="mt-2 flex items-center gap-2 text-xs text-slate-500">
+                        <span className="inline-block h-2 w-2 rounded-full bg-amber-500" aria-hidden />
+                        <span>Menunggu transfer</span>
                     </div>
 
-                    {/* Bank Transfer Card - Styled like a sleek executive card slip */}
-                    {method && (
-                        <div className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-[#00242c] via-[var(--color-deep)] to-[#07575b] p-6 text-white shadow-md border border-teal-850/60">
-                            <div className="flex items-center justify-between text-xs text-slate-300 pb-3 border-b border-white/10">
-                                <h2 className="flex items-center gap-1.5 font-semibold uppercase tracking-wider text-teal-300">
-                                    <Landmark className="h-4 w-4" />
-                                    Cara membayar
-                                </h2>
-                                <span className="rounded-full bg-white/10 px-2.5 py-0.5 font-medium text-[11px] text-teal-200">
-                                    {method.name}
+                    {/* If multiple line items (add-ons), show a small definition list */}
+                    {items.length > 1 && (
+                        <dl className="mt-4 space-y-1.5 border-t border-slate-100 pt-3 text-xs text-slate-600">
+                            {items.map((it, idx) => (
+                                <div key={idx} className="flex justify-between">
+                                    <span>{it.nama}</span>
+                                    <span className="tabular-nums text-slate-800">{fmt(it.total)}</span>
+                                </div>
+                            ))}
+                            {ppn > 0 && (
+                                <div className="flex justify-between text-slate-500">
+                                    <span>PPN (12%)</span>
+                                    <span className="tabular-nums">{fmt(ppn)}</span>
+                                </div>
+                            )}
+                        </dl>
+                    )}
+                </div>
+
+                {/* 3. Transfer to */}
+                <div className="mt-6 border-b border-slate-200 pb-6 space-y-3">
+                    <div className="flex items-center justify-between">
+                        <h2 className="text-sm font-semibold text-slate-900">Transfer ke</h2>
+                        <span className="sr-only">Cara membayar</span>
+                    </div>
+
+                    {hasAccount ? (
+                        <div className="space-y-3">
+                            <div className="space-y-0.5 text-sm text-slate-700">
+                                <p className="font-medium text-slate-900">{method?.name || 'Bank Mandiri'}</p>
+                                <p className="text-xs text-slate-500">a.n. {method?.holder || 'Politeknik Negeri Jakarta'}</p>
+                            </div>
+
+                            <div className="flex items-center justify-between gap-4 py-1">
+                                <span className="font-sans text-2xl font-bold text-slate-900 tabular-nums tracking-wider">
+                                    {method.account}
                                 </span>
-                            </div>
-
-                            <div className="mt-4">
-                                <span className="text-[11px] font-medium text-slate-300">Nomor Rekening Tujuan (Mandiri Virtual/Rekening):</span>
-                                <div className="mt-1.5 flex items-center justify-between rounded-xl bg-black/25 px-4 py-3 backdrop-blur-xs border border-white/10">
-                                    <span className="font-mono text-xl sm:text-2xl font-extrabold tracking-wider text-white">
-                                        {method.account}
-                                    </span>
-                                    <button
-                                        type="button"
-                                        onClick={() => copy(String(method.account))}
-                                        className="inline-flex items-center gap-1.5 rounded-lg bg-[var(--color-accent)] px-3 py-1.5 text-xs font-bold text-white shadow transition hover:bg-[var(--color-accent-hover)] active:scale-95"
-                                    >
-                                        {copied ? (
-                                            <>
-                                                <Check className="h-3.5 w-3.5" />
-                                                <span>Tersalin!</span>
-                                            </>
-                                        ) : (
-                                            <>
-                                                <Copy className="h-3.5 w-3.5" />
-                                                <span>Salin</span>
-                                            </>
-                                        )}
-                                    </button>
-                                </div>
-                            </div>
-
-                            <div className="mt-3.5 flex items-center justify-between text-xs">
-                                <div>
-                                    <span className="text-slate-400">Atas Nama: </span>
-                                    <strong className="font-semibold text-white">{method.holder}</strong>
-                                </div>
-                                <span className="text-[11px] text-teal-300 font-medium">Rekening Resmi PNJ</span>
+                                <button
+                                    type="button"
+                                    onClick={() => copy(String(method.account))}
+                                    className="text-xs font-semibold text-[var(--color-accent)] hover:text-[var(--color-accent-hover)] transition"
+                                >
+                                    {copied ? 'Tersalin' : 'Salin'}
+                                </button>
                             </div>
                         </div>
+                    ) : (
+                        <p className="text-sm text-slate-500">
+                            Nomor rekening belum tersedia. Hubungi admin untuk mendapatkan nomor tujuan.
+                        </p>
+                    )}
+                </div>
+
+                {/* 4. Upload proof */}
+                <div className="mt-6 space-y-4">
+                    <div>
+                        <h2 className="text-sm font-semibold text-slate-900">Unggah bukti transfer</h2>
+                        <p className="mt-1 text-xs text-slate-500">
+                            Foto struk ATM, bukti transfer, atau tangkapan layar m-Banking. JPG, PNG, atau PDF, maks. 5 MB.
+                        </p>
+                    </div>
+
+                    <Field label={null} error={errors.bukti}>
+                        {file ? (
+                            <div className="flex items-center justify-between rounded-[6px] border border-slate-200 bg-white px-4 py-3 text-sm">
+                                <div className="min-w-0 pr-3">
+                                    <p className="truncate font-medium text-slate-900">{file.name}</p>
+                                    <p className="text-xs text-slate-400 tabular-nums">{formatFileSize(file.size)}</p>
+                                </div>
+                                <button
+                                    type="button"
+                                    onClick={handleFileRemove}
+                                    className="text-xs font-medium text-red-600 hover:text-red-700 hover:underline shrink-0"
+                                >
+                                    Hapus
+                                </button>
+                            </div>
+                        ) : (
+                            <div>
+                                <input
+                                    ref={fileInputRef}
+                                    type="file"
+                                    accept=".jpg,.jpeg,.png,.pdf"
+                                    disabled={!hasAccount}
+                                    onChange={(e) => handleFileSelect(e.target.files?.[0])}
+                                    className="hidden"
+                                    id="bukti-upload"
+                                />
+                                <label
+                                    htmlFor={hasAccount ? 'bukti-upload' : undefined}
+                                    onDragOver={(e) => {
+                                        e.preventDefault();
+                                        e.stopPropagation();
+                                    }}
+                                    onDrop={(e) => {
+                                        e.preventDefault();
+                                        e.stopPropagation();
+                                        if (!hasAccount) return;
+                                        handleFileSelect(e.dataTransfer?.files?.[0]);
+                                    }}
+                                    className={`flex h-24 w-full items-center justify-center rounded-[6px] border border-dashed text-xs transition ${
+                                        hasAccount
+                                            ? 'cursor-pointer border-slate-300 text-slate-600 hover:border-slate-400 hover:bg-slate-50'
+                                            : 'cursor-not-allowed border-slate-200 text-slate-400 bg-slate-50'
+                                    }`}
+                                >
+                                    <span>Seret berkas atau klik untuk memilih</span>
+                                </label>
+                            </div>
+                        )}
+                    </Field>
+
+                    {errors.metode_id && (
+                        <p className="text-xs text-red-600">{errors.metode_id}</p>
                     )}
 
-                    {/* Upload Proof Card */}
-                    <div className="rounded-2xl border border-slate-200/90 bg-white p-6 shadow-xs">
-                        <div className="mb-2 flex items-center gap-2">
-                            <UploadCloud className="h-4 w-4 text-[var(--color-accent)]" />
-                            <h2 className="text-sm font-bold text-slate-900">
-                                Unggah Bukti Transfer
-                            </h2>
-                        </div>
-                        <p className="mb-4 text-xs text-slate-500">
-                            Lampirkan foto struk ATM, bukti transfer teller, atau tangkapan layar m-Banking Anda.
-                        </p>
-
-                        <Field label={null} error={errors.bukti}>
-                            <FileDropzone
-                                files={files}
-                                onChange={(next) => {
-                                    setFiles(next);
-                                    setData('bukti', next[0] ?? null);
-                                }}
-                                hint="Format JPG, PNG, atau PDF (maks. 5 MB)"
-                            />
-                        </Field>
-
-                        {errors.metode_id && (
-                            <p className="mt-2 text-xs text-rose-600">{errors.metode_id}</p>
-                        )}
-
+                    {/* Primary Button: rectangular 6px radius, sticky bottom on mobile */}
+                    <div className="pt-2 sticky bottom-4 sm:static bg-white/90 sm:bg-transparent backdrop-blur-sm sm:backdrop-blur-none py-2 sm:py-0">
                         <button
                             type="button"
-                            disabled={processing || files.length === 0}
+                            disabled={processing || !file || !hasAccount}
                             onClick={submitPayment}
-                            className="mt-5 w-full rounded-xl bg-gradient-to-r from-[var(--color-accent)] to-[var(--color-ink)] py-3.5 text-sm font-bold text-white shadow-md transition-all duration-200 hover:from-[var(--color-accent-hover)] hover:to-[var(--color-deep)] hover:shadow-lg active:scale-[0.99] disabled:cursor-not-allowed disabled:opacity-40"
+                            className="w-full rounded-[6px] bg-[var(--color-accent)] py-3 text-sm font-semibold text-white transition hover:bg-[var(--color-accent-hover)] active:scale-[0.99] disabled:cursor-not-allowed disabled:opacity-40"
                         >
-                            {processing ? 'Mengirim Bukti...' : 'Kirim Bukti Pembayaran'}
+                            {processing ? 'Mengirim…' : 'Kirim bukti pembayaran'}
                         </button>
+                        {/* 5. Next step note */}
+                        <p className="mt-2 text-center text-xs text-slate-400">
+                            Admin akan memverifikasi pembayaran Anda.
+                        </p>
                     </div>
                 </div>
             </div>

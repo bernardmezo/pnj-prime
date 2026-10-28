@@ -1,7 +1,6 @@
 import Checkbox from '@/Components/ui/Checkbox';
 import InputError from '@/Components/InputError';
 import PrimaryButton from '@/Components/PrimaryButton';
-import SsoButton from '@/Components/SsoButton';
 import AuthLayout from '@/Layouts/AuthLayout';
 import { Head, Link, useForm } from '@inertiajs/react';
 import { Eye, EyeOff, LockKeyhole, Mail } from 'lucide-react';
@@ -119,20 +118,6 @@ export function LoginForm({ status, canResetPassword }) {
 
     return (
         <>
-            {/* SSO for civitas PNJ */}
-            <p className="mb-2 text-[13px] font-medium" style={{ color: 'var(--color-muted)' }}>
-                Civitas PNJ (masuk dengan SSO)
-            </p>
-            <SsoButton />
-
-            <div className="my-7 flex items-center gap-4">
-                <span className="h-px flex-1" style={{ background: 'var(--color-border)' }} />
-                <span className="font-mono text-[11px] font-medium uppercase tracking-[0.14em]" style={{ color: 'var(--color-muted)' }}>
-                    Eksternal
-                </span>
-                <span className="h-px flex-1" style={{ background: 'var(--color-border)' }} />
-            </div>
-
             {status && (
                 <div className="mb-5 border-l-[3px] py-1 pl-3 text-sm font-medium" role="status" style={{ borderColor: 'var(--color-accent)', background: 'var(--color-accent-tint)', color: 'var(--color-accent-hover)' }}>
                     {status}

@@ -128,11 +128,11 @@ describe('pages render with realistic controller props', () => {
         expect(screen.getAllByText('Kelola Fitur').length).toBeGreaterThanOrEqual(1);
     });
 
-    it('Auth/Login renders tabs + SSO + form', async () => {
+    it('Auth/Login renders tabs + form', async () => {
         const { default: Page } = await import('@/Pages/Auth/Login.jsx');
         render(<Page status={null} canResetPassword={false} />);
-        expect(screen.getByText('Masuk dengan SSO PNJ')).toBeInTheDocument();
         expect(screen.getByLabelText('Alamat email')).toBeInTheDocument();
+        expect(screen.getByLabelText('Kata sandi')).toBeInTheDocument();
     });
 
     it('Catalog/Browse renders header + filters', async () => {

@@ -50,7 +50,7 @@ class HandleInertiaRequests extends Middleware
                 : null,
             // External links for public navigation (LMS, main site, etc.)
             'external_links' => Schema::hasTable('external_links')
-                ? ExternalLink::where('is_active', true)->orderBy('sort_order')->get(['id', 'label', 'url', 'target'])
+                ? ExternalLink::where('is_active', true)->orderBy('sort_order')->get(['id', 'label', 'url', 'open_new_tab'])
                 : [],
             // SSO is off unless explicitly enabled; the login button reads this.
             'sso_enabled' => (bool) config('services.sso.enabled'),

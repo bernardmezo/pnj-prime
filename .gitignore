@@ -45,7 +45,7 @@ Thumbs.db
 # empty placeholder favicon
 /public/favicon.ico
 
-# Local documentation & analysis (kept untracked)
+# Documentation package (ignored per user request)
 /docs/
 .phpstan.cache
 coverage

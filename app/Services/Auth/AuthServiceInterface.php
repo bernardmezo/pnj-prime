@@ -8,7 +8,7 @@ use Illuminate\Http\Request;
 interface AuthServiceInterface
 {
     /**
-     * @param array{email: string, password: string} $credentials
+     * @param  array{email: string, password: string}  $credentials
      */
     public function attempt(array $credentials, bool $remember = false): bool;
 

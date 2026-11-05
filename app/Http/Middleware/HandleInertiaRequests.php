@@ -55,7 +55,7 @@ class HandleInertiaRequests extends Middleware
                 : null,
             // External links for public navigation (LMS, main site, etc.)
             'external_links' => Schema::hasTable('external_links')
-                ? ExternalLink::where('is_active', true)->orderBy('sort_order')->get(['id', 'label', 'url', 'target'])
+                ? ExternalLink::where('is_active', true)->orderBy('sort_order')->get(['id', 'label', 'url', 'open_new_tab'])
                 : [],
             // Pending counts for staff badges (only computed when staff is authenticated)
             'pending_counts' => fn () => ($request->user() && $request->user()->isStaff() && Schema::hasTable('pengajuan'))

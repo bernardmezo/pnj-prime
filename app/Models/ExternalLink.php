@@ -19,9 +19,9 @@ class ExternalLink extends Model
     protected function casts(): array
     {
         return [
-            'is_active'    => 'boolean',
+            'is_active' => 'boolean',
             'open_new_tab' => 'boolean',
-            'sort_order'   => 'integer',
+            'sort_order' => 'integer',
         ];
     }
 }

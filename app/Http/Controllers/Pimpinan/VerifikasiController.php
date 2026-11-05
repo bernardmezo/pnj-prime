@@ -3,9 +3,11 @@
 namespace App\Http\Controllers\Pimpinan;
 
 use App\Http\Controllers\Controller;
+use App\Models\Pengajuan;
 use App\Models\Product;
 use App\Models\ProductCategory;
 use App\Models\ProdukUnggulan;
+use App\Services\PengajuanWorkflow;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
@@ -130,6 +132,66 @@ class VerifikasiController extends Controller
         $rows = ProdukUnggulan::latest()->get()->map(fn ($p) => $this->serialize($p));
 
         return Inertia::render('Pimpinan/Pemantauan', ['produk' => $rows]);
+    }
+
+    public function __construct(
+        protected PengajuanWorkflow $workflow = new PengajuanWorkflow
+    ) {}
+
+    public function pengajuan(): Response
+    {
+        $rows = Pengajuan::with(['product', 'buyer:id,name', 'opsi'])
+            ->where('status', 'Menunggu Persetujuan Pimpinan')
+            ->latest()
+            ->get()
+            ->map(fn ($p) => [
+                'id' => $p->id,
+                'code' => $p->code,
+                'type' => $p->tipe,
+                'layanan' => $p->product?->name ?? ucfirst($p->tipe),
+                'customer' => $p->buyer?->name,
+                'date' => optional($p->created_at)->format('Y-m-d H:i'),
+                'status' => $p->status,
+                'qty' => $p->jumlah,
+                'need' => $p->keperluan,
+                'total' => $p->total,
+                'tanggal' => optional($p->tanggal)->format('Y-m-d'),
+                'jam_mulai' => $p->jam_mulai,
+                'jam_selesai' => $p->jam_selesai,
+                'note' => $p->catatan_peninjau,
+                'history' => $p->history ?? [],
+            ]);
+
+        return Inertia::render('Pimpinan/Pengajuan', [
+            'antrean' => $rows,
+            'selected' => $rows->first(),
+        ]);
+    }
+
+    public function approvePengajuan(Pengajuan $pengajuan)
+    {
+        $this->workflow->transition(
+            $pengajuan,
+            'Menunggu Pembayaran',
+            'Disetujui oleh Pimpinan RTPU',
+            Auth::user()->name
+        );
+
+        return back()->with('success', 'Pemesanan ruangan/alat disetujui, tagihan diterbitkan.');
+    }
+
+    public function rejectPengajuan(Request $request, Pengajuan $pengajuan)
+    {
+        $request->validate(['catatan' => 'required|string|max:1000']);
+
+        $this->workflow->transition(
+            $pengajuan,
+            'Ditolak',
+            $request->catatan,
+            Auth::user()->name
+        );
+
+        return back()->with('success', 'Pemesanan ruangan/alat ditolak.');
     }
 
     public function riwayat(): Response

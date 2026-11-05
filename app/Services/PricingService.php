@@ -74,6 +74,7 @@ class PricingService
         foreach ($picked as $index => $row) {
             if (isset($selected[$row['id']])) {
                 $errors["opsi.{$index}.id"] = 'Opsi ini dipilih lebih dari sekali.';
+
                 continue;
             }
 
@@ -81,16 +82,19 @@ class PricingService
 
             if (! $option) {
                 $errors["opsi.{$index}.id"] = 'Opsi tidak ditemukan pada layanan ini.';
+
                 continue;
             }
 
             if (! $option->aktif) {
                 $errors["opsi.{$index}.id"] = 'Opsi ini sudah tidak aktif.';
+
                 continue;
             }
 
             if ($option->isTermasuk()) {
                 $errors["opsi.{$index}.id"] = 'Item termasuk tidak dapat dipilih atau dibatalkan.';
+
                 continue;
             }
 
@@ -99,16 +103,19 @@ class PricingService
 
             if ($qtyPilihan < $min) {
                 $errors["opsi.{$index}.qty"] = "Jumlah minimal {$min}.";
+
                 continue;
             }
 
             if ($option->qty_max !== null && $qtyPilihan > (int) $option->qty_max) {
                 $errors["opsi.{$index}.qty"] = 'Jumlah melebihi batas maksimal.';
+
                 continue;
             }
 
             if ($option->stok !== null && $qtyPilihan > (int) $option->stok) {
                 $errors["opsi.{$index}.qty"] = 'Jumlah melebihi stok tersedia.';
+
                 continue;
             }
 

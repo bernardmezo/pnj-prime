@@ -4,6 +4,7 @@ namespace App\Models;
 
 use Database\Factories\UserFactory;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
+use Illuminate\Database\Eloquent\Relations\HasOne;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
 use Laravel\Sanctum\HasApiTokens;
@@ -31,6 +32,8 @@ class User extends Authenticatable
         'institution',
         'ktp_number',
         'npwp_number',
+        'pdp_consent_at',
+        'pdp_consent_version',
     ];
 
     /**
@@ -56,6 +59,7 @@ class User extends Authenticatable
             'email_verified_at' => 'datetime',
             'password' => 'hashed',
             'is_active' => 'boolean',
+            'pdp_consent_at' => 'datetime',
         ];
     }
 
@@ -87,6 +91,11 @@ class User extends Authenticatable
     public function isCustomer(): bool
     {
         return $this->role === 'customer';
+    }
+
+    public function tenantProfile(): HasOne
+    {
+        return $this->hasOne(TenantProfile::class);
     }
 
     public function isStaff(): bool

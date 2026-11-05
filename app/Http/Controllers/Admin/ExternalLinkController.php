@@ -20,12 +20,12 @@ class ExternalLinkController extends Controller
     public function store(Request $request)
     {
         $request->validate([
-            'label'        => 'required|string|max:100',
-            'url'          => 'required|url|max:500',
-            'description'  => 'nullable|string|max:255',
-            'is_active'    => 'boolean',
+            'label' => 'required|string|max:100',
+            'url' => 'required|url|max:500',
+            'description' => 'nullable|string|max:255',
+            'is_active' => 'boolean',
             'open_new_tab' => 'boolean',
-            'sort_order'   => 'integer',
+            'sort_order' => 'integer',
         ]);
 
         ExternalLink::create($request->validated());
@@ -36,12 +36,12 @@ class ExternalLinkController extends Controller
     public function update(Request $request, ExternalLink $externalLink)
     {
         $request->validate([
-            'label'        => 'required|string|max:100',
-            'url'          => 'required|url|max:500',
-            'description'  => 'nullable|string|max:255',
-            'is_active'    => 'boolean',
+            'label' => 'required|string|max:100',
+            'url' => 'required|url|max:500',
+            'description' => 'nullable|string|max:255',
+            'is_active' => 'boolean',
             'open_new_tab' => 'boolean',
-            'sort_order'   => 'integer',
+            'sort_order' => 'integer',
         ]);
 
         $externalLink->update($request->validated());

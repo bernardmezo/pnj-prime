@@ -11,22 +11,22 @@ class ExternalLinkSeeder extends Seeder
     {
         $links = [
             [
-                'label'        => 'LMS iKAMAS',
-                'url'          => 'https://ikamas.pnj.ac.id',
-                'description'  => 'Platform Learning Management System iKAMAS Politeknik Negeri Jakarta.',
-                'icon'         => 'icon-academic-cap',
-                'is_active'    => true,
+                'label' => 'LMS iKAMAS',
+                'url' => 'https://ikamas.pnj.ac.id',
+                'description' => 'Platform Learning Management System iKAMAS Politeknik Negeri Jakarta.',
+                'icon' => 'icon-academic-cap',
+                'is_active' => true,
                 'open_new_tab' => true,
-                'sort_order'   => 1,
+                'sort_order' => 1,
             ],
             [
-                'label'        => 'Website RTPU',
-                'url'          => 'https://rtpu.pnj.ac.id',
-                'description'  => 'Website resmi UPA Riset, Teknologi, Pengabdian, dan Usaha PNJ.',
-                'icon'         => 'icon-globe',
-                'is_active'    => true,
+                'label' => 'Website RTPU',
+                'url' => 'https://rtpu.pnj.ac.id',
+                'description' => 'Website resmi UPA Riset, Teknologi, Pengabdian, dan Usaha PNJ.',
+                'icon' => 'icon-globe',
+                'is_active' => true,
                 'open_new_tab' => true,
-                'sort_order'   => 2,
+                'sort_order' => 2,
             ],
         ];
 

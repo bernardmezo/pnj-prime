@@ -15,7 +15,11 @@ class Order extends Model
     protected $fillable = [
         'order_number',
         'buyer_id',
+        'pengajuan_id',
         'subtotal',
+        'tax_rate_id',
+        'tax_rate_snapshot',
+        'tax_name_snapshot',
         'tax_amount',
         'total',
         'status',
@@ -29,9 +33,9 @@ class Order extends Model
     protected function casts(): array
     {
         return [
-            'subtotal'     => 'integer',
-            'tax_amount'   => 'integer',
-            'total'        => 'integer',
+            'subtotal' => 'integer',
+            'tax_amount' => 'integer',
+            'total' => 'integer',
             'confirmed_at' => 'datetime',
             'completed_at' => 'datetime',
         ];
@@ -40,6 +44,16 @@ class Order extends Model
     public function buyer(): BelongsTo
     {
         return $this->belongsTo(User::class, 'buyer_id');
+    }
+
+    public function pengajuan(): BelongsTo
+    {
+        return $this->belongsTo(Pengajuan::class, 'pengajuan_id');
+    }
+
+    public function taxRate(): BelongsTo
+    {
+        return $this->belongsTo(TaxRate::class, 'tax_rate_id');
     }
 
     public function items(): HasMany

@@ -20,6 +20,9 @@ class UsecaseSeeder extends Seeder
         'pengguna' => ['Administrasi', 6],
         'hak-akses' => ['Administrasi', 7],
         'fitur' => ['Administrasi', 8],
+        'master-pajak' => ['Administrasi', 9],
+        'laporan' => ['Administrasi', 10],
+        'tenant' => ['Layanan', 11],
     ];
 
     /**
@@ -41,10 +44,14 @@ class UsecaseSeeder extends Seeder
                 'pengajuan' => ['Lihat' => true, 'Tambah' => true, 'Ubah' => true, 'Hapus' => false, 'Verifikasi' => false],
                 'pembayaran' => ['Lihat' => true, 'Tambah' => true, 'Ubah' => false, 'Hapus' => false, 'Verifikasi' => false],
             ],
-            'admin_rtpu' => ['katalog' => $full, 'pengajuan' => $full, 'verifikasi' => $full, 'pembayaran' => $full, 'produk-unggulan' => $read],
+            'admin_rtpu' => ['katalog' => $full, 'pengajuan' => $full, 'verifikasi' => $full, 'pembayaran' => $full, 'produk-unggulan' => $read, 'master-pajak' => $full, 'laporan' => $full, 'tenant' => $full],
             'admin_p3m' => ['produk-unggulan' => ['Lihat' => true, 'Tambah' => true, 'Ubah' => true, 'Hapus' => false, 'Verifikasi' => false]],
-            'pimpinan_rtpu' => ['produk-unggulan' => ['Lihat' => true, 'Tambah' => false, 'Ubah' => false, 'Hapus' => false, 'Verifikasi' => true]],
-            'direktur' => [],
+            'pimpinan_rtpu' => [
+                'produk-unggulan' => ['Lihat' => true, 'Tambah' => false, 'Ubah' => false, 'Hapus' => false, 'Verifikasi' => true],
+                'pengajuan' => ['Lihat' => true, 'Tambah' => false, 'Ubah' => false, 'Hapus' => false, 'Verifikasi' => true],
+                'laporan' => $read,
+            ],
+            'direktur' => ['laporan' => $read],
             'super_admin' => [],
         ];
 
@@ -81,6 +88,9 @@ class UsecaseSeeder extends Seeder
             ['pengguna', 'Manajemen Pengguna', 'Kelola akun dan peran pengguna.'],
             ['hak-akses', 'Hak Akses', 'Matriks izin per peran.'],
             ['fitur', 'Kelola Fitur', 'Mengaktifkan dan menonaktifkan modul.'],
+            ['master-pajak', 'Master Pajak', 'Kelola tarif pajak dan ambang PPN.'],
+            ['laporan', 'Laporan & Audit', 'Laporan transaksi, statistik, dan log audit.'],
+            ['tenant', 'Verifikasi Tenant', 'Validasi profil usaha dan dokumen tenant.'],
         ];
         foreach ($fitur as [$key, $nama, $deskripsi]) {
             [$grup, $urutan] = self::META[$key] ?? ['Lainnya', 0];

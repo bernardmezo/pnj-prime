@@ -4,7 +4,10 @@
     "type": "module",
     "scripts": {
         "build": "vite build",
-        "dev": "vite"
+        "dev": "vite",
+        "test:e2e": "node tests/e2e/live-test-edge.js",
+        "test:e2e:all": "node tests/e2e/test-all-activity-diagrams.js",
+        "test:e2e:security": "node tests/e2e/live-security-and-bug-testing.js"
     },
     "devDependencies": {
         "@headlessui/react": "^2.0.0",

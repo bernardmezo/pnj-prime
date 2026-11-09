@@ -13,24 +13,37 @@ class PengajuanWorkflow
 {
     public const ALLOWED_TRANSITIONS = [
         'Diajukan' => [
+            'Menunggu Invoice',
             'Menunggu Pembayaran',
             'Menunggu Persetujuan Pimpinan',
             'Ditolak',
             'Dibatalkan',
         ],
         'Menunggu Persetujuan Pimpinan' => [
+            'Menunggu Invoice',
+            'Menunggu Pembayaran',
+            'Ditolak',
+            'Dibatalkan',
+        ],
+        'Menunggu Invoice' => [
             'Menunggu Pembayaran',
             'Ditolak',
             'Dibatalkan',
         ],
         'Menunggu Pembayaran' => [
             'Menunggu Verifikasi Pembayaran',
+            'Lunas',
             'Dibatalkan',
         ],
         'Menunggu Verifikasi Pembayaran' => [
+            'Lunas',
             'Diproses',
             'Menunggu Pembayaran',
             'Ditolak',
+            'Dibatalkan',
+        ],
+        'Lunas' => [
+            'Diproses',
             'Dibatalkan',
         ],
         'Diproses' => [
@@ -85,6 +98,24 @@ class PengajuanWorkflow
             // When moving to 'Menunggu Pembayaran', generate the Order + OrderItem + Tax snapshot if not already created
             if ($targetStatus === 'Menunggu Pembayaran' && ! $pengajuan->order) {
                 $this->createOrderSnapshot($pengajuan);
+            }
+
+            if ($pengajuan->order) {
+                $orderStatusMap = [
+                    'Lunas' => 'lunas',
+                    'Diproses' => 'diproses',
+                    'Selesai' => 'selesai',
+                    'Dibatalkan' => 'dibatalkan',
+                    'Menunggu Pembayaran' => 'menunggu_pembayaran',
+                ];
+
+                if (isset($orderStatusMap[$targetStatus])) {
+                    $orderData = ['status' => $orderStatusMap[$targetStatus]];
+                    if ($targetStatus === 'Selesai') {
+                        $orderData['completed_at'] = now();
+                    }
+                    $pengajuan->order->update($orderData);
+                }
             }
 
             // If cancelled or rejected, release room bookings

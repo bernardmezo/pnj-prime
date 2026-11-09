@@ -219,6 +219,7 @@ class AccessMatrixTest extends TestCase
         $this->assertSame($countBefore, Product::where('produk_unggulan_id', $pu2->id)->count());
 
         // never auto-published: absent from public catalog...
+        auth()->logout();
         $this->get(route('catalog.show', $layanan->slug))->assertNotFound();
 
         // ...until Admin RTPU sets price/stock and activates it
@@ -263,9 +264,11 @@ class AccessMatrixTest extends TestCase
         $layanan = Product::where('produk_unggulan_id', $pu->id)->firstOrFail();
         $this->assertFalse((bool) $layanan->is_active);
         $this->assertSame('draft', $layanan->curation_status);
+        auth()->logout();
         $this->get(route('catalog.show', $layanan->slug))->assertNotFound();
 
         // documents downloadable by owner + pimpinan + direktur, not by another P3M user
+        $this->actingAs($this->users['admin_p3m']);
         $this->get(route('berkas.show', ['kind' => 'produk-dokumen', 'id' => $pu->id, 'index' => 0]))->assertOk();
         $stranger = User::factory()->adminP3m()->create(['email' => 'p3m-lain@test.id']);
         $this->actingAs($stranger);

@@ -85,6 +85,15 @@ class UserFactory extends Factory
         ]);
     }
 
+    public function adminPengelola(): static
+    {
+        return $this->state(fn (array $attributes) => [
+            'role' => 'admin_pengelola',
+            'institution' => 'Jurusan Teknik Mesin PNJ',
+            'unit_name' => 'Jurusan Teknik Mesin',
+        ]);
+    }
+
     public function pimpinanRtpu(): static
     {
         return $this->state(fn (array $attributes) => [

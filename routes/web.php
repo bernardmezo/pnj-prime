@@ -5,7 +5,9 @@ use App\Http\Controllers\Admin\SettingController;
 use App\Http\Controllers\Admin\TaxRateController;
 use App\Http\Controllers\Auth\SsoController;
 use App\Http\Controllers\Catalog\CatalogController;
+use App\Http\Controllers\Customer\InvoiceController as CustomerInvoiceController;
 use App\Http\Controllers\Customer\PengajuanController as CustomerPengajuanController;
+use App\Http\Controllers\Customer\PengelolaApplicationController as CustomerPengelolaApplicationController;
 use App\Http\Controllers\Customer\RiwayatController as CustomerRiwayatController;
 use App\Http\Controllers\Customer\TenantProfileController as CustomerTenantProfileController;
 use App\Http\Controllers\Direktur\DashboardController as DirekturDashboardController;
@@ -14,14 +16,19 @@ use App\Http\Controllers\FileController;
 use App\Http\Controllers\P3M\DashboardController as P3MDashboardController;
 use App\Http\Controllers\P3M\OpsiController as P3MOpsiController;
 use App\Http\Controllers\P3M\ProdukUnggulanController;
+use App\Http\Controllers\Pengelola\DashboardController as PengelolaDashboardController;
+use App\Http\Controllers\Pengelola\ProductController as PengelolaProductController;
 use App\Http\Controllers\Pimpinan\DashboardController as PimpinanDashboardController;
+use App\Http\Controllers\Pimpinan\ProductCurationController as PimpinanProductCurationController;
 use App\Http\Controllers\Pimpinan\VerifikasiController as PimpinanController;
 use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\ReportController;
 use App\Http\Controllers\Rtpu\DashboardController as RtpuDashboardController;
+use App\Http\Controllers\Rtpu\InvoiceController as RtpuInvoiceController;
 use App\Http\Controllers\Rtpu\LayananController as RtpuLayananController;
 use App\Http\Controllers\Rtpu\MetodeController as RtpuMetodeController;
 use App\Http\Controllers\Rtpu\OpsiController as RtpuOpsiController;
+use App\Http\Controllers\Rtpu\ProductCurationController as RtpuProductCurationController;
 use App\Http\Controllers\Rtpu\RiwayatController as RtpuRiwayatController;
 use App\Http\Controllers\Rtpu\StatusController as RtpuStatusController;
 use App\Http\Controllers\Rtpu\TenantVerificationController;
@@ -29,6 +36,7 @@ use App\Http\Controllers\Rtpu\VerifikasiController as RtpuVerifikasiController;
 use App\Http\Controllers\SuperAdmin\DashboardController as SuperAdminDashboardController;
 use App\Http\Controllers\SuperAdmin\FiturController as SuperAdminFiturController;
 use App\Http\Controllers\SuperAdmin\HakAksesController as SuperAdminHakController;
+use App\Http\Controllers\SuperAdmin\PengelolaApplicationController as SuperAdminPengelolaApplicationController;
 use App\Http\Controllers\SuperAdmin\UsersController as SuperAdminUsersController;
 use Illuminate\Support\Facades\Route;
 use Inertia\Inertia;
@@ -65,12 +73,18 @@ Route::middleware(['auth', 'verified'])->group(function () {
         Route::post('/{pengajuan}/pembayaran', [CustomerPengajuanController::class, 'createPayment'])->name('pembayaran.create')->middleware(['fitur:pembayaran', 'permission:pembayaran,Tambah']);
         Route::get('/{pengajuan}/status-pembayaran', [CustomerPengajuanController::class, 'paymentStatus'])->name('pembayaran.status')->middleware(['fitur:pembayaran', 'permission:pembayaran,Lihat']);
         Route::post('/{pengajuan}/bukti', [CustomerPengajuanController::class, 'proof'])->name('proof')->middleware(['fitur:pembayaran', 'permission:pembayaran,Tambah']);
+        Route::get('/{pengajuan}/invoice', [CustomerInvoiceController::class, 'show'])->name('invoice');
+        Route::get('/{pengajuan}/invoice/print', [CustomerInvoiceController::class, 'print'])->name('invoice.print');
     });
     Route::get('/riwayat', [CustomerRiwayatController::class, 'index'])->name('customer.riwayat')->middleware('role:customer', 'fitur:pengajuan', 'permission:pengajuan,Lihat');
     Route::middleware('role:customer')->group(function () {
         Route::get('/tenant-profile', [CustomerTenantProfileController::class, 'show'])->name('customer.tenant.show');
         Route::post('/tenant-profile', [CustomerTenantProfileController::class, 'store'])->name('customer.tenant.store');
         Route::post('/pdp-consent', [CustomerTenantProfileController::class, 'consentPdp'])->name('customer.pdp.consent');
+        Route::get('/pengelola-application', [CustomerPengelolaApplicationController::class, 'index'])->name('customer.pengelola.index');
+        Route::get('/pengelola-register', [CustomerPengelolaApplicationController::class, 'index'])->name('customer.pengelola.register');
+        Route::post('/pengelola-application', [CustomerPengelolaApplicationController::class, 'store'])->name('customer.pengelola.store');
+        Route::post('/pengelola-register', [CustomerPengelolaApplicationController::class, 'store'])->name('customer.pengelola.register.store');
     });
 
     // ---- Use-case model: Admin P3M ----
@@ -98,6 +112,13 @@ Route::middleware(['auth', 'verified'])->group(function () {
         Route::get('/verifikasi/pembayaran', [RtpuVerifikasiController::class, 'pembayaran'])->name('verify.bayar')->middleware(['fitur:pembayaran', 'permission:pembayaran,Lihat']);
         Route::patch('/verifikasi/pembayaran/{proof}/accept', [RtpuVerifikasiController::class, 'acceptBayar'])->name('verify.bayar.accept')->middleware(['fitur:pembayaran', 'permission:pembayaran,Verifikasi']);
         Route::patch('/verifikasi/pembayaran/{proof}/reject', [RtpuVerifikasiController::class, 'rejectBayar'])->name('verify.bayar.reject')->middleware(['fitur:pembayaran', 'permission:pembayaran,Verifikasi']);
+        Route::post('/pengajuan/{pengajuan}/invoice', [RtpuInvoiceController::class, 'store'])->name('invoice.store')->middleware(['fitur:pembayaran', 'permission:pembayaran,Tambah']);
+        Route::get('/invoices/{invoice}', [RtpuInvoiceController::class, 'show'])->name('invoice.show')->middleware(['fitur:pembayaran', 'permission:pembayaran,Lihat']);
+        Route::get('/invoices/{invoice}/print', [RtpuInvoiceController::class, 'print'])->name('invoice.print')->middleware(['fitur:pembayaran', 'permission:pembayaran,Lihat']);
+        Route::patch('/invoices/{invoice}/cancel', [RtpuInvoiceController::class, 'cancel'])->name('invoice.cancel')->middleware(['fitur:pembayaran', 'permission:pembayaran,Ubah']);
+        Route::get('/verifikasi/produk', [RtpuProductCurationController::class, 'index'])->name('verify.produk')->middleware(['fitur:verifikasi', 'permission:verifikasi,Lihat']);
+        Route::patch('/verifikasi/produk/{product}/verify', [RtpuProductCurationController::class, 'verify'])->name('verify.produk.verify')->middleware(['fitur:verifikasi', 'permission:verifikasi,Verifikasi']);
+        Route::patch('/verifikasi/produk/{product}/reject', [RtpuProductCurationController::class, 'reject'])->name('verify.produk.reject')->middleware(['fitur:verifikasi', 'permission:verifikasi,Verifikasi']);
         Route::get('/status', [RtpuStatusController::class, 'index'])->name('status')->middleware(['fitur:pengajuan', 'permission:pengajuan,Lihat']);
         Route::patch('/status/{pengajuan}', [RtpuStatusController::class, 'update'])->name('status.update')->middleware(['fitur:pengajuan', 'permission:pengajuan,Ubah']);
         Route::get('/layanan', [RtpuLayananController::class, 'index'])->name('layanan')->middleware(['fitur:katalog', 'permission:katalog,Lihat']);
@@ -126,6 +147,9 @@ Route::middleware(['auth', 'verified'])->group(function () {
         Route::get('/verifikasi', [PimpinanController::class, 'index'])->name('verify')->middleware(['fitur:produk-unggulan', 'permission:produk-unggulan,Lihat']);
         Route::patch('/verifikasi/{produk}/approve', [PimpinanController::class, 'approve'])->name('verify.approve')->middleware(['fitur:produk-unggulan', 'permission:produk-unggulan,Verifikasi']);
         Route::patch('/verifikasi/{produk}/reject', [PimpinanController::class, 'reject'])->name('verify.reject')->middleware(['fitur:produk-unggulan', 'permission:produk-unggulan,Verifikasi']);
+        Route::get('/verifikasi-produk', [PimpinanProductCurationController::class, 'index'])->name('verify.produk')->middleware(['fitur:produk-unggulan', 'permission:produk-unggulan,Lihat']);
+        Route::patch('/verifikasi-produk/{product}/approve', [PimpinanProductCurationController::class, 'approve'])->name('verify.produk.approve')->middleware(['fitur:produk-unggulan', 'permission:produk-unggulan,Verifikasi']);
+        Route::patch('/verifikasi-produk/{product}/reject', [PimpinanProductCurationController::class, 'reject'])->name('verify.produk.reject')->middleware(['fitur:produk-unggulan', 'permission:produk-unggulan,Verifikasi']);
         Route::get('/pengajuan', [PimpinanController::class, 'pengajuan'])->name('pengajuan')->middleware(['fitur:pengajuan', 'permission:pengajuan,Lihat']);
         Route::patch('/pengajuan/{pengajuan}/approve', [PimpinanController::class, 'approvePengajuan'])->name('pengajuan.approve')->middleware(['fitur:pengajuan', 'permission:pengajuan,Verifikasi']);
         Route::patch('/pengajuan/{pengajuan}/reject', [PimpinanController::class, 'rejectPengajuan'])->name('pengajuan.reject')->middleware(['fitur:pengajuan', 'permission:pengajuan,Verifikasi']);
@@ -156,6 +180,22 @@ Route::middleware(['auth', 'verified'])->group(function () {
         Route::post('/fitur', [SuperAdminFiturController::class, 'store'])->name('fitur.store')->middleware('fitur:fitur');
         Route::patch('/fitur/{fitur}', [SuperAdminFiturController::class, 'update'])->name('fitur.update')->middleware('fitur:fitur');
         Route::delete('/fitur/{fitur}', [SuperAdminFiturController::class, 'destroy'])->name('fitur.destroy')->middleware('fitur:fitur');
+        Route::get('/pengelola-applications', [SuperAdminPengelolaApplicationController::class, 'index'])->name('pengelola.index')->middleware('fitur:pengguna');
+        Route::get('/pengelola-applications/{application}', [SuperAdminPengelolaApplicationController::class, 'show'])->name('pengelola.show')->middleware('fitur:pengguna');
+        Route::patch('/pengelola-applications/{application}/approve', [SuperAdminPengelolaApplicationController::class, 'approve'])->name('pengelola.approve')->middleware('fitur:pengguna');
+        Route::patch('/pengelola-applications/{application}/reject', [SuperAdminPengelolaApplicationController::class, 'reject'])->name('pengelola.reject')->middleware('fitur:pengguna');
+    });
+
+    // ---- Use-case model: Admin Pengelola Unit ----
+    Route::middleware('role:admin_pengelola')->prefix('pengelola')->name('pengelola.')->group(function () {
+        Route::get('/dashboard', PengelolaDashboardController::class)->name('dashboard')->middleware(['fitur:katalog', 'permission:katalog,Lihat']);
+        Route::get('/produk', [PengelolaProductController::class, 'index'])->name('produk.index')->middleware(['fitur:katalog', 'permission:katalog,Lihat']);
+        Route::get('/produk/create', [PengelolaProductController::class, 'create'])->name('produk.create')->middleware(['fitur:katalog', 'permission:katalog,Tambah']);
+        Route::post('/produk', [PengelolaProductController::class, 'store'])->name('produk.store')->middleware(['fitur:katalog', 'permission:katalog,Tambah']);
+        Route::get('/produk/{product}/edit', [PengelolaProductController::class, 'edit'])->name('produk.edit')->middleware(['fitur:katalog', 'permission:katalog,Ubah']);
+        Route::patch('/produk/{product}', [PengelolaProductController::class, 'update'])->name('produk.update')->middleware(['fitur:katalog', 'permission:katalog,Ubah']);
+        Route::delete('/produk/{product}', [PengelolaProductController::class, 'destroy'])->name('produk.destroy')->middleware(['fitur:katalog', 'permission:katalog,Hapus']);
+        Route::post('/produk/{product}/submit', [PengelolaProductController::class, 'submit'])->name('produk.submit')->middleware(['fitur:katalog', 'permission:katalog,Ubah']);
     });
 
     Route::middleware('role:admin_rtpu')->prefix('admin')->name('admin.')->group(function () {

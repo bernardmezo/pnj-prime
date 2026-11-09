@@ -14,6 +14,7 @@ class StatusController extends Controller
     public function index(): Response
     {
         $rows = Pengajuan::with(['product', 'buyer:id,name'])
+            /** @phpstan-ignore-next-line */
             ->whereNotIn('status', Pengajuan::CLOSED)
             ->latest()
             ->get()
@@ -45,6 +46,7 @@ class StatusController extends Controller
 
         if ($pengajuan->order) {
             $map = [
+                'Lunas' => 'lunas',
                 'Diproses' => 'diproses',
                 'Selesai' => 'selesai',
                 'Dibatalkan' => 'dibatalkan',

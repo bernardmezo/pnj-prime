@@ -109,18 +109,19 @@ class MidtransWebhookController extends Controller
             $pengajuan = $payment->request;
             if ($pengajuan) {
                 if ($targetStatus === 'paid') {
-                    // Skip 'Menunggu Verifikasi Pembayaran': paid moves straight to 'Diproses'
-                    if ($pengajuan->status !== 'Diproses' && $pengajuan->status !== 'Selesai') {
-                        $pengajuan->setStatus('Diproses', 'Pembayaran terverifikasi otomatis via Midtrans ('.($paymentType ?? 'Online').').', 'Midtrans Gateway');
+                    if (! in_array($pengajuan->status, ['Lunas', 'Diproses', 'Selesai'], true)) {
+                        $pengajuan->setStatus('Lunas', 'Pembayaran terverifikasi otomatis via Midtrans ('.($paymentType ?? 'Online').').', 'Midtrans Gateway');
                         $pengajuan->save();
                     }
 
                     if ($pengajuan->order) {
                         $pengajuan->order->update([
-                            'status' => 'diproses',
+                            'status' => 'lunas',
                             'confirmed_at' => $payment->paid_at ?? now(),
                         ]);
                     }
+
+                    $pengajuan->latestInvoice?->update(['status' => 'paid']);
                 } elseif (in_array($targetStatus, ['failed', 'expired'], true)) {
                     // If payment expired and pengajuan is still waiting, keep or log
                     Log::info('Midtrans payment marked as '.$targetStatus, ['order_id' => $payment->order_id]);

@@ -3,7 +3,38 @@
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Support\Carbon;
 
+/**
+ * @property int $id
+ * @property string $key
+ * @property string $nama
+ * @property string|null $deskripsi
+ * @property bool $aktif
+ * @property Carbon|null $created_at
+ * @property Carbon|null $updated_at
+ * @property string $grup
+ * @property array<array-key, mixed>|null $aksi_tersedia
+ * @property int $urutan
+ * @property bool $terkunci
+ *
+ * @method static \Illuminate\Database\Eloquent\Builder<static>|Fitur newModelQuery()
+ * @method static \Illuminate\Database\Eloquent\Builder<static>|Fitur newQuery()
+ * @method static \Illuminate\Database\Eloquent\Builder<static>|Fitur query()
+ * @method static \Illuminate\Database\Eloquent\Builder<static>|Fitur whereAksiTersedia($value)
+ * @method static \Illuminate\Database\Eloquent\Builder<static>|Fitur whereAktif($value)
+ * @method static \Illuminate\Database\Eloquent\Builder<static>|Fitur whereCreatedAt($value)
+ * @method static \Illuminate\Database\Eloquent\Builder<static>|Fitur whereDeskripsi($value)
+ * @method static \Illuminate\Database\Eloquent\Builder<static>|Fitur whereGrup($value)
+ * @method static \Illuminate\Database\Eloquent\Builder<static>|Fitur whereId($value)
+ * @method static \Illuminate\Database\Eloquent\Builder<static>|Fitur whereKey($value)
+ * @method static \Illuminate\Database\Eloquent\Builder<static>|Fitur whereNama($value)
+ * @method static \Illuminate\Database\Eloquent\Builder<static>|Fitur whereTerkunci($value)
+ * @method static \Illuminate\Database\Eloquent\Builder<static>|Fitur whereUpdatedAt($value)
+ * @method static \Illuminate\Database\Eloquent\Builder<static>|Fitur whereUrutan($value)
+ *
+ * @mixin \Eloquent
+ */
 class Fitur extends Model
 {
     protected $table = 'fitur';

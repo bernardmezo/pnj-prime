@@ -3,12 +3,69 @@
 namespace App\Models;
 
 use Database\Factories\UserFactory;
+use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Relations\HasOne;
 use Illuminate\Foundation\Auth\User as Authenticatable;
+use Illuminate\Notifications\DatabaseNotification;
+use Illuminate\Notifications\DatabaseNotificationCollection;
 use Illuminate\Notifications\Notifiable;
+use Illuminate\Support\Carbon;
 use Laravel\Sanctum\HasApiTokens;
+use Laravel\Sanctum\PersonalAccessToken;
 
+/**
+ * @property int $id
+ * @property string $name
+ * @property string $email
+ * @property Carbon|null $email_verified_at
+ * @property string $password
+ * @property string $role
+ * @property string $account_origin
+ * @property string|null $phone
+ * @property string|null $institution
+ * @property string|null $ktp_number
+ * @property string|null $npwp_number
+ * @property string|null $remember_token
+ * @property Carbon|null $created_at
+ * @property Carbon|null $updated_at
+ * @property bool $is_active
+ * @property string|null $user_type
+ * @property string|null $nik_npwp
+ * @property Carbon|null $pdp_consent_at
+ * @property string|null $pdp_consent_version
+ * @property-read DatabaseNotificationCollection<int, DatabaseNotification> $notifications
+ * @property-read int|null $notifications_count
+ * @property-read TenantProfile|null $tenantProfile
+ * @property-read Collection<int, PersonalAccessToken> $tokens
+ * @property-read int|null $tokens_count
+ *
+ * @method static \Database\Factories\UserFactory factory($count = null, $state = [])
+ * @method static \Illuminate\Database\Eloquent\Builder<static>|User newModelQuery()
+ * @method static \Illuminate\Database\Eloquent\Builder<static>|User newQuery()
+ * @method static \Illuminate\Database\Eloquent\Builder<static>|User query()
+ * @method static \Illuminate\Database\Eloquent\Builder<static>|User whereAccountOrigin($value)
+ * @method static \Illuminate\Database\Eloquent\Builder<static>|User whereCreatedAt($value)
+ * @method static \Illuminate\Database\Eloquent\Builder<static>|User whereEmail($value)
+ * @method static \Illuminate\Database\Eloquent\Builder<static>|User whereEmailVerifiedAt($value)
+ * @method static \Illuminate\Database\Eloquent\Builder<static>|User whereId($value)
+ * @method static \Illuminate\Database\Eloquent\Builder<static>|User whereInstitution($value)
+ * @method static \Illuminate\Database\Eloquent\Builder<static>|User whereIsActive($value)
+ * @method static \Illuminate\Database\Eloquent\Builder<static>|User whereKtpNumber($value)
+ * @method static \Illuminate\Database\Eloquent\Builder<static>|User whereName($value)
+ * @method static \Illuminate\Database\Eloquent\Builder<static>|User whereNikNpwp($value)
+ * @method static \Illuminate\Database\Eloquent\Builder<static>|User whereNpwpNumber($value)
+ * @method static \Illuminate\Database\Eloquent\Builder<static>|User wherePassword($value)
+ * @method static \Illuminate\Database\Eloquent\Builder<static>|User wherePdpConsentAt($value)
+ * @method static \Illuminate\Database\Eloquent\Builder<static>|User wherePdpConsentVersion($value)
+ * @method static \Illuminate\Database\Eloquent\Builder<static>|User wherePhone($value)
+ * @method static \Illuminate\Database\Eloquent\Builder<static>|User whereRememberToken($value)
+ * @method static \Illuminate\Database\Eloquent\Builder<static>|User whereRole($value)
+ * @method static \Illuminate\Database\Eloquent\Builder<static>|User whereUpdatedAt($value)
+ * @method static \Illuminate\Database\Eloquent\Builder<static>|User whereUserType($value)
+ *
+ * @mixin \Eloquent
+ */
 class User extends Authenticatable
 {
     /** @use HasFactory<UserFactory> */
@@ -34,6 +91,9 @@ class User extends Authenticatable
         'npwp_number',
         'pdp_consent_at',
         'pdp_consent_version',
+        'account_status',
+        'unit_name',
+        'unit_id',
     ];
 
     /**
@@ -73,6 +133,11 @@ class User extends Authenticatable
         return $this->role === 'admin_p3m';
     }
 
+    public function isAdminPengelola(): bool
+    {
+        return $this->role === 'admin_pengelola' || $this->role === 'admin_p3m';
+    }
+
     public function isPimpinanRtpu(): bool
     {
         return $this->role === 'pimpinan_rtpu';
@@ -100,7 +165,7 @@ class User extends Authenticatable
 
     public function isStaff(): bool
     {
-        return in_array($this->role, ['admin_rtpu', 'admin_p3m', 'pimpinan_rtpu', 'direktur', 'super_admin'], true);
+        return in_array($this->role, ['admin_rtpu', 'admin_p3m', 'admin_pengelola', 'pimpinan_rtpu', 'direktur', 'super_admin'], true);
     }
 
     // ---- Legacy helpers (kept for BC; old values no longer assigned) ----
@@ -128,6 +193,11 @@ class User extends Authenticatable
     public function isFromSso(): bool
     {
         return $this->account_origin === 'sso_pnj';
+    }
+
+    public function pengelolaApplications(): HasMany
+    {
+        return $this->hasMany(PengelolaApplication::class, 'user_id');
     }
 
     /**

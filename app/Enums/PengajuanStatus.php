@@ -6,8 +6,10 @@ enum PengajuanStatus: string
 {
     case Diajukan = 'Diajukan';
     case MenungguPersetujuanPimpinan = 'Menunggu Persetujuan Pimpinan';
+    case MenungguInvoice = 'Menunggu Invoice';
     case MenungguPembayaran = 'Menunggu Pembayaran';
     case MenungguVerifikasiPembayaran = 'Menunggu Verifikasi Pembayaran';
+    case Lunas = 'Lunas';
     case Diproses = 'Diproses';
     case Selesai = 'Selesai';
     case Dibatalkan = 'Dibatalkan';

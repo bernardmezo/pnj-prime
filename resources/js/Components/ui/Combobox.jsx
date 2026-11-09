@@ -1,10 +1,4 @@
-import {
-    Combobox,
-    ComboboxButton,
-    ComboboxInput,
-    ComboboxOption,
-    ComboboxOptions,
-} from '@headlessui/react';
+import { Combobox as HCombobox, ComboboxButton, ComboboxInput, ComboboxOption, ComboboxOptions } from '@headlessui/react';
 import { Check, ChevronDown } from 'lucide-react';
 import { useEffect, useId, useState } from 'react';
 import { useReducedMotion } from 'framer-motion';
@@ -73,7 +67,7 @@ export default function Combobox({
 
     const control = (
         <div className={clsx('relative', className)}>
-            <Combobox
+            <HCombobox
                 value={value}
                 onChange={onChange}
                 disabled={disabled}
@@ -125,7 +119,7 @@ export default function Combobox({
                             )}
                             {!loading && filtered.length === 0 && (
                                 <div className="px-4 py-2.5 text-[13px]" style={{ color: 'var(--color-muted)' }}>
-                                    {emptyLabel}
+                            {emptyLabel}
                                 </div>
                             )}
                             {filtered.map((opt) => (
@@ -172,7 +166,7 @@ export default function Combobox({
                         </ComboboxOptions>
                     </>
                 )}
-            </Combobox>
+            </HCombobox>
         </div>
     );
 

@@ -369,7 +369,7 @@ class UseCaseTraceabilityTest extends TestCase
         $this->actingAs($this->rtpu);
         $this->get(route('rtpu.verify.bayar'))->assertOk();
         $this->patch(route('rtpu.verify.bayar.accept', $proof->id))->assertRedirect();
-        $this->assertSame('Diproses', $p->fresh()->status);
+        $this->assertSame('Lunas', $p->fresh()->status);
     }
 
     #[TestDox('UC-30 Memverifikasi Pengajuan Produk Unggulan — Pimpinan RTPU')]

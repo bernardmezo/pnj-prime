@@ -93,11 +93,11 @@ class CatalogController extends Controller
     public function show(Product $product): Response
     {
         $user = auth()->user();
-        $isStaff = $user && $user->isStaff();
+        $canPreview = $user && $user->role === 'admin_rtpu';
 
         $isPubliclyAvailable = $product->curation_status === 'approved' && $product->is_active;
 
-        abort_if(! $isPubliclyAvailable && ! $isStaff, 404);
+        abort_if(! $isPubliclyAvailable && ! $canPreview, 404);
 
         return Inertia::render('Catalog/Show', [
             'product' => $product->load([

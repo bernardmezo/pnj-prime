@@ -7,6 +7,7 @@ use App\Services\Auth\LocalAuthService;
 use App\Services\SettingService;
 use App\Sso\NullSsoProvider;
 use App\Sso\SsoProvider;
+use Illuminate\Support\Facades\Route;
 use Illuminate\Support\Facades\Vite;
 use Illuminate\Support\ServiceProvider;
 
@@ -39,5 +40,11 @@ class AppServiceProvider extends ServiceProvider
     public function boot(): void
     {
         Vite::prefetch(concurrency: 3);
+
+        Route::pattern('pengajuan', '[0-9]+');
+        Route::pattern('invoice', '[0-9]+');
+        Route::pattern('proof', '[0-9]+');
+        Route::pattern('metode', '[0-9]+');
+        Route::pattern('opsi', '[0-9]+');
     }
 }

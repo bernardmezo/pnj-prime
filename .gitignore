@@ -49,3 +49,16 @@ Thumbs.db
 /docs/
 .phpstan.cache
 coverage
+
+# E2E test artifacts
+/tests/e2e/screenshots/
+/tests/e2e/reports/
+
+# Documentation and planning markdown files
+*.md
+!README.md
+!AGENTS.md
+!CLAUDE.md
+!.ai/rules/
+!.ai/rules/**
+

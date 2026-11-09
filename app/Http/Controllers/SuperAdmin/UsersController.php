@@ -13,7 +13,7 @@ use Inertia\Response;
 
 class UsersController extends Controller
 {
-    public const ROLES = ['customer', 'admin_rtpu', 'admin_p3m', 'pimpinan_rtpu', 'direktur', 'super_admin'];
+    public const ROLES = ['customer', 'admin_rtpu', 'admin_p3m', 'admin_pengelola', 'pimpinan_rtpu', 'direktur', 'super_admin'];
 
     public function index(): Response
     {

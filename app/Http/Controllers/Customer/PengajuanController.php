@@ -468,17 +468,19 @@ class PengajuanController extends Controller
                             'paid_at' => $settlementTime ? now()->parse($settlementTime) : now(),
                         ]);
 
-                        if ($pengajuan->status !== 'Diproses' && $pengajuan->status !== 'Selesai') {
-                            $pengajuan->setStatus('Diproses', 'Pembayaran terverifikasi otomatis via Midtrans ('.($paymentType ?? 'Online').').', 'Midtrans Gateway');
+                        if (! in_array($pengajuan->status, ['Lunas', 'Diproses', 'Selesai'], true)) {
+                            $pengajuan->setStatus('Lunas', 'Pembayaran terverifikasi otomatis via Midtrans ('.($paymentType ?? 'Online').').', 'Midtrans Gateway');
                             $pengajuan->save();
                         }
 
                         if ($pengajuan->order) {
                             $pengajuan->order->update([
-                                'status' => 'diproses',
+                                'status' => 'lunas',
                                 'confirmed_at' => $latestPayment->paid_at ?? now(),
                             ]);
                         }
+
+                        $pengajuan->latestInvoice?->update(['status' => 'paid']);
                     });
 
                     $latestPayment->refresh();

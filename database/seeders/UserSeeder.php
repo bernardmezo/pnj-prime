@@ -32,6 +32,7 @@ class UserSeeder extends Seeder
             ['Pimpinan RTPU', 'pimpinan@pnjprime.test', 'pimpinan_rtpu', null],
             ['Direktur PNJ', 'direktur@pnjprime.test', 'direktur', null],
             ['Super Admin', 'superadmin@pnjprime.test', 'super_admin', null],
+            ['Admin Pengelola Unit', 'pengelola@pnjprime.test', 'admin_pengelola', 'Jurusan Teknik Mesin PNJ'],
             ['Dr. Budi Santoso', 'dosen@pnjprime.test', 'customer', null],
             ['Rina Mahasiswi', 'mahasiswa@pnjprime.test', 'customer', null],
             ['PT Mitra Teknologi', 'mitra@pnjprime.test', 'customer', 'PT Mitra Teknologi Indonesia'],

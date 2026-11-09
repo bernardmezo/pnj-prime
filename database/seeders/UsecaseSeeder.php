@@ -46,6 +46,11 @@ class UsecaseSeeder extends Seeder
             ],
             'admin_rtpu' => ['katalog' => $full, 'pengajuan' => $full, 'verifikasi' => $full, 'pembayaran' => $full, 'produk-unggulan' => $read, 'master-pajak' => $full, 'laporan' => $full, 'tenant' => $full],
             'admin_p3m' => ['produk-unggulan' => ['Lihat' => true, 'Tambah' => true, 'Ubah' => true, 'Hapus' => false, 'Verifikasi' => false]],
+            'admin_pengelola' => [
+                'katalog' => ['Lihat' => true, 'Tambah' => true, 'Ubah' => true, 'Hapus' => false, 'Verifikasi' => false],
+                'pengajuan' => $read,
+                'laporan' => $read,
+            ],
             'pimpinan_rtpu' => [
                 'produk-unggulan' => ['Lihat' => true, 'Tambah' => false, 'Ubah' => false, 'Hapus' => false, 'Verifikasi' => true],
                 'pengajuan' => ['Lihat' => true, 'Tambah' => false, 'Ubah' => false, 'Hapus' => false, 'Verifikasi' => true],
@@ -57,7 +62,7 @@ class UsecaseSeeder extends Seeder
 
         $keys = $fiturKeys ?? array_keys(self::META);
         $out = [];
-        foreach (['customer', 'admin_rtpu', 'admin_p3m', 'pimpinan_rtpu', 'direktur', 'super_admin'] as $role) {
+        foreach (['customer', 'admin_rtpu', 'admin_p3m', 'admin_pengelola', 'pimpinan_rtpu', 'direktur', 'super_admin'] as $role) {
             foreach ($keys as $key) {
                 $out[$role][$key] = $role === 'super_admin' ? $full : ($explicit[$role][$key] ?? $read);
             }

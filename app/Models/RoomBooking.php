@@ -4,7 +4,36 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Support\Carbon;
 
+/**
+ * @property int $id
+ * @property int $product_id
+ * @property int $pengajuan_id
+ * @property Carbon $starts_at
+ * @property Carbon $ends_at
+ * @property string $status
+ * @property Carbon|null $released_at
+ * @property Carbon|null $created_at
+ * @property Carbon|null $updated_at
+ * @property-read Pengajuan $pengajuan
+ * @property-read Product|null $product
+ *
+ * @method static \Illuminate\Database\Eloquent\Builder<static>|RoomBooking newModelQuery()
+ * @method static \Illuminate\Database\Eloquent\Builder<static>|RoomBooking newQuery()
+ * @method static \Illuminate\Database\Eloquent\Builder<static>|RoomBooking query()
+ * @method static \Illuminate\Database\Eloquent\Builder<static>|RoomBooking whereCreatedAt($value)
+ * @method static \Illuminate\Database\Eloquent\Builder<static>|RoomBooking whereEndsAt($value)
+ * @method static \Illuminate\Database\Eloquent\Builder<static>|RoomBooking whereId($value)
+ * @method static \Illuminate\Database\Eloquent\Builder<static>|RoomBooking wherePengajuanId($value)
+ * @method static \Illuminate\Database\Eloquent\Builder<static>|RoomBooking whereProductId($value)
+ * @method static \Illuminate\Database\Eloquent\Builder<static>|RoomBooking whereReleasedAt($value)
+ * @method static \Illuminate\Database\Eloquent\Builder<static>|RoomBooking whereStartsAt($value)
+ * @method static \Illuminate\Database\Eloquent\Builder<static>|RoomBooking whereStatus($value)
+ * @method static \Illuminate\Database\Eloquent\Builder<static>|RoomBooking whereUpdatedAt($value)
+ *
+ * @mixin \Eloquent
+ */
 class RoomBooking extends Model
 {
     protected $table = 'room_bookings';

@@ -7,6 +7,7 @@ enum Role: string
     case Customer = 'customer';
     case AdminRtpu = 'admin_rtpu';
     case AdminP3m = 'admin_p3m';
+    case AdminPengelola = 'admin_pengelola';
     case PimpinanRtpu = 'pimpinan_rtpu';
     case Direktur = 'direktur';
     case SuperAdmin = 'super_admin';
@@ -25,6 +26,7 @@ enum Role: string
             self::Customer => 'Customer',
             self::AdminRtpu => 'Admin RTPU',
             self::AdminP3m => 'Admin P3M',
+            self::AdminPengelola => 'Admin Pengelola',
             self::PimpinanRtpu => 'Pimpinan RTPU',
             self::Direktur => 'Direktur',
             self::SuperAdmin => 'Super Admin',

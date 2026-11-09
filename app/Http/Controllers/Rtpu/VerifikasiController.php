@@ -154,15 +154,17 @@ class VerifikasiController extends Controller
         ]);
 
         $order = $proof->order;
-        $order->update(['status' => 'diproses', 'confirmed_at' => now()]);
+        $order->update(['status' => 'lunas', 'confirmed_at' => now()]);
 
         if ($order->pengajuan_id) {
             $pengajuan = Pengajuan::find($order->pengajuan_id);
-            $pengajuan?->setStatus('Diproses', null, Auth::user()->name);
+            $pengajuan?->setStatus('Lunas', 'Pembayaran diverifikasi oleh Admin RTPU.', Auth::user()->name);
             $pengajuan?->save();
+
+            $pengajuan?->latestInvoice?->update(['status' => 'paid']);
         }
 
-        return back()->with('success', 'Pembayaran diterima, pengajuan diproses.');
+        return back()->with('success', 'Pembayaran diverifikasi dan dinyatakan Lunas.');
     }
 
     public function rejectBayar(Request $request, PaymentProof $proof)

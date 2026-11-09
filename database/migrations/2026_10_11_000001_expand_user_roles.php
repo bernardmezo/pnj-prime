@@ -18,7 +18,7 @@ return new class extends Migration
     public function up(): void
     {
         $driver = DB::getDriverName();
-        $final = ['customer', 'admin_rtpu', 'admin_p3m', 'pimpinan_rtpu', 'direktur', 'super_admin'];
+        $final = ['customer', 'admin_rtpu', 'admin_p3m', 'admin_pengelola', 'pimpinan_rtpu', 'direktur', 'super_admin'];
 
         if ($driver === 'mysql') {
             $all = array_unique(array_merge(

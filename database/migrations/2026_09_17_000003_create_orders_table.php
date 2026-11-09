@@ -24,6 +24,7 @@ return new class extends Migration
             $table->enum('status', [
                 'menunggu_pembayaran',
                 'menunggu_verifikasi',
+                'lunas',
                 'diproses',
                 'selesai',
                 'dibatalkan',

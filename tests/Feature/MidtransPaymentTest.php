@@ -167,8 +167,8 @@ class MidtransPaymentTest extends TestCase
         $this->assertEquals('bank_transfer', $payment->fresh()->payment_type);
         $this->assertEquals('trx-123456789', $payment->fresh()->transaction_id);
 
-        $this->assertEquals('Diproses', $this->pengajuan->fresh()->status);
-        $this->assertEquals('diproses', $this->pengajuan->order->fresh()->status);
+        $this->assertEquals('Lunas', $this->pengajuan->fresh()->status);
+        $this->assertEquals('lunas', $this->pengajuan->order->fresh()->status);
     }
 
     public function test_webhook_is_idempotent_and_does_not_reprocess_paid(): void

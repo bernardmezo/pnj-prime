@@ -30,6 +30,7 @@ return new class extends Migration
             $table->enum('curation_status', [
                 'draft',
                 'pending',
+                'verified',
                 'approved',
                 'rejected',
             ])->default('draft');

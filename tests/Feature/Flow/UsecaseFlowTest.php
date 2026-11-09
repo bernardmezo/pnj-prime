@@ -335,7 +335,7 @@ class UsecaseFlowTest extends TestCase
         $this->actingAs($this->rtpu);
         $proof2 = $p->fresh()->order->paymentProofs()->latest('id')->first();
         $this->patch(route('rtpu.verify.bayar.accept', $proof2->id))->assertRedirect();
-        $this->assertSame('Diproses', $p->fresh()->status);
+        $this->assertSame('Lunas', $p->fresh()->status);
         // already-verified cannot be verified again
         $this->patch(route('rtpu.verify.bayar.accept', $proof2->id))->assertForbidden();
         $this->patch(route('rtpu.verify.bayar.reject', $proof2->id), ['catatan' => 'x'])->assertForbidden();

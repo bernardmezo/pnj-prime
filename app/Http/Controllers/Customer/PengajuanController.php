@@ -105,6 +105,7 @@ class PengajuanController extends Controller
                 'type' => $p->layananTipe(),
                 'price' => $p->final_price,
                 'satuan' => $p->layananSatuan(),
+                'weight' => (int) ($p->meta['weight'] ?? 1000),
                 'opsi' => $this->opsiPayload($p),
             ]);
 
@@ -127,6 +128,7 @@ class PengajuanController extends Controller
                 'name' => $selectedProduct?->name,
                 'price' => $selectedProduct?->final_price,
                 'satuan' => $selectedProduct?->layananSatuan(),
+                'weight' => $selectedProduct ? (int) ($selectedProduct->meta['weight'] ?? 1000) : null,
                 'opsi' => $selectedProduct ? $this->opsiPayload($selectedProduct) : [],
             ],
         ]);

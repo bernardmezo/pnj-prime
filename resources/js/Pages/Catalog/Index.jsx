@@ -89,7 +89,7 @@ function HeroVisual({ reduce, style }) {
                         <div className="grid-pattern absolute inset-0" />
                         <div
                             className="absolute -right-10 -top-10 h-44 w-44 rounded-full"
-                            style={{ background: 'radial-gradient(circle, rgba(242,177,52,0.28), transparent 70%)' }}
+                            style={{ background: 'radial-gradient(circle, rgba(202,156,52,0.28), transparent 70%)' }}
                         />
                         <div
                             className="absolute -bottom-12 -left-12 h-48 w-48 rounded-full"
@@ -148,6 +148,7 @@ export default function CatalogIndex({ auth, categories = [], featured_products 
         target_audience: p.target_audience ?? 'publik',
         price: `Rp ${Number(p.final_price ?? 0).toLocaleString('id-ID')}`,
         slug: p.slug,
+        image: p.thumbnail ?? null,
     }));
     const items = [...backendItems, ...LANDING_SAMPLES].slice(0, 4);
 
@@ -186,7 +187,7 @@ export default function CatalogIndex({ auth, categories = [], featured_products 
                         <motion.div
                             aria-hidden
                             className="pointer-events-none absolute -bottom-40 -left-36 h-[420px] w-[420px] rounded-full"
-                            style={{ background: 'radial-gradient(circle, rgba(242,177,52,0.20), transparent 70%)' }}
+                            style={{ background: 'radial-gradient(circle, rgba(202,156,52,0.22), transparent 70%)' }}
                             animate={{ x: [0, 24, 0], y: [0, -24, 0] }}
                             transition={{ duration: 14, repeat: Infinity, repeatType: 'mirror', ease: 'easeInOut' }}
                         />
@@ -194,17 +195,18 @@ export default function CatalogIndex({ auth, categories = [], featured_products 
                 ) : (
                     <>
                         <div aria-hidden className="pointer-events-none absolute -right-32 -top-32 h-[480px] w-[480px] rounded-full" style={{ background: 'radial-gradient(circle, rgba(255,255,255,0.14), transparent 70%)' }} />
-                        <div aria-hidden className="pointer-events-none absolute -bottom-40 -left-36 h-[420px] w-[420px] rounded-full" style={{ background: 'radial-gradient(circle, rgba(242,177,52,0.20), transparent 70%)' }} />
+                        <div aria-hidden className="pointer-events-none absolute -bottom-40 -left-36 h-[420px] w-[420px] rounded-full" style={{ background: 'radial-gradient(circle, rgba(202,156,52,0.22), transparent 70%)' }} />
                     </>
                 )}
 
                 <div className="landing-container relative grid items-center gap-12 py-16 md:py-24 lg:grid-cols-[1.05fr_0.95fr]">
                     <div className="order-2 lg:order-1">
-                        <motion.p {...heroStagger(0)} className="mb-4 text-sm font-semibold tracking-wide text-white/85">
+                        <motion.p {...heroStagger(0)} className="mb-4 inline-flex items-center gap-2 rounded-full border border-white/20 bg-white/10 px-3.5 py-1 text-xs font-semibold tracking-wide text-white/90 backdrop-blur-sm">
+                            <span className="h-2 w-2 rounded-full bg-[var(--color-gold)] animate-pulse" />
                             Rekayasa Teknologi &amp; Produk Unggulan PNJ
                         </motion.p>
                         <motion.h1 {...heroStagger(1)} className="landing-h1 font-display text-white">
-                            Inovasi PNJ, kini siap dipakai siapa saja
+                            Inovasi PNJ, siap melaju bersama <span style={{ color: 'var(--color-gold)' }}>industri</span> &amp; masyarakat
                         </motion.h1>
                         <motion.p {...heroStagger(2)} className="mt-6 max-w-xl text-[17px] leading-relaxed text-white/80">
                             PNJ Prime mempertemukan produk, jasa pengujian, dan fasilitas unggulan

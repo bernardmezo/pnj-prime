@@ -1,5 +1,5 @@
 import { Head } from '@inertiajs/react';
-import { ArrowRight, Search } from 'lucide-react';
+import { ArrowRight, Building2, Clock, FileText, FlaskConical, Package, Search, ShoppingBag, Sparkles } from 'lucide-react';
 import { useState } from 'react';
 import CatalogCard from '@/Components/Public/CatalogCard';
 import PublicLayout from '@/Layouts/PublicLayout';
@@ -36,12 +36,16 @@ export default function CustomerHome({ auth, featured_products = [], categories 
                 {/* Greeting + search */}
                 <div className="flex flex-wrap items-end justify-between gap-4">
                     <div>
-                        <p className="text-sm font-semibold" style={{ color: 'var(--color-accent)' }}>
+                        <div className="inline-flex items-center gap-1.5 rounded-full bg-[var(--color-accent-tint)] px-3 py-1 text-xs font-semibold text-[var(--color-accent)]">
+                            <Sparkles className="h-3.5 w-3.5 text-[var(--color-gold)]" />
                             Halo, {auth?.user?.name?.split(' ')[0] ?? 'Pelanggan'}
-                        </p>
-                        <h1 className="mt-1 font-display text-2xl font-bold sm:text-3xl" style={{ color: 'var(--color-ink)' }}>
+                        </div>
+                        <h1 className="mt-2 font-display text-2xl font-bold sm:text-3xl" style={{ color: 'var(--color-ink)' }}>
                             Mau pesan apa hari ini?
                         </h1>
+                        <p className="mt-1 text-xs sm:text-sm text-slate-500">
+                            Jelajahi inovasi riset, pengujian laboratorium, dan fasilitas resmi PNJ.
+                        </p>
                     </div>
                     <form
                         className="relative w-full max-w-md"
@@ -55,9 +59,9 @@ export default function CustomerHome({ auth, featured_products = [], categories 
                             type="search"
                             value={q}
                             onChange={(e) => setQ(e.target.value)}
-                            placeholder="Cari produk, jasa, atau fasilitas…"
+                            placeholder="Cari produk, jasa laboratorium, atau fasilitas…"
                             aria-label="Cari katalog"
-                            className="w-full rounded-full border bg-white py-3 pl-11 pr-4 text-sm outline-none transition"
+                            className="w-full rounded-full border bg-white py-3 pl-11 pr-4 text-sm outline-none transition shadow-sm"
                             style={{ borderColor: 'var(--color-border)', color: 'var(--color-ink)' }}
                             onFocus={(e) => { e.currentTarget.style.borderColor = 'var(--color-accent)'; e.currentTarget.style.boxShadow = '0 0 0 3px var(--color-accent-tint)'; }}
                             onBlur={(e) => { e.currentTarget.style.borderColor = 'var(--color-border)'; e.currentTarget.style.boxShadow = 'none'; }}
@@ -66,71 +70,104 @@ export default function CustomerHome({ auth, featured_products = [], categories 
                 </div>
 
                 {/* Category chips */}
-                <div className="mt-5 flex flex-wrap gap-2">
+                <div className="mt-6 flex flex-wrap gap-2.5">
                     {(categories.length > 0
                         ? categories
-                        : [{ id: 'jasa', name: 'Jasa', slug: '' }, { id: 'ruangan', name: 'Ruangan', slug: '' }, { id: 'produk', name: 'Produk', slug: '' }]
-                    ).map((c) => (
-                        <a
-                            key={c.id ?? c.slug}
-                            href={c.slug ? `/katalog?category=${encodeURIComponent(c.slug)}` : '/katalog'}
-                            className="rounded-full border bg-white px-5 py-2 text-sm font-medium transition hover:-translate-y-px"
-                            style={{ borderColor: 'var(--color-border)', color: 'var(--color-ink)' }}
-                        >
-                            {c.name}
-                        </a>
-                    ))}
+                        : [{ id: 'jasa', name: 'Jasa & Uji Lab', slug: 'jasa' }, { id: 'ruangan', name: 'Ruangan & Fasilitas', slug: 'ruangan' }, { id: 'produk', name: 'Produk Riset', slug: 'produk' }]
+                    ).map((c) => {
+                        const icon = c.slug?.includes('jasa') ? FlaskConical : c.slug?.includes('ruangan') || c.slug?.includes('sewa') ? Building2 : Package;
+                        const Icon = icon;
+                        return (
+                            <a
+                                key={c.id ?? c.slug}
+                                href={c.slug ? `/katalog?category=${encodeURIComponent(c.slug)}` : '/katalog'}
+                                className="group inline-flex items-center gap-2 rounded-full border bg-white px-4 py-2 text-sm font-medium transition hover:-translate-y-0.5 hover:border-[var(--color-accent)] hover:text-[var(--color-accent)] shadow-sm"
+                                style={{ borderColor: 'var(--color-border)', color: 'var(--color-ink)' }}
+                            >
+                                <Icon className="h-4 w-4 text-[var(--color-accent)] opacity-75 group-hover:opacity-100 transition-opacity" />
+                                <span>{c.name}</span>
+                            </a>
+                        );
+                    })}
                 </div>
 
                 {/* Catalog grid */}
-                <div className="mt-8 flex items-end justify-between gap-4">
-                    <h2 className="font-display text-xl font-bold" style={{ color: 'var(--color-ink)' }}>
-                        Pilihan untuk Anda
-                    </h2>
-                    <a href="/katalog" className="group inline-flex items-center gap-1 text-sm font-semibold" style={{ color: 'var(--color-accent-hover)' }}>
+                <div className="mt-10 flex items-end justify-between gap-4">
+                    <div>
+                        <h2 className="font-display text-xl font-bold" style={{ color: 'var(--color-ink)' }}>
+                            Pilihan Terkurasi untuk Anda
+                        </h2>
+                        <p className="mt-0.5 text-xs text-slate-500">
+                            Produk dan jasa unggulan yang telah diverifikasi oleh pimpinan &amp; pengelola.
+                        </p>
+                    </div>
+                    <a href="/katalog" className="group inline-flex items-center gap-1 text-sm font-semibold text-[var(--color-accent)] hover:text-[var(--color-accent-hover)] transition-colors">
                         Lihat semua
                         <ArrowRight className="h-4 w-4 transition-transform duration-300 group-hover:translate-x-1" />
                     </a>
                 </div>
-                <div className="mt-4 grid gap-6 sm:grid-cols-2 lg:grid-cols-4">
+                <div className="mt-5 grid gap-6 sm:grid-cols-2 lg:grid-cols-4">
                     {items.map((item, i) => (
                         <CatalogCard key={item.id} item={item} index={i % 4} />
                     ))}
                 </div>
 
                 {/* Custom request CTA */}
-                <div className="mt-10 flex flex-wrap items-center justify-between gap-4 rounded-2xl p-6 sm:p-8" style={{ background: 'var(--color-deep)' }}>
-                    <div>
+                <div
+                    className="relative mt-12 overflow-hidden flex flex-wrap items-center justify-between gap-6 rounded-3xl p-7 sm:p-9 shadow-lg text-white"
+                    style={{
+                        background: 'linear-gradient(135deg, var(--color-deep) 0%, var(--color-deep-soft) 100%)',
+                    }}
+                >
+                    {/* Top speed-line accent inspired by Prime logo */}
+                    <div className="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-[var(--color-gold)] via-[var(--color-accent)] to-[var(--color-gold)]" />
+
+                    <div className="relative z-10 max-w-xl">
+                        <span className="inline-flex items-center gap-1.5 rounded-full bg-white/10 px-3 py-1 text-xs font-semibold text-[var(--color-gold)] backdrop-blur-sm mb-3">
+                            <Sparkles className="h-3.5 w-3.5" />
+                            Layanan Khusus &amp; Kustomisasi
+                        </span>
                         <h2 className="font-display text-xl font-bold text-white sm:text-2xl">
-                            Butuh sesuatu yang khusus?
+                            Butuh layanan atau pengujian khusus?
                         </h2>
-                        <p className="mt-1 max-w-md text-sm text-white/70">
-                            Ajukan layanan jasa, ruangan, atau produk sesuai kebutuhan Anda, kami siapkan penawarannya.
+                        <p className="mt-2 text-sm text-white/80 leading-relaxed">
+                            Ajukan kebutuhan jasa pengujian, penyewaan fasilitas kampus, atau pemesanan produk kustom langsung ke tim pengelola kami.
                         </p>
                     </div>
-                    <PrimaryButton href={navHref('customer.pengajuan.create', {}, role)}>
-                        Ajukan Layanan <ArrowRight className="h-4 w-4" />
-                    </PrimaryButton>
+                    <div className="relative z-10">
+                        <PrimaryButton href={navHref('customer.pengajuan.create', {}, role)} className="shadow-md">
+                            Ajukan Layanan <ArrowRight className="h-4 w-4 ml-1" />
+                        </PrimaryButton>
+                    </div>
                 </div>
 
                 {/* Account shortcuts */}
-                <div className="mt-6 grid gap-3 sm:grid-cols-3">
+                <div className="mt-8 grid gap-4 sm:grid-cols-3">
                     {[
-                        ['Pengajuan Saya', 'Pantau status pengajuan berjalan.', 'customer.pengajuan.index'],
-                        ['Riwayat', 'Transaksi yang sudah selesai.', 'customer.riwayat'],
-                        ['Katalog Lengkap', 'Jelajahi semua layanan.', 'catalog'],
-                    ].map(([label, desc, page]) => (
+                        ['Pengajuan Saya', 'Pantau status permohonan layanan Anda secara real-time.', 'customer.pengajuan.index', FileText],
+                        ['Riwayat Transaksi', 'Daftar transaksi dan faktur yang telah selesai.', 'customer.riwayat', Clock],
+                        ['Katalog Lengkap', 'Jelajahi seluruh koleksi produk dan jasa riset.', 'catalog', ShoppingBag],
+                    ].map(([label, desc, page, Icon]) => (
                         <a
                             key={label}
                             href={page === 'catalog' ? '/katalog' : navHref(page, {}, role)}
-                            className="group rounded-2xl border bg-white p-5 transition hover:-translate-y-0.5"
+                            className="group flex flex-col justify-between rounded-2xl border bg-white p-5 transition-all duration-300 hover:-translate-y-1 hover:shadow-card hover:border-[var(--color-accent)]"
                             style={{ borderColor: 'var(--color-border)' }}
                         >
-                            <span className="flex items-center justify-between font-display text-[15px] font-semibold" style={{ color: 'var(--color-ink)' }}>
-                                {label}
-                                <ArrowRight className="h-4 w-4 transition-transform duration-300 group-hover:translate-x-1" style={{ color: 'var(--color-accent-hover)' }} />
-                            </span>
-                            <span className="mt-0.5 block text-[13px]" style={{ color: 'var(--color-muted)' }}>{desc}</span>
+                            <div className="flex items-start justify-between gap-3">
+                                <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-[var(--color-accent-tint)] text-[var(--color-accent)] transition-transform duration-300 group-hover:scale-105">
+                                    <Icon className="h-5 w-5" />
+                                </div>
+                                <ArrowRight className="h-4 w-4 transition-transform duration-300 group-hover:translate-x-1 text-slate-400 group-hover:text-[var(--color-accent)]" />
+                            </div>
+                            <div className="mt-4">
+                                <span className="block font-display text-[15px] font-semibold text-slate-900 group-hover:text-[var(--color-accent)] transition-colors">
+                                    {label}
+                                </span>
+                                <span className="mt-1 block text-xs text-slate-500 leading-normal">
+                                    {desc}
+                                </span>
+                            </div>
                         </a>
                     ))}
                 </div>

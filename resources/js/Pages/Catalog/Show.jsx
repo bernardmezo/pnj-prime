@@ -5,6 +5,7 @@ import PublicLayout from '@/Layouts/PublicLayout';
 import { VisualPlaceholder } from '@/Components/Public/shared';
 import { href as navHref } from '@/lib/nav';
 import { calculateQuote } from '@/api/quote';
+import { resolveImageUrl } from '@/Components/Public/CatalogCard';
 
 function typeFromSlug(slug) {
     const s = String(slug ?? '');
@@ -44,23 +45,26 @@ export default function CatalogShow({ auth, product, isPreview = false }) {
     // Collect all gallery photos
     const galleryPhotos = useMemo(() => {
         const photos = [];
-        const mainImage = product.thumbnail ?? product.meta?.photo ?? product.image ?? null;
+        const mainImage = resolveImageUrl(product.thumbnail ?? product.meta?.photo ?? product.image ?? null);
         if (mainImage) photos.push(mainImage);
 
         if (Array.isArray(product.meta?.gallery)) {
             product.meta.gallery.forEach((img) => {
-                if (img && !photos.includes(img)) photos.push(img);
+                const resolved = resolveImageUrl(img);
+                if (resolved && !photos.includes(resolved)) photos.push(resolved);
             });
         }
         if (Array.isArray(product.meta?.photos)) {
             product.meta.photos.forEach((img) => {
-                if (img && !photos.includes(img)) photos.push(img);
+                const resolved = resolveImageUrl(img);
+                if (resolved && !photos.includes(resolved)) photos.push(resolved);
             });
         }
         if (Array.isArray(product.images)) {
             product.images.forEach((img) => {
                 const src = typeof img === 'string' ? img : img?.url;
-                if (src && !photos.includes(src)) photos.push(src);
+                const resolved = resolveImageUrl(src);
+                if (resolved && !photos.includes(resolved)) photos.push(resolved);
             });
         }
 
@@ -262,7 +266,7 @@ export default function CatalogShow({ auth, product, isPreview = false }) {
                                         href={videoRawUrl}
                                         target="_blank"
                                         rel="noopener noreferrer"
-                                        className="inline-flex items-center gap-1 text-teal-600 hover:text-teal-800 font-semibold hover:underline"
+                                        className="inline-flex items-center gap-1 text-[var(--color-accent)] hover:text-[var(--color-accent-hover)] font-semibold hover:underline"
                                     >
                                         <span>Buka di YouTube</span>
                                         <ExternalLink className="h-3 w-3" />
@@ -324,11 +328,11 @@ export default function CatalogShow({ auth, product, isPreview = false }) {
                                         🔒 Khusus Sivitas PNJ
                                     </span>
                                 ) : (
-                                    <span className="inline-block px-2.5 py-1 rounded-md bg-teal-50 text-teal-700 border border-teal-200">
+                                    <span className="inline-block px-2.5 py-1 rounded-md bg-[var(--color-accent-tint)] text-[var(--color-accent)] border border-teal-200/60">
                                         🌐 Terbuka untuk Umum
                                     </span>
                                 )}
-                                <span className={`inline-block px-2.5 py-1 rounded-md ${product.meta?.availability_status === 'preorder' ? 'bg-amber-50 text-amber-700 border border-amber-200' : 'bg-emerald-50 text-emerald-700 border border-emerald-200'}`}>
+                                <span className={`inline-block px-2.5 py-1 rounded-md border ${product.meta?.availability_status === 'preorder' ? 'bg-amber-500/10 text-amber-800 border-amber-300/60' : 'bg-emerald-50 text-emerald-700 border-emerald-200'}`}>
                                     {availabilityLabel}
                                 </span>
                                 {weightVal && (

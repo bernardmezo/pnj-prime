@@ -71,9 +71,16 @@ export default function CatalogCard({ item, index = 0, className = '' }) {
                     )}
                 </div>
                 <div className="flex flex-1 flex-col p-5">
-                    <p className="mb-1 text-xs font-medium" style={{ color: 'var(--color-muted)' }}>
-                        {item.category_name ?? meta.label}
-                    </p>
+                    <div className="mb-1 flex items-center justify-between gap-1 text-xs font-medium">
+                        <span style={{ color: 'var(--color-muted)' }}>
+                            {item.category_name ?? meta.label}
+                        </span>
+                        {item.target_audience === 'internal_pnj' && (
+                            <span className="rounded bg-amber-50 px-1.5 py-0.5 text-[10px] font-bold text-amber-700 border border-amber-200">
+                                🔒 Khusus PNJ
+                            </span>
+                        )}
+                    </div>
                     <h3
                         className="mb-2 line-clamp-2 font-display text-[15px] font-semibold leading-snug"
                         style={{ color: 'var(--color-ink)' }}

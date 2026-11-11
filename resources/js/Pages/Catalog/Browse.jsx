@@ -13,6 +13,7 @@ function toCard(p) {
         type: typeFromCategory(p.category?.slug),
         title: p.name,
         category_name: p.category?.name,
+        target_audience: p.target_audience ?? 'publik',
         price: formatRp(p.final_price),
         image: p.thumbnail ?? null,
         slug: p.slug,

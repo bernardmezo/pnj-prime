@@ -85,8 +85,11 @@ export default function PimpinanVerifikasiProduk({ auth, products }) {
                                 <div className="border-b pb-4 mb-4">
                                     <h3 className="text-lg font-bold text-slate-900">{sel.nama ?? sel.name}</h3>
                                     <p className="text-sm text-slate-600 mt-1">{sel.deskripsi ?? sel.deskripsi_singkat ?? 'Tanpa deskripsi tambahan.'}</p>
-                                    <div className="mt-3 flex gap-4 text-xs text-slate-500">
+                                    <div className="mt-3 flex flex-wrap gap-4 text-xs text-slate-500">
                                         <span>Status Kurasi: <strong className="text-slate-700">{sel.status_kurasi}</strong></span>
+                                        <span>Sasaran: <strong className={sel.target_audience === 'internal_pnj' ? 'text-amber-700 font-bold' : 'text-teal-700 font-bold'}>
+                                            {sel.target_audience === 'internal_pnj' ? '🔒 Khusus Sivitas PNJ' : '🌐 Publik & Eksternal'}
+                                        </strong></span>
                                         <span>Unit Pengusul: <strong className="text-slate-700">{sel.unit?.name ?? 'Unit Riset PNJ'}</strong></span>
                                     </div>
                                 </div>

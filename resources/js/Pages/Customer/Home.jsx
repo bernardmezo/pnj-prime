@@ -17,6 +17,7 @@ function toCard(p) {
         type,
         title: p.name,
         category_name: p.category?.name,
+        target_audience: p.target_audience ?? 'publik',
         price: `Rp ${Number(p.final_price ?? 0).toLocaleString('id-ID')}`,
         image: p.thumbnail ?? null,
         slug: p.slug,

@@ -145,6 +145,7 @@ export default function CatalogIndex({ auth, categories = [], featured_products 
         type: 'produk',
         title: p.name,
         category_name: p.category?.name,
+        target_audience: p.target_audience ?? 'publik',
         price: `Rp ${Number(p.final_price ?? 0).toLocaleString('id-ID')}`,
         slug: p.slug,
     }));

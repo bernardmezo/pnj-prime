@@ -62,3 +62,7 @@ coverage
 !.ai/rules/
 !.ai/rules/**
 
+# Python cache
+__pycache__/
+*.py[cod]
+

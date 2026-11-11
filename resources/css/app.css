@@ -6,17 +6,17 @@
 
 :root {
     --color-bg: #ffffff;
-    --color-surface: #f7f9f9;
-    --color-ink: #1a1d1c;
+    --color-surface: #f8fafc;
+    --color-ink: #0f172a;
     --color-muted: #5b6676;
-    --color-border: #e3e8e8;
-    --color-accent: #00998a;
-    --color-accent-hover: #007468;
-    --color-accent-tint: #e3f5f2;
-    --color-deep: #063b34;
-    --color-deep-soft: #0a4a41;
-    --color-gold: #f2b134;
-    --color-gold-deep: #c8860f;
+    --color-border: #e2e8f0;
+    --color-accent: #005f6e;
+    --color-accent-hover: #004b57;
+    --color-accent-tint: #e6f4f6;
+    --color-deep: #003d47;
+    --color-deep-soft: #004c57;
+    --color-gold: #ca9c34;
+    --color-gold-deep: #a87d20;
     --color-danger: #d64545;
     --color-danger-tint: #fdecec;
     --ease-out-expo: cubic-bezier(0.22, 1, 0.36, 1);
@@ -169,7 +169,7 @@ h3,
     background-size: 18px 18px;
 }
 .dot-pattern-dark {
-    background-image: radial-gradient(rgba(6, 59, 52, 0.12) 1.2px, transparent 1.2px);
+    background-image: radial-gradient(rgba(0, 95, 110, 0.12) 1.2px, transparent 1.2px);
     background-size: 18px 18px;
 }
 .grid-pattern {

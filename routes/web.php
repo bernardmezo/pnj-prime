@@ -3,6 +3,7 @@
 use App\Http\Controllers\Admin\ExternalLinkController;
 use App\Http\Controllers\Admin\SettingController;
 use App\Http\Controllers\Admin\TaxRateController;
+use App\Http\Controllers\Api\ShippingController;
 use App\Http\Controllers\Auth\SsoController;
 use App\Http\Controllers\Catalog\CatalogController;
 use App\Http\Controllers\Customer\InvoiceController as CustomerInvoiceController;
@@ -40,6 +41,9 @@ use App\Http\Controllers\SuperAdmin\PengelolaApplicationController as SuperAdmin
 use App\Http\Controllers\SuperAdmin\UsersController as SuperAdminUsersController;
 use Illuminate\Support\Facades\Route;
 use Inertia\Inertia;
+
+Route::get('/api/shipping/cities', [ShippingController::class, 'cities'])->name('api.shipping.cities');
+Route::post('/api/shipping/calculate', [ShippingController::class, 'calculate'])->name('api.shipping.calculate');
 
 Route::get('/', [CatalogController::class, 'index'])->name('home')->middleware('fitur:katalog');
 Route::get('/katalog', [CatalogController::class, 'browse'])->name('catalog.index')->middleware('fitur:katalog');
@@ -107,8 +111,8 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::middleware('role:admin_rtpu')->prefix('rtpu')->name('rtpu.')->group(function () {
         Route::get('/dashboard', RtpuDashboardController::class)->name('dashboard')->middleware(['fitur:verifikasi', 'permission:verifikasi,Lihat']);
         Route::get('/verifikasi/layanan', [RtpuVerifikasiController::class, 'layanan'])->name('verify.layanan')->middleware(['fitur:verifikasi', 'permission:verifikasi,Lihat']);
-        Route::patch('/verifikasi/layanan/{pengajuan}/approve', [RtpuVerifikasiController::class, 'approveLayanan'])->name('verify.layanan.approve')->middleware(['fitur:verifikasi', 'permission:verifikasi,Verifikasi']);
-        Route::patch('/verifikasi/layanan/{pengajuan}/reject', [RtpuVerifikasiController::class, 'rejectLayanan'])->name('verify.layanan.reject')->middleware(['fitur:verifikasi', 'permission:verifikasi,Verifikasi']);
+        Route::patch('/verifikasi/layanan/{id}/approve', [RtpuVerifikasiController::class, 'approveLayanan'])->name('verify.layanan.approve')->middleware(['fitur:verifikasi', 'permission:verifikasi,Verifikasi']);
+        Route::patch('/verifikasi/layanan/{id}/reject', [RtpuVerifikasiController::class, 'rejectLayanan'])->name('verify.layanan.reject')->middleware(['fitur:verifikasi', 'permission:verifikasi,Verifikasi']);
         Route::get('/verifikasi/pembayaran', [RtpuVerifikasiController::class, 'pembayaran'])->name('verify.bayar')->middleware(['fitur:pembayaran', 'permission:pembayaran,Lihat']);
         Route::patch('/verifikasi/pembayaran/{proof}/accept', [RtpuVerifikasiController::class, 'acceptBayar'])->name('verify.bayar.accept')->middleware(['fitur:pembayaran', 'permission:pembayaran,Verifikasi']);
         Route::patch('/verifikasi/pembayaran/{proof}/reject', [RtpuVerifikasiController::class, 'rejectBayar'])->name('verify.bayar.reject')->middleware(['fitur:pembayaran', 'permission:pembayaran,Verifikasi']);
@@ -144,12 +148,21 @@ Route::middleware(['auth', 'verified'])->group(function () {
     // ---- Use-case model: Pimpinan RTPU ----
     Route::middleware('role:pimpinan_rtpu')->prefix('pimpinan')->name('pimpinan.')->group(function () {
         Route::get('/dashboard', PimpinanDashboardController::class)->name('dashboard')->middleware(['fitur:produk-unggulan', 'permission:produk-unggulan,Lihat']);
-        Route::get('/verifikasi', [PimpinanController::class, 'index'])->name('verify')->middleware(['fitur:produk-unggulan', 'permission:produk-unggulan,Lihat']);
-        Route::patch('/verifikasi/{produk}/approve', [PimpinanController::class, 'approve'])->name('verify.approve')->middleware(['fitur:produk-unggulan', 'permission:produk-unggulan,Verifikasi']);
-        Route::patch('/verifikasi/{produk}/reject', [PimpinanController::class, 'reject'])->name('verify.reject')->middleware(['fitur:produk-unggulan', 'permission:produk-unggulan,Verifikasi']);
+        Route::get('/verifikasi-akun', [App\Http\Controllers\Pimpinan\VerifikasiAkunController::class, 'index'])->name('verify.akun')->middleware(['fitur:produk-unggulan', 'permission:produk-unggulan,Lihat']);
+        Route::patch('/verifikasi-akun/{user}/approve', [App\Http\Controllers\Pimpinan\VerifikasiAkunController::class, 'approve'])->name('verify.akun.approve')->middleware(['fitur:produk-unggulan', 'permission:produk-unggulan,Verifikasi']);
+        Route::patch('/verifikasi-akun/{user}/reject', [App\Http\Controllers\Pimpinan\VerifikasiAkunController::class, 'reject'])->name('verify.akun.reject')->middleware(['fitur:produk-unggulan', 'permission:produk-unggulan,Verifikasi']);
         Route::get('/verifikasi-produk', [PimpinanProductCurationController::class, 'index'])->name('verify.produk')->middleware(['fitur:produk-unggulan', 'permission:produk-unggulan,Lihat']);
+        Route::get('/verifikasi', [PimpinanController::class, 'index'])->name('verify')->middleware(['fitur:produk-unggulan', 'permission:produk-unggulan,Lihat']);
         Route::patch('/verifikasi-produk/{product}/approve', [PimpinanProductCurationController::class, 'approve'])->name('verify.produk.approve')->middleware(['fitur:produk-unggulan', 'permission:produk-unggulan,Verifikasi']);
         Route::patch('/verifikasi-produk/{product}/reject', [PimpinanProductCurationController::class, 'reject'])->name('verify.produk.reject')->middleware(['fitur:produk-unggulan', 'permission:produk-unggulan,Verifikasi']);
+        Route::patch('/verifikasi/{produk}/approve', [PimpinanController::class, 'approve'])->name('verify.approve')->middleware(['fitur:produk-unggulan', 'permission:produk-unggulan,Verifikasi']);
+        Route::patch('/verifikasi/{produk}/reject', [PimpinanController::class, 'reject'])->name('verify.reject')->middleware(['fitur:produk-unggulan', 'permission:produk-unggulan,Verifikasi']);
+        Route::patch('/verifikasi/{product}/approve', [PimpinanProductCurationController::class, 'approve'])->name('verify.approve')->middleware(['fitur:produk-unggulan', 'permission:produk-unggulan,Verifikasi']);
+        Route::patch('/verifikasi/{product}/reject', [PimpinanProductCurationController::class, 'reject'])->name('verify.reject')->middleware(['fitur:produk-unggulan', 'permission:produk-unggulan,Verifikasi']);
+        Route::patch('/verify/{product}/approve', [PimpinanProductCurationController::class, 'approve'])->name('verify.approve');
+        Route::patch('/verify/{product}/reject', [PimpinanProductCurationController::class, 'reject'])->name('verify.reject');
+        Route::patch('/verify/produk/{product}/approve', [PimpinanProductCurationController::class, 'approve'])->name('verify.produk.approve');
+        Route::patch('/verify/produk/{product}/reject', [PimpinanProductCurationController::class, 'reject'])->name('verify.produk.reject');
         Route::get('/pengajuan', [PimpinanController::class, 'pengajuan'])->name('pengajuan')->middleware(['fitur:pengajuan', 'permission:pengajuan,Lihat']);
         Route::patch('/pengajuan/{pengajuan}/approve', [PimpinanController::class, 'approvePengajuan'])->name('pengajuan.approve')->middleware(['fitur:pengajuan', 'permission:pengajuan,Verifikasi']);
         Route::patch('/pengajuan/{pengajuan}/reject', [PimpinanController::class, 'rejectPengajuan'])->name('pengajuan.reject')->middleware(['fitur:pengajuan', 'permission:pengajuan,Verifikasi']);
@@ -187,7 +200,7 @@ Route::middleware(['auth', 'verified'])->group(function () {
     });
 
     // ---- Use-case model: Admin Pengelola Unit ----
-    Route::middleware('role:admin_pengelola')->prefix('pengelola')->name('pengelola.')->group(function () {
+    Route::middleware('role:admin_pengelola,admin_jurusan')->prefix('pengelola')->name('pengelola.')->group(function () {
         Route::get('/dashboard', PengelolaDashboardController::class)->name('dashboard')->middleware(['fitur:katalog', 'permission:katalog,Lihat']);
         Route::get('/produk', [PengelolaProductController::class, 'index'])->name('produk.index')->middleware(['fitur:katalog', 'permission:katalog,Lihat']);
         Route::get('/produk/create', [PengelolaProductController::class, 'create'])->name('produk.create')->middleware(['fitur:katalog', 'permission:katalog,Tambah']);

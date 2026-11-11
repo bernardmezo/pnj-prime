@@ -22,7 +22,18 @@ class EnsureRole
             return redirect()->route('login');
         }
 
-        if (! in_array($user->role, $roles, true)) {
+        // Support comma-separated roles or multiple role arguments
+        $allowedRoles = [];
+        foreach ($roles as $roleArg) {
+            foreach (explode(',', $roleArg) as $r) {
+                $trimmed = trim($r);
+                if ($trimmed !== '') {
+                    $allowedRoles[] = $trimmed;
+                }
+            }
+        }
+
+        if (! in_array($user->role, $allowedRoles, true)) {
             if ($request->expectsJson() || $request->inertia()) {
                 return response()->json(['message' => 'Forbidden.'], 403);
             }

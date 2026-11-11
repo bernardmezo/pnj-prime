@@ -103,9 +103,15 @@ function isItemActive(item, activeKey, currentUrl) {
         return cleanUrl.startsWith('/rtpu/verifikasi/layanan');
     }
 
+    if (key === 'verify-produk' || page === 'rtpu.verify.produk') {
+        return cleanUrl.startsWith('/rtpu/verifikasi/produk');
+    }
     // 5. Verifikasi Pembayaran
     if (key === 'verify-bayar' || page === 'rtpu.verify.bayar') {
         return cleanUrl.startsWith('/rtpu/verifikasi/pembayaran');
+    }
+    if (key === 'verify-produk' || page === 'rtpu.verify.produk') {
+        return cleanUrl.startsWith('/rtpu/verifikasi/produk');
     }
 
     // 6. Status Layanan
@@ -142,6 +148,12 @@ function isItemActive(item, activeKey, currentUrl) {
     // 11. P3M & Pimpinan & Direktur pages matching by path
     if (key === 'pantau' || page === 'p3m.produk.index') {
         return cleanUrl.startsWith('/p3m/produk') || cleanUrl.startsWith('/p3m/pemantauan');
+    }
+    if (key === 'verify-akun' || page === 'pimpinan.verify.akun') {
+        return cleanUrl.startsWith('/pimpinan/verifikasi-akun');
+    }
+    if (key === 'verify-produk' || page === 'pimpinan.verify.produk') {
+        return cleanUrl.startsWith('/pimpinan/verifikasi-produk');
     }
     if (key === 'verify' || page === 'pimpinan.verify') {
         return cleanUrl.startsWith('/pimpinan/verifikasi');

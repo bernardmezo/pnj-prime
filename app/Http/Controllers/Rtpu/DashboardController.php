@@ -15,7 +15,8 @@ class DashboardController extends Controller
     {
         $allPengajuan = Pengajuan::with(['product', 'buyer'])->get();
 
-        $menungguVerifikasi = $allPengajuan->where('status', 'Diajukan')->count();
+        $pendingProductsCount = Product::where('curation_status', 'pending')->count();
+        $menungguVerifikasi = $allPengajuan->where('status', 'Diajukan')->count() + $pendingProductsCount;
         $menungguBayar = $allPengajuan->where('status', 'Menunggu Pembayaran')->count();
         $verifikasiBayar = $allPengajuan->where('status', 'Menunggu Verifikasi Pembayaran')->count();
         $diproses = $allPengajuan->where('status', 'Diproses')->count();

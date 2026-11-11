@@ -19,6 +19,8 @@ export const ROLES = {
     customer:      { label: 'Customer',      layout: 'public',    home: 'landing' },
     admin_rtpu:    { label: 'Admin RTPU',    layout: 'dashboard', home: 'rtpu.dashboard' },
     admin_p3m:     { label: 'Admin P3M',     layout: 'dashboard', home: 'p3m.dashboard' },
+    admin_jurusan: { label: 'Admin Jurusan', layout: 'dashboard', home: 'pengelola.dashboard' },
+    admin_pengelola: { label: 'Admin Pengelola', layout: 'dashboard', home: 'pengelola.dashboard' },
     pimpinan_rtpu: { label: 'Pimpinan RTPU', layout: 'dashboard', home: 'pimpinan.dashboard' },
     direktur:      { label: 'Direktur',      layout: 'dashboard', home: 'direktur.dashboard' },
     super_admin:   { label: 'Super Admin',   layout: 'dashboard', home: 'superadmin.dashboard' },
@@ -30,7 +32,7 @@ export const ROLE_LABELS = Object.fromEntries(ROLE_KEYS.map((k) => [k, ROLES[k].
 export function normalizeRole(raw) {
     if (raw === 'admin_rtpu') return 'admin_rtpu';
     if (raw === 'super_admin') return 'super_admin';
-    if (raw === 'admin_p3m' || raw === 'pimpinan_rtpu' || raw === 'direktur') return raw;
+    if (raw === 'admin_p3m' || raw === 'admin_jurusan' || raw === 'admin_pengelola' || raw === 'pimpinan_rtpu' || raw === 'direktur') return raw;
     if (raw === 'dosen_peneliti' || raw === 'mahasiswa' || raw === 'eksternal') return 'customer';
     if (raw === 'customer') return 'customer';
     return 'guest';
@@ -48,7 +50,7 @@ export const MENUS = {
     admin_rtpu: [
         { key: 'dashboard', label: 'Dashboard', page: 'rtpu.dashboard', icon: 'home', fitur: 'verifikasi', section: 1 },
         { key: 'catalog', label: 'Katalog', page: 'catalog', icon: 'store', fitur: 'katalog', section: 1 },
-        { key: 'verify-layanan', label: 'Verifikasi Pengajuan', page: 'rtpu.verify.layanan', icon: 'verify', fitur: 'verifikasi', section: 2, countKey: 'menunggu_verifikasi' },
+        { key: 'verify-layanan', label: 'Verifikasi Pengajuan & Produk', page: 'rtpu.verify.layanan', icon: 'verify', fitur: 'verifikasi', section: 2, countKey: 'menunggu_verifikasi' },
         { key: 'verify-bayar', label: 'Verifikasi Pembayaran', page: 'rtpu.verify.bayar', icon: 'pay', fitur: 'pembayaran', section: 2, countKey: 'verifikasi_bayar' },
         { key: 'status', label: 'Status Layanan', page: 'rtpu.status', icon: 'status', fitur: 'pengajuan', section: 2 },
         { key: 'layanan', label: 'Kelola Layanan', page: 'rtpu.layanan', icon: 'sliders', fitur: 'katalog', section: 3 },
@@ -61,10 +63,21 @@ export const MENUS = {
         { key: 'pantau', label: 'Pemantauan', page: 'p3m.produk.index', icon: 'eye', fitur: 'produk-unggulan', section: 2 },
         { key: 'riwayat', label: 'Riwayat', page: 'p3m.riwayat', icon: 'history', fitur: 'produk-unggulan', section: 2 },
     ],
+    admin_jurusan: [
+        { key: 'dashboard', label: 'Dashboard', page: 'pengelola.dashboard', icon: 'home', fitur: 'katalog', section: 1 },
+        { key: 'catalog', label: 'Katalog', page: 'catalog', icon: 'store', fitur: 'katalog', section: 1 },
+        { key: 'produk', label: 'Kelola Produk', page: 'pengelola.produk.index', icon: 'sliders', fitur: 'katalog', section: 2 },
+    ],
+    admin_pengelola: [
+        { key: 'dashboard', label: 'Dashboard', page: 'pengelola.dashboard', icon: 'home', fitur: 'katalog', section: 1 },
+        { key: 'catalog', label: 'Katalog', page: 'catalog', icon: 'store', fitur: 'katalog', section: 1 },
+        { key: 'produk', label: 'Kelola Produk', page: 'pengelola.produk.index', icon: 'sliders', fitur: 'katalog', section: 2 },
+    ],
     pimpinan_rtpu: [
         { key: 'dashboard', label: 'Dashboard', page: 'pimpinan.dashboard', icon: 'home', fitur: 'produk-unggulan', section: 1 },
         { key: 'catalog', label: 'Katalog', page: 'catalog', icon: 'store', fitur: 'katalog', section: 1 },
-        { key: 'verify', label: 'Verifikasi Produk Unggulan', page: 'pimpinan.verify', icon: 'verify', fitur: 'produk-unggulan', section: 2, countKey: 'menunggu_pimpinan' },
+        { key: 'verify-akun', label: 'Verifikasi Akun Pengelola', page: 'pimpinan.verify.akun', icon: 'users', fitur: 'produk-unggulan', section: 2 },
+        { key: 'verify-produk', label: 'Persetujuan Final Produk Unit', page: 'pimpinan.verify.produk', icon: 'verify', fitur: 'produk-unggulan', section: 2 },
         { key: 'pantau', label: 'Pemantauan', page: 'pimpinan.monitor', icon: 'eye', fitur: 'produk-unggulan', section: 2 },
         { key: 'riwayat', label: 'Riwayat', page: 'pimpinan.riwayat', icon: 'history', fitur: 'produk-unggulan', section: 2 },
     ],

@@ -129,7 +129,20 @@ class VerifikasiController extends Controller
 
     public function monitor(): Response
     {
-        $rows = ProdukUnggulan::latest()->get()->map(fn ($p) => $this->serialize($p));
+        $produkUnggulan = ProdukUnggulan::latest()->get()->map(fn ($p) => $this->serialize($p));
+        $products = Product::with(['category', 'owner'])
+            ->latest()
+            ->get()
+            ->map(fn ($p) => [
+                'id' => 'prod-'.$p->id,
+                'code' => 'PROD-'.$p->id,
+                'name' => $p->name,
+                'researcher' => $p->owner?->name ?? 'Admin Pengelola',
+                'date' => optional($p->created_at)->format('Y-m-d H:i'),
+                'status' => ucfirst($p->curation_status),
+            ]);
+
+        $rows = $produkUnggulan->concat($products);
 
         return Inertia::render('Pimpinan/Pemantauan', ['produk' => $rows]);
     }
@@ -196,7 +209,31 @@ class VerifikasiController extends Controller
 
     public function riwayat(): Response
     {
-        $rows = ProdukUnggulan::latest()->get()->map(fn ($p) => $this->serialize($p));
+        $pengajuanPemesanan = Pengajuan::with(['product', 'buyer'])
+            ->latest()
+            ->get()
+            ->map(fn ($p) => [
+                'id' => 'pem-'.$p->id,
+                'code' => $p->code,
+                'name' => ($p->product?->name ?? ucfirst($p->tipe)).' (Pemesanan oleh '.$p->buyer?->name.')',
+                'researcher' => $p->buyer?->name ?? 'Customer',
+                'date' => optional($p->created_at)->format('Y-m-d H:i'),
+                'status' => $p->status,
+            ]);
+
+        $produkUnggulan = \App\Models\ProdukUnggulan::with(['product', 'user'])
+            ->latest()
+            ->get()
+            ->map(fn ($pu) => [
+                'id' => 'pu-'.$pu->id,
+                'code' => 'PU-'.$pu->id,
+                'name' => $pu->product?->name ?? 'Produk Unggulan',
+                'researcher' => $pu->user?->name ?? 'Peneliti',
+                'date' => optional($pu->created_at)->format('Y-m-d H:i'),
+                'status' => $pu->status,
+            ]);
+
+        $rows = $pengajuanPemesanan->concat($produkUnggulan);
 
         return Inertia::render('Pimpinan/Riwayat', ['produk' => $rows]);
     }

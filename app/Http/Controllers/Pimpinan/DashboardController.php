@@ -14,12 +14,18 @@ class DashboardController extends Controller
     {
         $all = ProdukUnggulan::all();
         $allPengajuan = Pengajuan::with('product')->get();
+        $pendingAccountsCount = \App\Models\User::whereIn('role', ['admin_jurusan', 'admin_p3m'])
+            ->where('account_status', 'pending')
+            ->count();
+        $pendingProductsCount = \App\Models\Product::where('curation_status', 'verified')->count();
 
         $completed = $allPengajuan->where('status', 'Selesai');
         $totalPendapatan = (int) $completed->sum('total');
 
         $stats = [
-            'menunggu' => $all->where('status', 'Diajukan')->count(),
+            'menunggu' => $all->where('status', 'Diajukan')->count() + $pendingAccountsCount + $pendingProductsCount,
+            'akun_pending' => $pendingAccountsCount,
+            'produk_verified' => $pendingProductsCount,
             'disetujui' => $all->where('status', 'Disetujui')->count(),
             'ditolak' => $all->where('status', 'Ditolak')->count(),
             'total_pengajuan' => $allPengajuan->count(),

@@ -41,11 +41,34 @@ class VerifikasiController extends Controller
 
     public function layanan(): Response
     {
-        $rows = Pengajuan::with(['product', 'buyer:id,name'])
+        $pengajuanRows = Pengajuan::with(['product', 'buyer:id,name'])
             ->where('status', 'Diajukan')
             ->latest()
             ->get()
             ->map(fn ($p) => $this->serializePengajuan($p));
+
+        $produkRows = \App\Models\Product::with(['category', 'owner:id,name,institution,unit_name'])
+            ->where('curation_status', 'pending')
+            ->latest()
+            ->get()
+            ->map(fn ($p) => [
+                'id' => 'prod-'.$p->id,
+                'db_id' => $p->id,
+                'is_product' => true,
+                'code' => 'PROD-'.$p->id,
+                'type' => 'produk',
+                'layanan' => $p->name,
+                'customer' => $p->owner?->name ?? 'Admin Pengelola',
+                'date' => optional($p->created_at)->format('Y-m-d H:i'),
+                'status' => 'Diajukan',
+                'qty' => 1,
+                'need' => 'Pengajuan Katalog Produk/Layanan/Jasa Unit',
+                'total' => $p->base_price,
+                'note' => $p->rejection_reason,
+                'history' => [],
+            ]);
+
+        $rows = $pengajuanRows->concat($produkRows)->sortByDesc('date')->values();
 
         return Inertia::render('Rtpu/Verifikasi/Layanan', [
             'antrean' => $rows,
@@ -53,8 +76,28 @@ class VerifikasiController extends Controller
         ]);
     }
 
-    public function approveLayanan(Pengajuan $pengajuan, PengajuanWorkflow $workflow)
+    public function approveLayanan(Request $request, $id, PengajuanWorkflow $workflow)
     {
+        if (str_starts_with((string)$id, 'prod-')) {
+            $productId = str_replace('prod-', '', $id);
+            $product = \App\Models\Product::findOrFail($productId);
+            if ($product->curation_status !== 'pending') {
+                abort(422, 'Hanya produk berstatus pending yang dapat diverifikasi RTPU.');
+            }
+            $meta = $product->meta ?? [];
+            $meta['rtpu_verified_at'] = now()->toIso8601String();
+            $meta['rtpu_verifier_id'] = Auth::id();
+            $meta['rtpu_verifier_name'] = Auth::user()->name;
+
+            $product->curation_status = 'verified';
+            $product->meta = $meta;
+            $product->rejection_reason = null;
+            $product->save();
+
+            return back()->with('success', 'Produk/Layanan/Jasa berhasil diverifikasi dan diteruskan ke Pimpinan RTPU.');
+        }
+
+        $pengajuan = Pengajuan::findOrFail($id);
         abort_unless($pengajuan->status === 'Diajukan', 403);
 
         $isRental = in_array($pengajuan->tipe, ['ruangan', 'alat'], true);
@@ -74,11 +117,30 @@ class VerifikasiController extends Controller
         return back()->with('success', $msg);
     }
 
-    public function rejectLayanan(Request $request, Pengajuan $pengajuan, PengajuanWorkflow $workflow)
+    public function rejectLayanan(Request $request, $id, PengajuanWorkflow $workflow)
     {
-        abort_unless($pengajuan->status === 'Diajukan', 403);
-
         $request->validate(['catatan' => 'required|string|max:1000']);
+
+        if (str_starts_with((string)$id, 'prod-')) {
+            $productId = str_replace('prod-', '', $id);
+            $product = \App\Models\Product::findOrFail($productId);
+            if (! in_array($product->curation_status, ['pending', 'verified'], true)) {
+                abort(422, 'Produk ini tidak dalam status yang dapat ditolak oleh RTPU.');
+            }
+            $meta = $product->meta ?? [];
+            $meta['rtpu_rejected_at'] = now()->toIso8601String();
+            $meta['rtpu_rejecter_name'] = Auth::user()->name;
+
+            $product->curation_status = 'rejected';
+            $product->rejection_reason = $request->catatan;
+            $product->meta = $meta;
+            $product->save();
+
+            return back()->with('success', 'Produk/Layanan/Jasa ditolak dengan catatan.');
+        }
+
+        $pengajuan = Pengajuan::findOrFail($id);
+        abort_unless($pengajuan->status === 'Diajukan', 403);
 
         $workflow->transition($pengajuan, 'Ditolak', $request->catatan, Auth::user()->name);
 

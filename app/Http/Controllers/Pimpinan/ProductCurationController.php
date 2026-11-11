@@ -18,7 +18,7 @@ class ProductCurationController extends Controller
     public function index(): Response
     {
         $products = Product::with(['category', 'owner:id,name,institution,unit_name', 'approver:id,name'])
-            ->whereIn('curation_status', ['verified', 'approved', 'rejected'])
+            ->whereIn('curation_status', ['pending', 'verified'])
             ->latest()
             ->get()
             ->map(fn (Product $p) => [
@@ -26,6 +26,7 @@ class ProductCurationController extends Controller
                 'name' => $p->name,
                 'slug' => $p->slug,
                 'category' => $p->category?->name,
+                'target_audience' => $p->target_audience ?? 'publik',
                 'owner' => $p->owner?->name,
                 'unit' => $p->owner?->unit_name ?? $p->owner?->institution,
                 'base_price' => $p->base_price,
@@ -49,8 +50,8 @@ class ProductCurationController extends Controller
      */
     public function approve(Request $request, Product $product): RedirectResponse
     {
-        if ($product->curation_status !== 'verified') {
-            abort(422, 'Hanya produk berstatus verified yang dapat disetujui Pimpinan.');
+        if (! in_array($product->curation_status, ['pending', 'verified'], true)) {
+            abort(422, 'Hanya produk berstatus pending atau verified yang dapat disetujui Pimpinan.');
         }
 
         $meta = $product->meta ?? [];
@@ -84,8 +85,8 @@ class ProductCurationController extends Controller
             return back()->withErrors(['catatan' => 'Alasan atau catatan penolakan wajib diisi.']);
         }
 
-        if ($product->curation_status !== 'verified') {
-            abort(422, 'Hanya produk berstatus verified yang dapat ditolak Pimpinan.');
+        if (! in_array($product->curation_status, ['pending', 'verified'], true)) {
+            abort(422, 'Hanya produk berstatus pending atau verified yang dapat ditolak Pimpinan.');
         }
 
         $meta = $product->meta ?? [];

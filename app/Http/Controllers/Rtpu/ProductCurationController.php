@@ -18,7 +18,7 @@ class ProductCurationController extends Controller
     public function index(): Response
     {
         $products = Product::with(['category', 'owner:id,name,institution,unit_name'])
-            ->whereIn('curation_status', ['pending', 'verified', 'rejected'])
+            ->where('curation_status', 'pending')
             ->latest()
             ->get()
             ->map(fn (Product $p) => [
@@ -26,6 +26,7 @@ class ProductCurationController extends Controller
                 'name' => $p->name,
                 'slug' => $p->slug,
                 'category' => $p->category?->name,
+                'target_audience' => $p->target_audience ?? 'publik',
                 'owner' => $p->owner?->name,
                 'unit' => $p->owner?->unit_name ?? $p->owner?->institution,
                 'base_price' => $p->base_price,

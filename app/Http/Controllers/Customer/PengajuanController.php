@@ -86,11 +86,19 @@ class PengajuanController extends Controller
 
     public function create(Request $request): Response
     {
-        $layanan = Product::with(['category', 'opsi' => fn ($q) => $q->where('aktif', true)->urut()])
+        $user = auth()->user();
+        $canSeeInternal = $user && $user->isCivitasPnj();
+
+        $layananQuery = Product::with(['category', 'opsi' => fn ($q) => $q->where('aktif', true)->urut()])
             ->where('curation_status', 'approved')
-            ->where('is_active', true)
-            ->orderBy('name')
-            ->get(['id', 'name', 'slug', 'category_id', 'final_price', 'thumbnail', 'meta'])
+            ->where('is_active', true);
+
+        if (! $canSeeInternal) {
+            $layananQuery->where('target_audience', 'publik');
+        }
+
+        $layanan = $layananQuery->orderBy('name')
+            ->get(['id', 'name', 'slug', 'category_id', 'target_audience', 'final_price', 'thumbnail', 'meta'])
             ->map(fn ($p) => [
                 'id' => $p->id,
                 'name' => $p->name,
@@ -100,10 +108,15 @@ class PengajuanController extends Controller
                 'opsi' => $this->opsiPayload($p),
             ]);
 
+        $selectedProductQuery = Product::with(['category', 'opsi' => fn ($q) => $q->where('aktif', true)->urut()])
+            ->where('curation_status', 'approved')->where('is_active', true);
+
+        if (! $canSeeInternal) {
+            $selectedProductQuery->where('target_audience', 'publik');
+        }
+
         $selectedProduct = $request->integer('product_id')
-            ? Product::with(['category', 'opsi' => fn ($q) => $q->where('aktif', true)->urut()])
-                ->where('curation_status', 'approved')->where('is_active', true)
-                ->find($request->integer('product_id'))
+            ? $selectedProductQuery->find($request->integer('product_id'))
             : null;
 
         return Inertia::render('Customer/Pengajuan/Create', [
@@ -172,9 +185,16 @@ class PengajuanController extends Controller
         $pengajuan->buyer_id = Auth::id();
         $pengajuan->dokumen = $docs;
         if ($quote !== null) {
-            // Stored total is the pre-tax subtotal (base + addons); PPN is
-            // applied on verification, exactly as before.
-            $pengajuan->total = $quote['subtotal'];
+            $shippingExtra = 0;
+            if (isset($data['metode_pengambilan']) && $data['metode_pengambilan'] === 'Diantar') {
+                // Ekstrak nilai ongkir dari catatan jika ada format "Ongkir: Rp X"
+                if (preg_match('/Ongkir:\s*Rp\s*([\d\.]+)/i', $data['catatan'] ?? '', $matches)) {
+                    $shippingExtra = (int) str_replace('.', '', $matches[1]);
+                } else {
+                    $shippingExtra = 15000; // Default flat jika manual
+                }
+            }
+            $pengajuan->total = $quote['subtotal'] + $shippingExtra;
         }
         $pengajuan->code = 'PNJ-'.now()->format('Ymd').'-'.str_pad((string) (Pengajuan::max('id') + 1), 4, '0', STR_PAD_LEFT);
         $pengajuan->setStatus('Diajukan');
@@ -217,9 +237,18 @@ class PengajuanController extends Controller
      */
     private function activeCatalogRule(): Exists
     {
-        return Rule::exists('products', 'id')
+        $user = auth()->user();
+        $canSeeInternal = $user && $user->isCivitasPnj();
+
+        $rule = Rule::exists('products', 'id')
             ->where('curation_status', 'approved')
             ->where('is_active', true);
+
+        if (! $canSeeInternal) {
+            $rule->where('target_audience', 'publik');
+        }
+
+        return $rule;
     }
 
     /**

@@ -86,6 +86,9 @@ class User extends Authenticatable
         'user_type',
         'nik_npwp',
         'phone',
+        'nip',
+        'jurusan',
+        'prodi',
         'institution',
         'ktp_number',
         'npwp_number',
@@ -135,7 +138,12 @@ class User extends Authenticatable
 
     public function isAdminPengelola(): bool
     {
-        return $this->role === 'admin_pengelola' || $this->role === 'admin_p3m';
+        return $this->role === 'admin_pengelola' || $this->role === 'admin_p3m' || $this->role === 'admin_jurusan';
+    }
+
+    public function isAdminJurusan(): bool
+    {
+        return $this->role === 'admin_jurusan';
     }
 
     public function isPimpinanRtpu(): bool
@@ -165,7 +173,7 @@ class User extends Authenticatable
 
     public function isStaff(): bool
     {
-        return in_array($this->role, ['admin_rtpu', 'admin_p3m', 'admin_pengelola', 'pimpinan_rtpu', 'direktur', 'super_admin'], true);
+        return in_array($this->role, ['admin_rtpu', 'admin_p3m', 'admin_pengelola', 'admin_jurusan', 'pimpinan_rtpu', 'direktur', 'super_admin'], true);
     }
 
     // ---- Legacy helpers (kept for BC; old values no longer assigned) ----
@@ -183,6 +191,14 @@ class User extends Authenticatable
     public function isEksternal(): bool
     {
         return $this->role === 'eksternal';
+    }
+
+    public function isCivitasPnj(): bool
+    {
+        return $this->isStaff()
+            || $this->account_origin === 'sso_pnj'
+            || in_array($this->role, ['dosen_peneliti', 'mahasiswa'], true)
+            || str_ends_with(strtolower($this->email), '@pnj.ac.id');
     }
 
     public function isInternal(): bool

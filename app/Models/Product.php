@@ -81,11 +81,15 @@ class Product extends Model
     protected $fillable = [
         'owner_id',
         'category_id',
+        'target_audience',
         'name',
         'slug',
         'short_description',
         'description',
         'thumbnail',
+        'images',
+        'video_url',
+        'video_path',
         'base_price',
         'final_price',
         'curation_status',
@@ -107,6 +111,7 @@ class Product extends Model
             'is_active' => 'boolean',
             'approved_at' => 'datetime',
             'stock' => 'integer',
+            'images' => 'array',
             'meta' => 'array',
         ];
     }

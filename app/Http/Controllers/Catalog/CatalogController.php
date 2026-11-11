@@ -23,18 +23,25 @@ class CatalogController extends Controller
             return redirect()->route('dashboard');
         }
 
+        $canSeeInternal = $user && $user->isCivitasPnj();
+
+        $featuredQuery = Product::with([
+            'category',
+            'owner',
+            'opsi' => fn ($q) => $q->where('aktif', true)->urut(),
+        ])
+            ->where('curation_status', 'approved')
+            ->where('is_active', true);
+
+        if (! $canSeeInternal) {
+            $featuredQuery->where('target_audience', 'publik');
+        }
+
         $data = [
             'categories' => ProductCategory::where('is_active', true)
                 ->orderBy('sort_order')
                 ->get(['id', 'name', 'slug', 'icon']),
-            'featured_products' => Product::with([
-                'category',
-                'owner',
-                'opsi' => fn ($q) => $q->where('aktif', true)->urut(),
-            ])
-                ->where('curation_status', 'approved')
-                ->where('is_active', true)
-                ->latest('approved_at')
+            'featured_products' => $featuredQuery->latest('approved_at')
                 ->limit(8)
                 ->get(),
         ];
@@ -52,13 +59,28 @@ class CatalogController extends Controller
      */
     public function browse(Request $request): Response
     {
+        $user = auth()->user();
+
+        $canSeeInternal = $user && $user->isCivitasPnj();
+
         $query = Product::with([
             'category',
-            'owner:id,name',
+            'owner:id,name,jurusan',
             'opsi' => fn ($q) => $q->where('aktif', true)->urut(),
         ])
             ->where('curation_status', 'approved')
             ->where('is_active', true);
+
+        if (! $canSeeInternal) {
+            $query->where('target_audience', 'publik');
+        }
+
+        // Jika yang login adalah admin jurusan / admin pengelola, filter produk berdasarkan jurusannya
+        if ($user && in_array($user->role, ['admin_jurusan', 'admin_pengelola']) && $user->jurusan) {
+            $query->whereHas('owner', function ($q) use ($user) {
+                $q->where('jurusan', $user->jurusan);
+            });
+        }
 
         if ($request->filled('q')) {
             $q = $request->string('q')->toString();
@@ -99,10 +121,14 @@ class CatalogController extends Controller
 
         abort_if(! $isPubliclyAvailable && ! $canPreview, 404);
 
+        if ($product->target_audience === 'internal_pnj' && ! $canPreview) {
+            abort_unless($user && $user->isCivitasPnj(), 403, 'Produk ini khusus untuk sivitas akademika Politeknik Negeri Jakarta.');
+        }
+
         return Inertia::render('Catalog/Show', [
             'product' => $product->load([
                 'category',
-                'owner:id,name',
+                'owner:id,name,jurusan,unit_name',
                 'opsi' => fn ($q) => $q->where('aktif', true)->urut(),
             ]),
             'isPreview' => ! $isPubliclyAvailable,

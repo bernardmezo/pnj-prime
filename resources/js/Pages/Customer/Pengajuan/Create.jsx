@@ -403,9 +403,9 @@ export default function PengajuanCreate({ auth, layanan = [], selected = {} }) {
                                     </div>
 
                                     {data.metode_pengambilan === 'Diantar' && (
-                                        <div className="p-4 rounded-2xl border border-teal-100 bg-teal-50/40 space-y-3">
-                                            <div className="flex items-center gap-2 text-xs font-bold text-teal-900">
-                                                <Truck className="w-4 h-4 text-teal-600" />
+                                        <div className="p-4 rounded-2xl border border-[var(--color-accent)]/20 bg-[var(--color-accent-tint)]/40 space-y-3">
+                                            <div className="flex items-center gap-2 text-xs font-bold text-slate-900">
+                                                <Truck className="w-4 h-4 text-[var(--color-accent)]" />
                                                 <span>Alamat Lengkap & Kalkulator Ongkir (RajaOngkir)</span>
                                             </div>
 
@@ -470,7 +470,7 @@ export default function PengajuanCreate({ auth, layanan = [], selected = {} }) {
                                                     </select>
                                                 </div>
                                             </div>
-                                            {loadingShipping && <p className="text-xs text-teal-700 animate-pulse">Menghitung ongkir...</p>}
+                                            {loadingShipping && <p className="text-xs text-[var(--color-accent)] font-semibold animate-pulse">Menghitung ongkir...</p>}
                                             {shippingCost > 0 && (
                                                 <p className="text-xs font-bold text-emerald-700">
                                                     Estimasi Ongkir Otomatis: Rp {shippingCost.toLocaleString('id-ID')}

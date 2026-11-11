@@ -287,8 +287,8 @@ export default function Pembayaran({
                     {/* Buttons depending on state */}
                     {isPaid ? (
                         <div className="space-y-3 pt-2">
-                            <div className="flex items-center gap-2 rounded-[6px] border border-teal-200 bg-teal-50 px-4 py-3 text-xs font-medium text-teal-800">
-                                <CheckCircle2 className="h-4 w-4 text-teal-600 shrink-0" />
+                            <div className="flex items-center gap-2 rounded-[6px] border border-[var(--color-accent)]/20 bg-[var(--color-accent-tint)] px-4 py-3 text-xs font-medium text-[var(--color-accent)]">
+                                <CheckCircle2 className="h-4 w-4 text-[var(--color-accent)] shrink-0" />
                                 <span>Pembayaran diterima. Pengajuan Anda sedang diproses.</span>
                             </div>
                             <Link

@@ -29,15 +29,15 @@ function PageHeader({ eyebrow, title, desc, actions }) {
 
 function StatusBadge({ status }) {
     const map = {
-        draft: { label: 'Draft', bg: 'bg-slate-100', text: 'text-slate-700' },
-        pending: { label: 'Pending Kurasi', bg: 'bg-amber-50', text: 'text-amber-700' },
-        verified: { label: 'Verifikasi RTPU', bg: 'bg-indigo-50', text: 'text-indigo-700' },
-        approved: { label: 'Disetujui', bg: 'bg-emerald-50', text: 'text-emerald-700' },
-        rejected: { label: 'Ditolak', bg: 'bg-red-50', text: 'text-red-700' },
+        draft: { label: 'Draft', bg: 'bg-slate-100', text: 'text-slate-700 border-slate-200' },
+        pending: { label: 'Pending Kurasi', bg: 'bg-amber-500/10', text: 'text-amber-800 border-amber-300/60' },
+        verified: { label: 'Verifikasi RTPU', bg: 'bg-[var(--color-accent-tint)]', text: 'text-[var(--color-accent)] border-teal-200/60' },
+        approved: { label: 'Disetujui', bg: 'bg-emerald-50', text: 'text-emerald-700 border-emerald-200/60' },
+        rejected: { label: 'Ditolak', bg: 'bg-red-50', text: 'text-red-700 border-red-200/60' },
     };
     const s = map[status] || map.draft;
     return (
-        <span className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-semibold ${s.bg} ${s.text}`}>
+        <span className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-semibold border ${s.bg} ${s.text}`}>
             {s.label}
         </span>
     );
@@ -51,7 +51,7 @@ export default function PengelolaDashboard({ auth, stats = {}, recentProducts = 
                 <div className="space-y-6">
                     <div className="bg-white p-8 rounded-3xl border border-slate-100 shadow-sm flex flex-col md:flex-row md:items-center md:justify-between gap-6">
                         <div>
-                            <span className="inline-block px-3 py-1 rounded-full text-xs font-semibold bg-teal-50 text-teal-700 mb-2">Admin Pengelola Unit</span>
+                            <span className="inline-block px-3 py-1 rounded-full text-xs font-semibold bg-[var(--color-accent-tint)] text-[var(--color-accent)] mb-2">Admin Pengelola Unit</span>
                             <h1 className="text-2xl font-bold text-slate-950">Selamat Datang, {auth?.user?.name || 'Pengelola Unit'}</h1>
                             <p className="text-xs text-slate-500 mt-1 max-w-2xl">Kelola katalog produk inovasi riset, pantau status kurasi kurator RTPU hingga terbit di katalog umum PNJ Prime.</p>
                         </div>

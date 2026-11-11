@@ -262,7 +262,7 @@ export default function RtpuDashboard({
                                                                 e.stopPropagation();
                                                                 handleRowClick(p);
                                                             }}
-                                                            className="inline-flex h-8 items-center justify-center rounded-[6px] border border-[var(--color-accent)] px-3 text-xs font-semibold text-[var(--color-accent)] transition hover:bg-teal-50"
+                                                            className="inline-flex h-8 items-center justify-center rounded-[6px] border border-[var(--color-accent)] px-3 text-xs font-semibold text-[var(--color-accent)] transition hover:bg-[var(--color-accent-tint)]"
                                                         >
                                                             {actionLabel}
                                                         </button>

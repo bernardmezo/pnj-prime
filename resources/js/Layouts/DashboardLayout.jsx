@@ -231,15 +231,15 @@ function SidebarBody({ user, menu, activeKey, pendingCounts, currentUrl, onNavig
                                             href={url}
                                             onClick={onNavigate}
                                             aria-current={active ? 'page' : undefined}
-                                            className={`group relative flex h-10 items-center justify-between rounded-[6px] px-3 text-sm transition-colors ${
+                                            className={`group relative flex h-10 items-center justify-between rounded-[8px] px-3 text-sm transition-all duration-150 ${
                                                 active
-                                                    ? 'bg-teal-500/[0.08] text-[var(--color-accent)] font-semibold'
+                                                    ? 'bg-[var(--color-accent-tint)] text-[var(--color-accent)] font-semibold'
                                                     : 'text-slate-600 hover:bg-slate-100 hover:text-slate-900 font-normal'
                                             }`}
                                         >
                                             {active && (
                                                 <span
-                                                    className="absolute left-0 top-1/2 h-5 w-[2px] -translate-y-1/2 rounded-r bg-[var(--color-accent)]"
+                                                    className="absolute left-0 top-1/2 h-5 w-[3px] -translate-y-1/2 rounded-r-full bg-[var(--color-accent)]"
                                                     aria-hidden
                                                 />
                                             )}
@@ -252,11 +252,13 @@ function SidebarBody({ user, menu, activeKey, pendingCounts, currentUrl, onNavig
                                                 <span className="truncate">{item.label}</span>
                                             </div>
 
-                                            {/* Plain right-aligned count at far edge with tabular-nums */}
+                                            {/* Count badge with subtle pill */}
                                             {count > 0 && (
                                                 <span
-                                                    className={`text-xs tabular-nums ${
-                                                        active ? 'text-[var(--color-accent)] font-semibold' : 'text-slate-500 font-medium'
+                                                    className={`text-xs tabular-nums rounded-full px-2 py-0.5 font-semibold ${
+                                                        active
+                                                            ? 'bg-white text-[var(--color-accent)] shadow-xs'
+                                                            : 'bg-[var(--color-accent-tint)] text-[var(--color-accent)]'
                                                     }`}
                                                 >
                                                     {count}
@@ -276,7 +278,7 @@ function SidebarBody({ user, menu, activeKey, pendingCounts, currentUrl, onNavig
                 <div className="flex items-center justify-between gap-2.5">
                     <div className="flex items-center gap-2.5 min-w-0">
                         <div
-                            className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-slate-100 text-xs font-semibold text-slate-700"
+                            className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-[var(--color-accent-tint)] text-xs font-bold text-[var(--color-accent)]"
                             aria-hidden
                         >
                             {userInitials}
@@ -284,6 +286,9 @@ function SidebarBody({ user, menu, activeKey, pendingCounts, currentUrl, onNavig
                         <div className="min-w-0">
                             <p className="truncate text-xs font-semibold text-slate-900 leading-tight">
                                 {user?.name ?? 'Pengguna'}
+                            </p>
+                            <p className="truncate text-[10px] text-slate-400 font-medium leading-tight mt-0.5">
+                                {displayRole}
                             </p>
                         </div>
                     </div>
@@ -398,8 +403,11 @@ export default function DashboardLayout({ title, activeKey, children }) {
 
                         {/* Top right: small avatar circle with initials and name */}
                         <div className="flex items-center gap-2.5">
+                            <span className="hidden sm:inline-flex items-center rounded-full bg-[var(--color-accent-tint)] px-2.5 py-0.5 text-[11px] font-semibold text-[var(--color-accent)]">
+                                {roleLabel(user.role)}
+                            </span>
                             <div
-                                className="flex h-7 w-7 items-center justify-center rounded-full bg-slate-100 text-[11px] font-semibold text-slate-700"
+                                className="flex h-7 w-7 items-center justify-center rounded-full bg-[var(--color-accent-tint)] text-[11px] font-bold text-[var(--color-accent)]"
                                 aria-hidden
                             >
                                 {userInitials}

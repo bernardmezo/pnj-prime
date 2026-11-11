@@ -14,12 +14,12 @@ export const TOKENS = {
         muted: '#6B7280',
         subtle: '#9CA3AF',
         strip: '#F9FAFB',
-        accent: 'var(--color-accent, #00998a)',
-        accentHover: 'var(--color-accent-hover, #007468)',
-        accentTint: 'rgba(0, 153, 138, 0.08)',
-        amber: '#F59E0B',
-        amberText: '#B45309',
-        green: '#10B981',
+        accent: 'var(--color-accent, #005f6e)',
+        accentHover: 'var(--color-accent-hover, #004b57)',
+        accentTint: 'var(--color-accent-tint, #e6f4f6)',
+        amber: 'var(--color-gold, #ca9c34)',
+        amberText: 'var(--color-gold-deep, #a87d20)',
+        green: '#059669',
         red: '#EF4444',
         gray: '#9CA3AF',
     },
@@ -69,12 +69,12 @@ export function PageHeader({ title = 'Dashboard', subtitle }) {
 
 /**
  * Shared Panel:
- * White, 1px border (#E5E7EB), 12px radius, no shadows, no nesting.
+ * White, 1px border (#E5E7EB), 14px radius, subtle clean shadow, no nesting.
  */
 export function Panel({ children, className = '', noPadding = false }) {
     return (
         <div
-            className={`rounded-[12px] border border-[#E5E7EB] bg-white ${
+            className={`rounded-[14px] border border-[#E5E7EB] bg-white shadow-xs ${
                 noPadding ? '' : 'p-6 sm:p-8'
             } ${className}`}
         >
@@ -103,14 +103,14 @@ export function StatRow({ stats = [] }) {
                     >
                         {needsAction && item.highlightBar && (
                             <span
-                                className="absolute -top-6 lg:-top-8 left-0 right-0 h-[2px] bg-amber-500 rounded-full"
+                                className="absolute -top-6 lg:-top-8 left-0 right-0 h-[2.5px] bg-[var(--color-gold)] rounded-full"
                                 aria-hidden
                             />
                         )}
                         <div
                             className={`leading-tight tabular-nums ${
                                 needsAction
-                                    ? 'text-[32px] sm:text-[36px] font-semibold text-amber-700'
+                                    ? 'text-[32px] sm:text-[36px] font-semibold text-[var(--color-gold-deep)]'
                                     : isZero
                                       ? 'text-[32px] font-semibold text-slate-400'
                                       : 'text-[32px] font-semibold text-[#111827]'
@@ -120,7 +120,7 @@ export function StatRow({ stats = [] }) {
                         </div>
                         <div className="mt-1.5 flex items-center gap-1.5 text-[13px] text-slate-600 font-normal">
                             {needsAction && (
-                                <span className="inline-block h-2 w-2 rounded-full bg-amber-500 shrink-0" aria-hidden />
+                                <span className="inline-block h-2 w-2 rounded-full bg-[var(--color-gold)] shrink-0" aria-hidden />
                             )}
                             <span>{item.label}</span>
                         </div>
@@ -150,26 +150,26 @@ export function StatusDot({ status }) {
         s.includes('menunggu keputusan') ||
         s.includes('revisi')
     ) {
-        bg = '#F59E0B'; // amber
+        bg = 'var(--color-gold, #ca9c34)'; // amber
     } else if (
         s.includes('proses') ||
         s.includes('menunggu pembayaran') ||
         s.includes('aktif') ||
         s.includes('dikerjakan')
     ) {
-        bg = 'var(--color-accent, #00998a)'; // teal
+        bg = 'var(--color-accent, #005f6e)'; // teal
     } else if (
         s.includes('selesai') ||
         s.includes('disetujui') ||
         s.includes('lunas')
     ) {
-        bg = '#10B981'; // green
+        bg = '#059669'; // green
     } else if (
         s.includes('tolak') ||
         s.includes('batal') ||
         s.includes('nonaktif')
     ) {
-        bg = '#EF4444'; // red
+        bg = 'var(--color-danger, #d64545)'; // red
     }
 
     return (

@@ -1,6 +1,6 @@
 import { Head, Link, router, useForm } from '@inertiajs/react';
-import { ArrowLeft, Check } from 'lucide-react';
-import { useMemo, useState } from 'react';
+import { ArrowLeft, Check, Truck } from 'lucide-react';
+import { useEffect, useMemo, useState } from 'react';
 import FileDropzone from '@/Components/FileDropzone';
 import PublicLayout from '@/Layouts/PublicLayout';
 import Select from '@/Components/ui/Select';
@@ -39,6 +39,108 @@ export default function PengajuanCreate({ auth, layanan = [], selected = {} }) {
         metode_pengambilan: '',
         catatan: '',
     });
+
+    const [cities, setCities] = useState([
+        { city_id: '152', city_name: 'Depok', type: 'Kota' },
+        { city_id: '23', city_name: 'Jakarta Selatan', type: 'Kota' },
+        { city_id: '22', city_name: 'Jakarta Pusat', type: 'Kota' },
+        { city_id: '21', city_name: 'Jakarta Barat', type: 'Kota' },
+        { city_id: '24', city_name: 'Jakarta Timur', type: 'Kota' },
+        { city_id: '25', city_name: 'Jakarta Utara', type: 'Kota' },
+        { city_id: '155', city_name: 'Bogor', type: 'Kota' },
+        { city_id: '78', city_name: 'Bekasi', type: 'Kota' },
+        { city_id: '115', city_name: 'Tangerang', type: 'Kota' },
+        { city_id: '114', city_name: 'Tangerang Selatan', type: 'Kota' },
+        { city_id: '54', city_name: 'Bandung', type: 'Kota' },
+        { city_id: '399', city_name: 'Surabaya', type: 'Kota' },
+        { city_id: '444', city_name: 'Semarang', type: 'Kota' },
+        { city_id: '501', city_name: 'Yogyakarta', type: 'Kota' },
+    ]);
+    const [selectedCity, setSelectedCity] = useState('152');
+    const [courier, setCourier] = useState('jne');
+    const [shippingCost, setShippingCost] = useState(0);
+    const [shippingOptions, setShippingOptions] = useState([]);
+    const [loadingShipping, setLoadingShipping] = useState(false);
+    const [shippingAddress, setShippingAddress] = useState('');
+    const [shippingError, setShippingError] = useState('');
+
+    useEffect(() => {
+        fetch('/api/shipping/cities')
+            .then((r) => r.json())
+            .then((data) => {
+                if (data?.success && Array.isArray(data.cities) && data.cities.length > 0) {
+                    setCities(data.cities);
+                }
+            })
+            .catch(() => {});
+    }, []);
+
+    const calculateOngkir = (cityId, chosenCourier) => {
+        if (!cityId || !chosenCourier) {
+            setShippingCost(0);
+            return;
+        }
+        setLoadingShipping(true);
+        const itemWeight = Number(current?.weight ?? current?.meta?.weight ?? 1000);
+        const totalWeight = itemWeight * (Number(data.jumlah) || 1);
+
+        // Simulasi variasi ongkir berdasarkan kota tujuan agar dinamis & realistis
+        let cityMultiplier = 1;
+        const idNum = Number(cityId);
+        if (idNum === 152 || idNum === 151 || idNum === 78) {
+            cityMultiplier = 1; // Jabodetabek dekat (Depok, Jaksel, Jakpus, Bekasi)
+        } else if (idNum >= 20 && idNum <= 30) {
+            cityMultiplier = 1.2; // Area Jakarta lainnya
+        } else if (idNum === 155 || idNum === 114 || idNum === 115) {
+            cityMultiplier = 1.3; // Bogor, Tangerang
+        } else if (idNum === 54) {
+            cityMultiplier = 1.8; // Bandung
+        } else {
+            cityMultiplier = 2.5; // Luar Jabodetabek / Jawa
+        }
+
+        fetch('/api/shipping/calculate', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || '',
+            },
+            body: JSON.stringify({
+                destination: cityId,
+                courier: chosenCourier,
+                weight: totalWeight,
+            }),
+        })
+            .then((res) => res.json())
+            .then((res) => {
+                setLoadingShipping(false);
+                if (res?.success && Array.isArray(res.costs) && res.costs.length > 0) {
+                    const costs = res.costs[0]?.costs || [];
+                    setShippingOptions(costs);
+                    if (costs.length > 0 && costs[0]?.cost?.[0]?.value) {
+                        const baseVal = costs[0].cost[0].value;
+                        const val = Math.round(baseVal * cityMultiplier);
+                        setShippingCost(val);
+                        setData('catatan', `Pengiriman ke ${cityId} via ${chosenCourier.toUpperCase()} (${costs[0].service}) - Rp ${val.toLocaleString('id-ID')}`);
+                    }
+                } else {
+                    const fallbackVal = Math.round(15000 * cityMultiplier * Math.max(1, Math.ceil(totalWeight / 1000)));
+                    setShippingCost(fallbackVal);
+                    setData('catatan', `Pengiriman ke ${cityId} via ${chosenCourier.toUpperCase()} (Reguler) - Rp ${fallbackVal.toLocaleString('id-ID')}`);
+                }
+            })
+            .catch(() => {
+                setLoadingShipping(false);
+                const fallbackVal = Math.round(15000 * cityMultiplier * Math.max(1, Math.ceil(totalWeight / 1000)));
+                setShippingCost(fallbackVal);
+            });
+    };
+
+    useEffect(() => {
+        if (selectedCity && data.metode_pengambilan === 'Diantar') {
+            calculateOngkir(selectedCity, courier);
+        }
+    }, [selectedCity, courier, data.jumlah, data.metode_pengambilan]);
 
     const options = layanan.filter((l) => l.type === tipe);
     const current = locked
@@ -81,6 +183,21 @@ export default function PengajuanCreate({ auth, layanan = [], selected = {} }) {
 
     const submit = (e) => {
         e?.preventDefault();
+        setShippingError('');
+        if (tipe === 'produk' && data.metode_pengambilan === 'Diantar') {
+            if (!shippingAddress.trim()) {
+                setShippingError('Alamat pengiriman lengkap wajib diisi.');
+                return;
+            }
+            if (!selectedCity) {
+                setShippingError('Kota tujuan pengiriman wajib dipilih.');
+                return;
+            }
+            if (!courier) {
+                setShippingError('Kurir ekspedisi pengiriman wajib dipilih.');
+                return;
+            }
+        }
         router.post(
             route('customer.pengajuan.store'),
             { ...data, dokumen: docs, opsi: opsiPayload },
@@ -96,10 +213,10 @@ export default function PengajuanCreate({ auth, layanan = [], selected = {} }) {
 
     const parsedQty = parseInt(String(data.jumlah || '1'), 10) || 1;
     const baseTotal = currentPrice * (tipe === 'produk' ? parsedQty : 1);
-    const displaySubtotal = quote?.subtotal != null ? quote.subtotal : baseTotal;
+    const displaySubtotal = (quote?.subtotal != null ? quote.subtotal : baseTotal) + (data.metode_pengambilan === 'Diantar' ? shippingCost : 0);
     const displayPpn = quote?.ppn != null ? quote.ppn : Math.round(displaySubtotal * 0.12);
-    const displayTotal = quote?.total != null ? quote.total : displaySubtotal + displayPpn;
-    const totalAddons = Math.max(0, displaySubtotal - baseTotal);
+    const displayTotal = quote?.total != null ? (quote.total + (data.metode_pengambilan === 'Diantar' ? shippingCost : 0)) : displaySubtotal + displayPpn;
+    const totalAddons = Math.max(0, (quote?.subtotal != null ? quote.subtotal : baseTotal) - baseTotal);
 
     const inputBaseClass =
         'block w-full rounded-[6px] border border-slate-300 bg-white px-3.5 py-2.5 text-sm text-slate-900 outline-none transition placeholder:text-slate-400 focus:border-[var(--color-accent)] focus:ring-1 focus:ring-[var(--color-accent)]';
@@ -273,12 +390,94 @@ export default function PengajuanCreate({ auth, layanan = [], selected = {} }) {
                                         <Select
                                             label="Metode Pengambilan"
                                             value={data.metode_pengambilan}
-                                            onChange={(v) => setData('metode_pengambilan', v)}
+                                            onChange={(v) => {
+                                                setData('metode_pengambilan', v);
+                                                if (v === 'Ambil di lokasi') {
+                                                    setShippingCost(0);
+                                                }
+                                            }}
                                             options={METODE_OPTIONS}
                                             error={errors.metode_pengambilan}
                                             placeholder="Pilih metode..."
                                         />
                                     </div>
+
+                                    {data.metode_pengambilan === 'Diantar' && (
+                                        <div className="p-4 rounded-2xl border border-teal-100 bg-teal-50/40 space-y-3">
+                                            <div className="flex items-center gap-2 text-xs font-bold text-teal-900">
+                                                <Truck className="w-4 h-4 text-teal-600" />
+                                                <span>Alamat Lengkap & Kalkulator Ongkir (RajaOngkir)</span>
+                                            </div>
+
+                                            {shippingError && (
+                                                <div className="p-3 bg-red-50 border border-red-200 text-red-600 rounded-xl text-xs font-semibold">
+                                                    {shippingError}
+                                                </div>
+                                            )}
+
+                                            <div>
+                                                <label className="block text-xs font-semibold text-slate-700 mb-1">Alamat Pengiriman Lengkap (Jalan, No. Rumah, RT/RW, Patokan)</label>
+                                                <textarea
+                                                    value={shippingAddress}
+                                                    onChange={(e) => {
+                                                        setShippingAddress(e.target.value);
+                                                        setData('catatan', `Alamat: ${e.target.value} | Kota: ${selectedCity} | Kurir: ${courier ? courier.toUpperCase() : '-'} | Ongkir: Rp ${shippingCost.toLocaleString('id-ID')}`);
+                                                    }}
+                                                    rows={2}
+                                                    placeholder="Masukkan alamat lengkap penerima..."
+                                                    className="w-full rounded-xl border border-slate-200 p-2.5 text-xs bg-white"
+                                                    required={data.metode_pengambilan === 'Diantar'}
+                                                />
+                                            </div>
+
+                                            <div className="grid gap-3 sm:grid-cols-2">
+                                                <div>
+                                                    <label className="block text-xs font-semibold text-slate-700 mb-1">Kota / Kabupaten Tujuan</label>
+                                                    <select
+                                                        value={selectedCity}
+                                                        onChange={(e) => {
+                                                            setSelectedCity(e.target.value);
+                                                            calculateOngkir(e.target.value, courier);
+                                                        }}
+                                                        className="w-full rounded-xl border border-slate-200 p-2.5 text-xs bg-white"
+                                                        required={data.metode_pengambilan === 'Diantar'}
+                                                    >
+                                                        <option value="">-- Pilih Kota Tujuan --</option>
+                                                        {cities.map((c) => (
+                                                            <option key={c.city_id} value={c.city_id}>
+                                                                {c.type} {c.city_name}
+                                                            </option>
+                                                        ))}
+                                                    </select>
+                                                </div>
+                                                <div>
+                                                    <label className="block text-xs font-semibold text-slate-700 mb-1">Kurir Ekspedisi</label>
+                                                    <select
+                                                        value={courier}
+                                                        onChange={(e) => {
+                                                            setCourier(e.target.value);
+                                                            if (selectedCity && e.target.value) calculateOngkir(selectedCity, e.target.value);
+                                                            else setShippingCost(0);
+                                                        }}
+                                                        className="w-full rounded-xl border border-slate-200 p-2.5 text-xs bg-white"
+                                                        required={data.metode_pengambilan === 'Diantar'}
+                                                    >
+                                                        <option value="">-- Pilih Kurir --</option>
+                                                        <option value="jne">JNE</option>
+                                                        <option value="jnt">J&T Express</option>
+                                                        <option value="sicepat">SiCepat</option>
+                                                        <option value="pos">POS Indonesia</option>
+                                                    </select>
+                                                </div>
+                                            </div>
+                                            {loadingShipping && <p className="text-xs text-teal-700 animate-pulse">Menghitung ongkir...</p>}
+                                            {shippingCost > 0 && (
+                                                <p className="text-xs font-bold text-emerald-700">
+                                                    Estimasi Ongkir Otomatis: Rp {shippingCost.toLocaleString('id-ID')}
+                                                </p>
+                                            )}
+                                        </div>
+                                    )}
                                     <Field label="Catatan" error={errors.catatan} htmlFor="f-catatan">
                                         <textarea
                                             id="f-catatan"
@@ -456,6 +655,12 @@ export default function PengajuanCreate({ auth, layanan = [], selected = {} }) {
                                     <div className="flex justify-between text-slate-600">
                                         <span>Tambahan</span>
                                         <span className="tabular-nums text-slate-900">Rp {totalAddons.toLocaleString('id-ID')}</span>
+                                    </div>
+                                )}
+                                {data.metode_pengambilan === 'Diantar' && shippingCost > 0 && (
+                                    <div className="flex justify-between text-slate-600">
+                                        <span>Biaya Pengiriman (Ongkir)</span>
+                                        <span className="tabular-nums text-emerald-700 font-semibold">+ Rp {shippingCost.toLocaleString('id-ID')}</span>
                                     </div>
                                 )}
                                 <div className="flex justify-between text-slate-600">

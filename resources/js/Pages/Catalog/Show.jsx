@@ -1,5 +1,5 @@
 import { Head, Link } from '@inertiajs/react';
-import { ArrowRight, Building2, Check, ExternalLink } from 'lucide-react';
+import { ArrowLeft, ArrowRight, Building2, Check, ChevronLeft, ChevronRight, ExternalLink, X, ZoomIn } from 'lucide-react';
 import { useEffect, useMemo, useState } from 'react';
 import PublicLayout from '@/Layouts/PublicLayout';
 import { VisualPlaceholder } from '@/Components/Public/shared';
@@ -33,6 +33,7 @@ import { isStaffRole } from '@/lib/roles';
 export default function CatalogShow({ auth, product, isPreview = false }) {
     const [tab, setTab] = useState('deskripsi');
     const [selectedPhotoIndex, setSelectedPhotoIndex] = useState(0);
+    const [isLightboxOpen, setIsLightboxOpen] = useState(false);
     const [quoteData, setQuoteData] = useState(null);
     const user = auth?.user;
     const isStaff = isStaffRole(user?.role);
@@ -74,12 +75,12 @@ export default function CatalogShow({ auth, product, isPreview = false }) {
 
     const activePhoto = galleryPhotos[selectedPhotoIndex] ?? galleryPhotos[0] ?? null;
 
-    // Video URL support
+    // Video URL support (only if explicitly provided)
     const videoRawUrl =
         product.video_url ||
         product.meta?.video_url ||
         product.meta?.youtube_url ||
-        'https://www.youtube.com/watch?v=5qap5aO4i9A';
+        null;
 
     const embedUrl = useMemo(() => getYouTubeEmbedUrl(videoRawUrl), [videoRawUrl]);
 
@@ -100,12 +101,23 @@ export default function CatalogShow({ auth, product, isPreview = false }) {
 
     const categoryText = product.category?.name ?? 'Katalog PNJ';
     const codeText = product.code ?? `PRD-${product.id}`;
-    const ownerText = product.owner?.name ?? 'RTPU Politeknik Negeri Jakarta';
+    const ownerName = product.owner?.name;
+    const ownerDept = product.owner?.jurusan || product.owner?.unit_name;
+    const ownerText = ownerDept ? `${ownerName ? ownerName + ' (' + ownerDept + ')' : ownerDept}` : (ownerName ?? 'RTPU Politeknik Negeri Jakarta');
 
     // Pricing details
     const taxRate = quoteData?.tax?.rate_percent ?? 11;
     const taxAmount = quoteData?.tax?.tax_amount ?? Math.round(rawPrice * (taxRate / 100));
     const totalAmount = quoteData?.tax?.total ?? (rawPrice + taxAmount);
+
+    const availabilityLabel = product.meta?.availability_status === 'preorder'
+        ? `Pre-Order (Estimasi ${product.meta?.preorder_duration || '14 hari'})`
+        : 'Ready Stock';
+
+    const weightVal = product.meta?.weight || product.weight;
+    const lengthVal = product.meta?.length || product.length;
+    const widthVal = product.meta?.width || product.width;
+    const heightVal = product.meta?.height || product.height;
 
     // Specifications
     const specList =
@@ -124,9 +136,11 @@ export default function CatalogShow({ auth, product, isPreview = false }) {
                 ['Durasi Pemakaian', 'Per sesi (4 jam) atau harian (8 jam)'],
             ]
               : [
+                ['Ketersediaan', availabilityLabel],
+                ...(weightVal ? [['Berat', `${weightVal} gram`]] : []),
+                ...(lengthVal && widthVal && heightVal ? [['Dimensi', `${lengthVal} x ${widthVal} x ${heightVal} cm`]] : []),
                 ['Status Riset', product.meta?.tkt ? `TKT Level ${product.meta.tkt}` : 'Siap diproduksi / dikembangkan'],
                 ['Paten / HKI', product.meta?.patent ?? 'Terdaftar Sivitas PNJ'],
-                ['Ketersediaan', product.stock ? `${product.stock} unit` : 'Sesuai pesanan'],
                 ['Garansi', 'Garansi fungsional 30 hari'],
             ];
 
@@ -142,20 +156,30 @@ export default function CatalogShow({ auth, product, isPreview = false }) {
                     </div>
                 )}
 
-                {/* 1. Breadcrumb (small, plain text) */}
-                <nav className="mb-6 flex items-center gap-2 text-xs text-slate-500" aria-label="Breadcrumb">
-                    <Link href={route('home')} className="hover:text-slate-900 transition-colors">
-                        Beranda
+                {/* 1. Breadcrumb & Back button */}
+                <div className="mb-6 flex items-center justify-between">
+                    <nav className="flex items-center gap-2 text-xs text-slate-500" aria-label="Breadcrumb">
+                        <Link href={route('home')} className="hover:text-slate-900 transition-colors">
+                            Beranda
+                        </Link>
+                        <span>/</span>
+                        <Link href={route('catalog.index')} className="hover:text-slate-900 transition-colors">
+                            Katalog
+                        </Link>
+                        <span>/</span>
+                        <span className="truncate max-w-[200px] sm:max-w-xs text-slate-700">
+                            {product.name}
+                        </span>
+                    </nav>
+
+                    <Link
+                        href={route('catalog.index')}
+                        className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl border border-slate-200 text-xs font-semibold text-slate-700 hover:bg-slate-50 transition"
+                    >
+                        <ArrowLeft className="w-3.5 h-3.5" />
+                        Kembali ke Katalog
                     </Link>
-                    <span>/</span>
-                    <Link href={route('catalog.index')} className="hover:text-slate-900 transition-colors">
-                        Katalog
-                    </Link>
-                    <span>/</span>
-                    <span className="truncate max-w-[200px] sm:max-w-xs text-slate-700">
-                        {product.name}
-                    </span>
-                </nav>
+                </div>
 
                 {/* 2-Column Responsive Layout */}
                 <div className="grid gap-8 lg:grid-cols-12 lg:gap-10 items-start">
@@ -164,14 +188,21 @@ export default function CatalogShow({ auth, product, isPreview = false }) {
                         {/* ── Photo Gallery ── */}
                         <div>
                             {/* Big Photo */}
-                            <div className="overflow-hidden rounded-lg border border-slate-200 bg-slate-100">
+                            <div 
+                                onClick={() => setIsLightboxOpen(true)}
+                                className="group relative cursor-pointer overflow-hidden rounded-lg border border-slate-200 bg-slate-100"
+                                title="Klik untuk perbesar foto (Lightbox)"
+                            >
                                 <div className="aspect-[4/3] w-full">
                                     <VisualPlaceholder
                                         icon={Building2}
                                         image={activePhoto}
                                         alt={`${product.name} foto ${selectedPhotoIndex + 1}`}
-                                        className="h-full w-full object-cover transition-all duration-200"
+                                        className="h-full w-full object-cover transition-all duration-200 group-hover:scale-105"
                                     />
+                                    <div className="absolute inset-0 bg-black/30 opacity-0 group-hover:opacity-100 transition flex items-center justify-center text-white">
+                                        <ZoomIn className="w-6 h-6" />
+                                    </div>
                                 </div>
                             </div>
 
@@ -201,33 +232,54 @@ export default function CatalogShow({ auth, product, isPreview = false }) {
                             )}
                         </div>
 
+                        {/* ── Uploaded Video Player ── */}
+                        {product.video_path && (
+                            <div className="pt-3 border-t border-slate-100">
+                                <div className="mb-2 text-xs font-semibold text-slate-800">
+                                    Video Demo Produk
+                                </div>
+                                <div className="overflow-hidden rounded-lg border border-slate-200 bg-black aspect-[16/9] w-full">
+                                    <video
+                                        controls
+                                        className="h-full w-full object-contain"
+                                        src={`/storage/${product.video_path}`}
+                                    >
+                                        Browser Anda tidak mendukung tag video.
+                                    </video>
+                                </div>
+                            </div>
+                        )}
+
                         {/* ── Video Player ── */}
-                        {embedUrl && (
+                        {videoRawUrl && (
                             <div className="pt-3 border-t border-slate-100">
                                 <div className="mb-2 flex items-center justify-between text-xs">
                                     <span className="font-semibold text-slate-800">
-                                        Video Demo Produk
+                                        Tautan Video Promosi / Demo
                                     </span>
                                     <a
+                                        id="youtube-link"
                                         href={videoRawUrl}
                                         target="_blank"
                                         rel="noopener noreferrer"
-                                        className="inline-flex items-center gap-1 text-slate-500 hover:text-slate-900 hover:underline"
+                                        className="inline-flex items-center gap-1 text-teal-600 hover:text-teal-800 font-semibold hover:underline"
                                     >
                                         <span>Buka di YouTube</span>
                                         <ExternalLink className="h-3 w-3" />
                                     </a>
                                 </div>
 
-                                <div className="overflow-hidden rounded-lg border border-slate-200 bg-black aspect-[16/9] w-full">
-                                    <iframe
-                                        className="h-full w-full"
-                                        src={embedUrl}
-                                        title={`Video demo ${product.name}`}
-                                        allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-                                        allowFullScreen
-                                    />
-                                </div>
+                                {embedUrl && (
+                                    <div className="overflow-hidden rounded-lg border border-slate-200 bg-black aspect-[16/9] w-full">
+                                        <iframe
+                                            className="h-full w-full"
+                                            src={embedUrl}
+                                            title={`Video demo ${product.name}`}
+                                            allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                                            allowFullScreen
+                                        />
+                                    </div>
+                                )}
                             </div>
                         )}
                     </div>
@@ -264,6 +316,32 @@ export default function CatalogShow({ auth, product, isPreview = false }) {
                             <p className="mt-2.5 text-xs text-slate-600 leading-relaxed">
                                 {product.short_description || 'Layanan dan produk riset terapan resmi dari sivitas akademika Politeknik Negeri Jakarta.'}
                             </p>
+
+                            {/* Ketersediaan, Berat, Dimensi badges */}
+                            <div className="mt-3 flex flex-wrap gap-2 text-xs font-semibold">
+                                {product.target_audience === 'internal_pnj' ? (
+                                    <span className="inline-block px-2.5 py-1 rounded-md bg-purple-50 text-purple-700 border border-purple-200">
+                                        🔒 Khusus Sivitas PNJ
+                                    </span>
+                                ) : (
+                                    <span className="inline-block px-2.5 py-1 rounded-md bg-teal-50 text-teal-700 border border-teal-200">
+                                        🌐 Terbuka untuk Umum
+                                    </span>
+                                )}
+                                <span className={`inline-block px-2.5 py-1 rounded-md ${product.meta?.availability_status === 'preorder' ? 'bg-amber-50 text-amber-700 border border-amber-200' : 'bg-emerald-50 text-emerald-700 border border-emerald-200'}`}>
+                                    {availabilityLabel}
+                                </span>
+                                {weightVal && (
+                                    <span className="inline-block px-2.5 py-1 rounded-md bg-slate-50 text-slate-700 border border-slate-200">
+                                        Berat: {weightVal} gram
+                                    </span>
+                                )}
+                                {lengthVal && widthVal && heightVal && (
+                                    <span className="inline-block px-2.5 py-1 rounded-md bg-slate-50 text-slate-700 border border-slate-200">
+                                        Dimensi: {lengthVal} x {widthVal} x {heightVal} cm
+                                    </span>
+                                )}
+                            </div>
 
                             {/* Price display */}
                             <div className="mt-4 pt-3 border-t border-slate-100">
@@ -432,6 +510,68 @@ export default function CatalogShow({ auth, product, isPreview = false }) {
                     </div>
                 </div>
             </div>
+
+            {/* Lightbox Modal */}
+            {isLightboxOpen && activePhoto && (
+                <div 
+                    id="lightbox-backdrop"
+                    onClick={() => setIsLightboxOpen(false)}
+                    className="fixed inset-0 z-50 bg-black/85 flex items-center justify-center p-4"
+                >
+                    <div 
+                        onClick={(e) => e.stopPropagation()}
+                        className="relative max-w-4xl max-h-[90vh] flex flex-col items-center"
+                    >
+                        <VisualPlaceholder
+                            id="lightbox-image"
+                            icon={Building2}
+                            image={activePhoto}
+                            alt={`${product.name} foto ${selectedPhotoIndex + 1}`}
+                            className="max-h-[80vh] max-w-full rounded-xl shadow-2xl object-contain"
+                        />
+                        
+                        {/* Photo counter */}
+                        <div id="lightbox-counter" className="mt-3 text-white text-xs font-semibold px-3 py-1 rounded-full bg-black/50">
+                            Foto {selectedPhotoIndex + 1} dari {galleryPhotos.length}
+                        </div>
+
+                        {/* Navigation Buttons */}
+                        {galleryPhotos.length > 1 && (
+                            <>
+                                <button
+                                    id="lightbox-prev"
+                                    type="button"
+                                    aria-label="Foto Sebelumnya"
+                                    onClick={() => setSelectedPhotoIndex((selectedPhotoIndex - 1 + galleryPhotos.length) % galleryPhotos.length)}
+                                    className="absolute -left-12 top-1/2 -translate-y-1/2 bg-white/90 hover:bg-white text-slate-900 rounded-full w-10 h-10 flex items-center justify-center font-bold shadow-lg transition"
+                                >
+                                    <ChevronLeft className="w-6 h-6" />
+                                </button>
+                                <button
+                                    id="lightbox-next"
+                                    type="button"
+                                    aria-label="Foto Selanjutnya"
+                                    onClick={() => setSelectedPhotoIndex((selectedPhotoIndex + 1) % galleryPhotos.length)}
+                                    className="absolute -right-12 top-1/2 -translate-y-1/2 bg-white/90 hover:bg-white text-slate-900 rounded-full w-10 h-10 flex items-center justify-center font-bold shadow-lg transition"
+                                >
+                                    <ChevronRight className="w-6 h-6" />
+                                </button>
+                            </>
+                        )}
+
+                        {/* Close button */}
+                        <button
+                            id="lightbox-close"
+                            type="button"
+                            aria-label="Tutup Lightbox"
+                            onClick={() => setIsLightboxOpen(false)}
+                            className="absolute -top-4 -right-4 bg-white text-slate-900 rounded-full w-9 h-9 flex items-center justify-center font-bold shadow-lg hover:bg-slate-100 transition"
+                        >
+                            <X className="w-5 h-5" />
+                        </button>
+                    </div>
+                </div>
+            )}
         </PublicLayout>
     );
 }

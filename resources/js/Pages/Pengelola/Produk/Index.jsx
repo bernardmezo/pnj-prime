@@ -1,10 +1,16 @@
-import { Head, Link } from '@inertiajs/react';
-import { Package, Plus } from 'lucide-react';
+import { Head, Link, router } from '@inertiajs/react';
+import { Package, Plus, Send } from 'lucide-react';
 import DashboardLayout from '@/Layouts/DashboardLayout';
 import { Card, EmptyState, FadeIn, PageHeader, StatusBadge, PrimaryButton } from '@/Components/ui';
 
 export default function PengelolaProdukIndex({ auth, products = [] }) {
     const list = Array.isArray(products) ? products : (products?.data || []);
+
+    const handleSubmit = (id) => {
+        if (confirm('Ajukan produk ini untuk verifikasi RTPU?')) {
+            router.post(route('pengelola.produk.submit', id));
+        }
+    };
 
     return (
         <DashboardLayout title="Katalog Produk Inovasi" breadcrumb="Pengelola / Produk" activeKey="catalog">
@@ -35,15 +41,36 @@ export default function PengelolaProdukIndex({ auth, products = [] }) {
                                 <div>
                                     <div className="flex items-start justify-between gap-2 mb-2">
                                         <h3 className="font-bold text-slate-900 text-sm line-clamp-1">{item.name || item.nama}</h3>
-                                        <StatusBadge status={item.curation_status || item.status_kurasi || 'draft'} />
+                                        <StatusBadge
+                                            status={item.curation_status || 'draft'}
+                                            label={item.curation_status === 'approved' ? 'Disetujui' : item.curation_status === 'rejected' ? 'Ditolak' : item.curation_status === 'pending' ? 'Menunggu Persetujuan' : 'Draft'}
+                                            tone={item.curation_status === 'approved' ? 'teal' : item.curation_status === 'rejected' ? 'danger' : 'gold'}
+                                        />
                                     </div>
                                     <p className="text-xs text-slate-500 line-clamp-2 mb-3">
                                         {item.short_description || item.description || 'Tidak ada deskripsi singkat.'}
                                     </p>
+                                    {item.curation_status === 'rejected' && item.rejection_reason && (
+                                        <div className="mb-3 rounded-lg bg-red-50 p-2.5 text-xs text-red-700 border border-red-200">
+                                            <strong>Alasan Penolakan:</strong> {item.rejection_reason}
+                                        </div>
+                                    )}
                                 </div>
                                 <div className="border-t pt-3 flex items-center justify-between text-xs text-slate-600">
                                     <span className="font-semibold">Rp {Number(item.base_price || item.harga || 0).toLocaleString('id-ID')}</span>
-                                    <span className="text-slate-400">{item.category?.name || 'Inovasi'}</span>
+                                    <div className="flex items-center gap-2">
+                                        <Link href={route('pengelola.produk.edit', item.id)} className="text-blue-600 font-semibold hover:underline">
+                                            Ubah
+                                        </Link>
+                                        {(item.curation_status === 'draft' || item.curation_status === 'rejected') && (
+                                            <button
+                                                onClick={() => handleSubmit(item.id)}
+                                                className="inline-flex items-center gap-1 text-emerald-600 font-semibold hover:underline"
+                                            >
+                                                <Send className="w-3 h-3" /> Ajukan
+                                            </button>
+                                        )}
+                                    </div>
                                 </div>
                             </Card>
                         ))}

@@ -57,4 +57,13 @@ return [
         'ssl_verify' => (bool) env('MIDTRANS_SSL_VERIFY', env('APP_ENV') === 'production'),
     ],
 
+    /*
+    | RajaOngkir / Biteship Shipping API
+    */
+    'rajaongkir' => [
+        'key' => env('RAJAONGKIR_API_KEY'),
+        'type' => env('RAJAONGKIR_TYPE', 'starter'), // starter, basic, pro
+        'origin_city_id' => env('RAJAONGKIR_ORIGIN_CITY', '152'), // Default Kota Depok
+    ],
+
 ];

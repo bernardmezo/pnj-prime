@@ -36,7 +36,7 @@ Perintah cek: `composer show --direct`, `cat vendor/laravel/framework/composer.j
 - Service class: `app/Services/` (`SettingService`, `app/Services/Auth/`). Ada pola cache-TTL-300 di `SettingService::get()`.
 - Middleware RBAC: `app/Http/Middleware/EnsureRole.php`, `EnsurePermission.php`, `EnsureFitur.php`. Alias sudah terdaftar di `bootstrap/app.php`.
 - Model: `app/Models/`, fillable eksplisit, cast deklaratif di `casts()`.
-- Role ke-6: `customer`, `admin_rtpu`, `admin_p3m`, `pimpinan_rtpu`, `direktur`, `super_admin` — lihat `App\Enums\Role` (belum ada, buat saat WP-1.2).
+- Role ke-6: `customer`, `admin_rtpu`, `admin_pengelola`, `pimpinan_rtpu`, `direktur`, `super_admin` — lihat `App\Enums\Role` (belum ada, buat saat WP-1.2).
 
 ## Build & verifikasi
 

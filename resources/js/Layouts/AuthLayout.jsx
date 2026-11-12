@@ -17,25 +17,28 @@ export default function AuthLayout({ title, subtitle, children }) {
             {/* Left panel */}
             <div
                 className="relative hidden w-[46%] shrink-0 overflow-hidden lg:flex lg:flex-col lg:justify-between lg:p-10 xl:p-12"
-                style={{ background: 'linear-gradient(160deg, var(--color-deep) 0%, var(--color-deep-soft) 70%, var(--color-accent-hover) 130%)' }}
+                style={{ background: 'linear-gradient(155deg, var(--color-deep) 0%, var(--color-deep-soft) 65%, var(--color-accent-hover) 135%)' }}
             >
                 <div
                     className="pointer-events-none absolute inset-0"
                     style={{
                         background:
-                            'radial-gradient(circle at 85% 15%, color-mix(in srgb, var(--color-gold) 18%, transparent), transparent 55%), radial-gradient(circle at 15% 85%, color-mix(in srgb, var(--color-dark-text) 10%, transparent), transparent 55%)',
+                            'radial-gradient(circle at 80% 10%, color-mix(in srgb, var(--color-gold) 22%, transparent), transparent 50%), radial-gradient(circle at 10% 90%, color-mix(in srgb, var(--color-dark-text) 12%, transparent), transparent 55%)',
                     }}
                     aria-hidden
                 />
-                <div className="pointer-events-none absolute -left-24 top-16 w-[480px] opacity-20" aria-hidden>
+                <div className="pointer-events-none absolute -left-24 top-16 w-[520px] opacity-25" aria-hidden>
                     <SwooshLine size="lg" opacity={1} color="var(--color-gold)" stroke={1.5} />
                 </div>
-                <div className="pointer-events-none absolute bottom-16 right-12" aria-hidden>
+                <div className="pointer-events-none absolute bottom-20 right-14" aria-hidden>
                     <SpeedLines size="md" />
+                </div>
+                <div className="pointer-events-none absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 opacity-[0.08]" aria-hidden>
+                    <SwooshLine size="xl" opacity={1} color="var(--color-gold)" stroke={2} />
                 </div>
 
                 <div className="relative">
-                    <LogoMotion onDark height={40} />
+                    <LogoMotion onDark height={42} />
                 </div>
                 <div className="relative max-w-lg">
                     <p className="mb-4 inline-flex items-center gap-2 rounded-full border px-3 py-1 font-mono text-xs font-medium uppercase tracking-[0.18em]" style={{ borderColor: 'var(--color-dark-border)', color: 'var(--color-dark-muted)', background: 'color-mix(in srgb, var(--color-dark-text) 8%, transparent)' }}>
@@ -58,7 +61,7 @@ export default function AuthLayout({ title, subtitle, children }) {
             {/* Right panel */}
             <div className="flex flex-1 items-center justify-center px-5 py-10 sm:px-10" style={{ background: 'var(--color-bg)' }}>
                 <motion.div
-                    className="w-full max-w-md"
+                    className="w-full max-w-[440px]"
                     initial={{ opacity: 0, y: reduce ? 0 : 16 }}
                     animate={{ opacity: 1, y: 0 }}
                     transition={{ duration: reduce ? 0 : 0.5, ease: EASE }}
@@ -67,10 +70,11 @@ export default function AuthLayout({ title, subtitle, children }) {
                         <LogoMotion />
                     </div>
                     <div
-                        className="rounded-2xl border bg-white p-6 shadow-card sm:p-8"
+                        className="relative overflow-hidden rounded-[28px] border bg-white p-6 shadow-layered sm:p-8"
                         style={{ borderColor: 'var(--color-border)' }}
                     >
-                        <h1 className="font-display font-bold" style={{ color: 'var(--color-ink)', fontSize: 'clamp(28px, 4vw, 36px)', letterSpacing: '-0.02em', lineHeight: 1.08 }}>
+                        <div className="pointer-events-none absolute inset-x-0 top-0 h-[3px] bg-gradient-to-r from-[var(--color-gold)] via-[var(--color-accent)] to-[var(--color-gold)]" aria-hidden />
+                        <h1 className="font-display font-bold" style={{ color: 'var(--color-ink)', fontSize: 'clamp(28px, 4vw, 34px)', letterSpacing: '-0.02em', lineHeight: 1.08 }}>
                             {title}
                         </h1>
                         {subtitle && (

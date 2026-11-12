@@ -10,4 +10,5 @@ Before planning or editing, find the row whose globs match the file's path and r
 | lang/**, resources/lang/**, app/Http/Controllers/**, app/Http/Requests/**, config/app.php, .env, .env.example | .ai/rules/backend-i18n.md |
 | app/Http/Controllers/**, app/Http/Middleware/**, app/Models/User.php, app/Sso/**, config/filesystems.php, config/session.php, config/auth.php | .ai/rules/backend-security.md |
 | app/**, routes/**, database/**, config/**, resources/js/**, composer.json, package.json | .ai/rules/backend-stack.md |
+| `app/Models/**`, `app/Http/Controllers/**`, `app/Http/Requests/**`, `app/Http/Middleware/**`, `app/Http/Resources/**`, `app/Policies/**`, `app/Services/**`, `app/Enums/**`, `app/Jobs/**`, `app/Listeners/**`, `app/Notifications/**`, `routes/**`, `database/migrations/**`, `database/seeders/**`, `tests/**` | .ai/rules/backend-flow.md |
 | tests/**, phpunit.xml, database/factories/** | .ai/rules/backend-testing.md |

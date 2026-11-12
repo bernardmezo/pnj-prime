@@ -4,14 +4,6 @@ import { useId } from 'react';
 import clsx from 'clsx';
 import { useField } from './Field';
 
-/**
- * Checkbox — accessible checkbox built on Headless UI. Safe inside table cells
- * (pass `aria-label` when there is no visible label).
- *
- * @example
- * <Checkbox checked={data.aktif} onChange={(v) => setData('aktif', v)} label="Aktif" />
- * <Checkbox checked={row.selected} onChange={...} aria-label={`Pilih ${row.name}`} />
- */
 export default function Checkbox({
     checked,
     onChange,
@@ -51,7 +43,8 @@ export default function Checkbox({
         >
             <span
                 className={clsx(
-                    'mt-0.5 flex h-4 w-4 shrink-0 items-center justify-center rounded border transition',
+                    'mt-0.5 flex h-4 w-4 shrink-0 items-center justify-center rounded border transition duration-150 outline-none',
+                    'group-focus-visible:ring-2 group-focus-visible:ring-[var(--color-accent)] group-focus-visible:ring-offset-1',
                     'group-data-[checked]:border-transparent group-data-[checked]:bg-[var(--color-accent)]',
                     'group-data-[indeterminate]:border-transparent group-data-[indeterminate]:bg-[var(--color-accent)]',
                 )}

@@ -3,13 +3,6 @@ import clsx from 'clsx';
 import Field, { useField } from './Field';
 import { formatNumber, parseRupiah } from '@/lib/money';
 
-/**
- * MoneyInput — rupiah input. Shows "Rp 1.250.000" while storing integer
- * rupiah (no decimals, no floats).
- *
- * @example
- * <MoneyInput label="Harga" value={data.harga} onChange={(v) => setData('harga', v)} />
- */
 export default function MoneyInput({
     value = 0,
     onChange,
@@ -37,7 +30,8 @@ export default function MoneyInput({
     const control = (
         <div
             className={clsx(
-                'flex items-center overflow-hidden rounded-xl border bg-white',
+                'flex items-center overflow-hidden rounded-xl border bg-white transition duration-150',
+                'focus-within:ring-2 focus-within:ring-[var(--color-accent)] focus-within:ring-offset-1',
                 className,
             )}
             style={{
@@ -45,7 +39,7 @@ export default function MoneyInput({
                 background: disabled ? 'var(--color-surface)' : 'var(--color-bg)',
             }}
         >
-            <span className="pl-4 pr-1 text-sm font-medium" style={{ color: 'var(--color-muted)' }}>
+            <span className="pl-4 pr-1 text-sm font-semibold" style={{ color: 'var(--color-muted)' }}>
                 Rp
             </span>
             <input
@@ -67,7 +61,7 @@ export default function MoneyInput({
                     setText(e.target.value === '' ? '' : formatNumber(next));
                     onChange?.(next);
                 }}
-                className="w-full rounded-xl bg-transparent px-2 py-2.5 text-sm outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-accent)] focus-visible:ring-inset disabled:cursor-not-allowed"
+                className="w-full rounded-xl bg-transparent px-2 py-2.5 text-sm outline-none disabled:cursor-not-allowed"
                 style={{ color: 'var(--color-ink)' }}
             />
             {name && <input type="hidden" name={name} value={value ?? 0} />}

@@ -2,11 +2,6 @@ import { Link } from '@inertiajs/react';
 
 /**
  * Shared logo component, single source of truth.
- *
- * Logo file: public/assets/logo.PNG (469 x 531 px, ratio 0.88).
- * Ratio < 1.6, so it is treated as a SYMBOL only: the "PNJ Prime" wordmark
- * text is kept beside the image. Flip LOGO_HAS_WORDMARK to true if the file
- * is ever replaced with a full lockup that already contains the wordmark.
  */
 export const LOGO_SRC = '/assets/logo-prime.png';
 export const LOGO_SRC_WHITE = '/assets/logo-prime-white.png';
@@ -29,21 +24,18 @@ export default function Logo({ onDark = false, height = 34, showText = true }) {
             {img}
             {showText && (
                 <div
-                    className={`border-l pl-2.5 transition-colors leading-tight ${
-                        onDark ? 'border-white/20' : 'border-slate-200'
-                    }`}
+                    className="border-l pl-2.5 leading-tight transition-colors"
+                    style={{ borderColor: onDark ? 'var(--color-dark-border)' : 'var(--color-border)' }}
                 >
                     <span
-                        className={`block text-[11px] font-bold tracking-wider uppercase ${
-                            onDark ? 'text-white' : 'text-[var(--color-accent)]'
-                        }`}
+                        className="block text-[11px] font-bold uppercase tracking-wider"
+                        style={{ color: onDark ? 'var(--color-dark-text)' : 'var(--color-accent)' }}
                     >
                         PNJ
                     </span>
                     <span
-                        className={`block text-[10px] ${
-                            onDark ? 'text-white/70' : 'text-[var(--color-muted)]'
-                        } mt-0.5`}
+                        className="mt-0.5 block text-[10px]"
+                        style={{ color: onDark ? 'var(--color-dark-muted)' : 'var(--color-muted)' }}
                     >
                         Politeknik Negeri Jakarta
                     </span>

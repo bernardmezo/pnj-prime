@@ -3,12 +3,6 @@ import { useId } from 'react';
 import clsx from 'clsx';
 import { useField } from './Field';
 
-/**
- * Switch — on/off toggle for aktif/nonaktif.
- *
- * @example
- * <Switch checked={data.aktif} onChange={(v) => setData('aktif', v)} label="Aktif" />
- */
 export default function Switch({
     checked,
     onChange,
@@ -35,7 +29,8 @@ export default function Switch({
                 aria-label={label}
                 aria-invalid={shownError ? true : undefined}
                 className={clsx(
-                    'group relative inline-flex h-6 w-11 shrink-0 items-center rounded-full border transition',
+                    'group relative inline-flex h-6 w-11 shrink-0 items-center rounded-full border transition duration-150 outline-none',
+                    'focus-visible:ring-2 focus-visible:ring-[var(--color-accent)] focus-visible:ring-offset-1',
                     disabled ? 'cursor-not-allowed opacity-60' : 'cursor-pointer',
                 )}
                 style={{
@@ -44,7 +39,7 @@ export default function Switch({
                 }}
             >
                 <span
-                    className="inline-block h-5 w-5 transform rounded-full bg-white shadow transition group-data-[checked]:translate-x-[22px] translate-x-0.5"
+                    className="inline-block h-5 w-5 transform rounded-full bg-white shadow transition duration-150 group-data-[checked]:translate-x-[22px] translate-x-0.5"
                 />
             </HeadlessSwitch>
             {name && <input type="hidden" name={name} value={checked ? '1' : '0'} />}

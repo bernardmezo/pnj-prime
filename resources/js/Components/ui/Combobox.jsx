@@ -10,7 +10,6 @@ const SIZES = {
     md: 'pl-4 py-2.5 text-sm',
 };
 
-/** accent- and case-insensitive filter used for the default (client) mode. */
 export function filterOptions(options, query) {
     const q = query.trim().toLowerCase();
     if (!q) return options;
@@ -23,14 +22,6 @@ export function filterOptions(options, query) {
     );
 }
 
-/**
- * Combobox — searchable single-choice select. Use it for long lists
- * (layanan picker, users, …). Pass `onSearch` for async/server search.
- *
- * @example
- * <Combobox label="Layanan" value={data.layanan} onChange={(v) => setData('layanan', v)}
- *   options={layananOptions} onSearch={(q) => fetchList(q)} loading={loading} />
- */
 export default function Combobox({
     label,
     name,
@@ -84,7 +75,8 @@ export default function Combobox({
                             onChange={(e) => setQuery(e.target.value)}
                             placeholder={placeholder}
                             className={clsx(
-                                'w-full rounded-xl border pr-10 outline-none transition',
+                                'w-full rounded-xl border pr-10 outline-none transition duration-150',
+                                'focus-visible:border-[var(--color-accent)] focus-visible:ring-2 focus-visible:ring-[var(--color-accent)] focus-visible:ring-offset-1',
                                 SIZES[size],
                                 disabled && 'cursor-not-allowed',
                             )}
@@ -96,18 +88,18 @@ export default function Combobox({
                         />
                         <ComboboxButton
                             type="button"
-                            className="absolute right-3 top-1/2 -translate-y-1/2 p-1"
+                            className="absolute right-3 top-1/2 -translate-y-1/2 rounded p-1 outline-none transition duration-150 hover:bg-[var(--color-surface)] focus-visible:ring-2 focus-visible:ring-[var(--color-accent)]"
                             aria-label="Buka pilihan"
                             style={{ color: 'var(--color-muted)' }}
                         >
-                            <ChevronDown className={clsx('h-4 w-4 transition-transform', open && 'rotate-180')} />
+                            <ChevronDown className={clsx('h-4 w-4 transition-transform duration-200', open && 'rotate-180')} />
                         </ComboboxButton>
 
                         <ComboboxOptions
                             anchor="bottom start"
                             transition
                             className={clsx(
-                                'z-[90] mt-1 max-h-64 w-[var(--input-width)] overflow-auto rounded-xl border bg-white py-1 text-sm shadow-card focus:outline-none',
+                                'z-[90] mt-1 max-h-64 w-[var(--input-width)] overflow-auto rounded-xl border bg-white py-1 text-sm shadow-dropdown focus:outline-none',
                                 !reduce && 'transition duration-100 ease-out data-[closed]:opacity-0 data-[closed]:scale-95',
                             )}
                             style={{ borderColor: 'var(--color-border)' }}
@@ -119,7 +111,7 @@ export default function Combobox({
                             )}
                             {!loading && filtered.length === 0 && (
                                 <div className="px-4 py-2.5 text-[13px]" style={{ color: 'var(--color-muted)' }}>
-                            {emptyLabel}
+                                    {emptyLabel}
                                 </div>
                             )}
                             {filtered.map((opt) => (
@@ -129,8 +121,8 @@ export default function Combobox({
                                     disabled={opt.disabled}
                                     className={({ focus, disabled: dis }) =>
                                         clsx(
-                                            'flex cursor-pointer items-center justify-between gap-3 px-4 py-2.5',
-                                            focus && 'bg-[color:var(--color-accent-tint)]',
+                                            'flex cursor-pointer items-center justify-between gap-3 px-4 py-2.5 transition duration-150',
+                                            focus && 'bg-[var(--color-accent-tint)]',
                                             dis && 'cursor-not-allowed opacity-50',
                                         )
                                     }

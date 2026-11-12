@@ -3,7 +3,6 @@ import { useEffect, useRef, useState } from 'react';
 
 export const EASE = [0.22, 1, 0.36, 1];
 
-/** Scroll reveal wrapper: fades up once when ~80px inside viewport. */
 export function Reveal({ children, delay = 0, className = '', y = 24 }) {
     const reduce = useReducedMotion();
     return (
@@ -19,7 +18,6 @@ export function Reveal({ children, delay = 0, className = '', y = 24 }) {
     );
 }
 
-/** Animated stat counter: counts 0 -> value once in view (1.4s ease-out). Static when reduced motion. */
 export function StatCounter({ value, suffix = '', className = '' }) {
     const reduce = useReducedMotion();
     const ref = useRef(null);
@@ -62,10 +60,6 @@ export function StatCounter({ value, suffix = '', className = '' }) {
     );
 }
 
-/**
- * Tasteful CSS/SVG placeholder visual, layered teal gradients + lucide icon
- * + dot/grid pattern + soft inner glow. Swap via `image` prop when real photos exist.
- */
 export function VisualPlaceholder({ icon: Icon, image, alt = '', variant = 'light', className = '' }) {
     const dark = variant === 'dark';
     return (
@@ -85,42 +79,42 @@ export function VisualPlaceholder({ icon: Icon, image, alt = '', variant = 'ligh
                 className="absolute -right-10 -top-10 h-44 w-44 rounded-full"
                 style={{
                     background: dark
-                        ? 'radial-gradient(circle, rgba(242,177,52,0.28), transparent 70%)'
-                        : 'radial-gradient(circle, rgba(0,153,138,0.22), transparent 70%)',
+                        ? 'radial-gradient(circle, color-mix(in srgb, var(--color-gold) 28%, transparent), transparent 70%)'
+                        : 'radial-gradient(circle, color-mix(in srgb, var(--color-accent) 22%, transparent), transparent 70%)',
                 }}
             />
             <div
                 className="absolute -bottom-12 -left-12 h-48 w-48 rounded-full"
                 style={{
                     background: dark
-                        ? 'radial-gradient(circle, rgba(255,255,255,0.16), transparent 70%)'
-                        : 'radial-gradient(circle, rgba(0,153,138,0.14), transparent 70%)',
+                        ? 'radial-gradient(circle, color-mix(in srgb, var(--color-dark-text) 16%, transparent), transparent 70%)'
+                        : 'radial-gradient(circle, color-mix(in srgb, var(--color-accent) 14%, transparent), transparent 70%)',
                 }}
             />
             <div
                 className="absolute inset-0"
                 style={{
                     boxShadow: dark
-                        ? 'inset 0 0 80px rgba(255,255,255,0.08)'
-                        : 'inset 0 0 60px rgba(6,59,52,0.08)',
+                        ? 'inset 0 0 80px color-mix(in srgb, var(--color-dark-text) 8%, transparent)'
+                        : 'inset 0 0 60px color-mix(in srgb, var(--color-deep) 8%, transparent)',
                 }}
             />
             {Icon && (
                 <span
                     className="relative flex h-20 w-20 items-center justify-center rounded-3xl"
                     style={{
-                        background: dark ? 'rgba(255,255,255,0.12)' : 'rgba(255,255,255,0.9)',
+                        background: dark ? 'color-mix(in srgb, var(--color-dark-text) 12%, transparent)' : 'var(--color-bg)',
                         border: dark
-                            ? '1px solid rgba(255,255,255,0.22)'
+                            ? '1px solid var(--color-dark-border)'
                             : '1px solid var(--color-border)',
                         boxShadow: dark
-                            ? '0 12px 32px -8px rgba(0,0,0,0.4)'
-                            : '0 12px 28px -10px rgba(6,59,52,0.25)',
+                            ? 'var(--shadow-hero)'
+                            : 'var(--shadow-card)',
                     }}
                 >
                     <Icon
                         className="h-9 w-9"
-                        style={{ color: dark ? 'var(--color-bg)' : 'var(--color-accent)' }}
+                        style={{ color: dark ? 'var(--color-dark-text)' : 'var(--color-accent)' }}
                     />
                 </span>
             )}

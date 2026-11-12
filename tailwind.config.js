@@ -58,10 +58,10 @@ export default {
             },
 
             boxShadow: {
-                card: '0 1px 3px 0 rgba(0,95,110,0.07), 0 6px 20px -6px rgba(0,95,110,0.12)',
-                'card-hover':
-                    '0 4px 8px -2px rgba(0,95,110,0.10), 0 18px 44px -12px rgba(0,95,110,0.25)',
-                header: '0 4px 20px -6px rgba(0,95,110,0.12)',
+                card: 'var(--shadow-card)',
+                'card-hover': 'var(--shadow-card-hover)',
+                header: 'var(--shadow-header)',
+                dropdown: 'var(--shadow-dropdown)',
             },
 
             maxWidth: {

@@ -3,14 +3,6 @@ import { useId } from 'react';
 import clsx from 'clsx';
 import Field, { useField } from './Field';
 
-/**
- * RadioGroup — single choice with two looks: `list` (compact rows) and
- * `cards` (large selectable tiles with icon + title + description).
- *
- * @example
- * <RadioGroup variant="cards" value={data.tipe} onChange={(v) => setData('tipe', v)}
- *   options={[{ value: 'jasa', label: 'Jasa', description: 'Layanan profesional', icon: <Wrench /> }]} />
- */
 export default function RadioGroup({
     label,
     name,
@@ -48,13 +40,13 @@ export default function RadioGroup({
                     disabled={opt.disabled}
                     className={({ focus, disabled: dis }) =>
                         clsx(
-                            'group relative flex cursor-pointer border outline-none transition',
+                            'group relative flex cursor-pointer border outline-none transition duration-150',
                             'border-[var(--color-border)] bg-[var(--color-bg)]',
                             'data-[checked]:border-[var(--color-accent)] data-[checked]:bg-[var(--color-accent-tint)]',
                             cards
                                 ? 'flex-col items-start gap-2 rounded-2xl p-4'
                                 : 'items-center gap-3 rounded-xl px-4 py-2.5',
-                            focus && 'ring-2 ring-[var(--color-accent)] ring-offset-1',
+                            focus && 'ring-2 ring-[var(--color-accent)] ring-offset-2',
                             dis && 'cursor-not-allowed opacity-60',
                         )
                     }
@@ -81,7 +73,7 @@ export default function RadioGroup({
                     ) : (
                         <>
                             <span
-                                className="flex h-4 w-4 shrink-0 items-center justify-center rounded-full border"
+                                className="flex h-4 w-4 shrink-0 items-center justify-center rounded-full border transition duration-150"
                                 style={{ borderColor: 'var(--color-border)' }}
                             >
                                 <span

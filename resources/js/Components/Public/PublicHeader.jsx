@@ -9,6 +9,9 @@ import { href as navHref } from '@/lib/nav';
 
 const EASE = [0.22, 1, 0.36, 1];
 
+const ctaBase =
+    'inline-flex items-center gap-1.5 rounded-full px-4 py-2 text-xs font-semibold transition duration-150 hover:-translate-y-px active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-accent)] focus-visible:ring-offset-2';
+
 export default function PublicHeader({ auth }) {
     const [scrolled, setScrolled] = useState(false);
     const [drawer, setDrawer] = useState(false);
@@ -36,13 +39,11 @@ export default function PublicHeader({ auth }) {
     const menuUrl = (page) => navHref(page, {}, user?.role);
     const customerMenu = filterMenuByFitur(CUSTOMER_MENU, usePage().props.fitur);
 
-    // Compute active nav item
     const isHomeActive = url === '/' || url === '';
     const isCatalogActive = url.startsWith('/katalog') || url.startsWith('/catalog');
     const isPengajuanActive = url.startsWith('/pengajuan') && !url.includes('/create');
     const isRiwayatActive = url.startsWith('/riwayat');
 
-    // Navigation links per role/audience
     const navLinks = isCustomer
         ? [
               { label: 'Beranda', href: '/', active: isHomeActive },
@@ -57,29 +58,27 @@ export default function PublicHeader({ auth }) {
 
     return (
         <header
-            className="sticky top-0 z-50 transition-all duration-300"
+            className="sticky top-0 z-50 transition-all duration-200"
             style={{
-                background: scrolled ? 'rgba(255,255,255,0.94)' : 'var(--color-bg)',
+                background: scrolled ? 'color-mix(in srgb, var(--color-bg) 94%, transparent)' : 'var(--color-bg)',
                 backdropFilter: scrolled ? 'blur(12px)' : 'none',
                 borderBottom: scrolled ? '1px solid var(--color-border)' : '1px solid transparent',
-                boxShadow: scrolled ? '0 4px 20px -6px rgba(6,59,52,0.12)' : 'none',
+                boxShadow: scrolled ? 'var(--shadow-header)' : 'none',
             }}
         >
             <div
-                className="landing-container flex items-center gap-4 transition-all duration-300"
+                className="landing-container flex items-center gap-4 transition-all duration-200"
                 style={{ height: scrolled ? 64 : 76 }}
             >
-                {/* Logo */}
                 <Logo />
 
-                {/* Desktop nav */}
                 <nav className="ml-6 hidden items-center gap-7 lg:flex" aria-label="Navigasi utama">
                     {navLinks.map((item) => (
                         <Link
                             key={item.label}
                             href={item.href}
                             aria-current={item.active ? 'page' : undefined}
-                            className={`nav-underline text-sm transition ${
+                            className={`nav-underline text-sm transition duration-150 ${
                                 item.active ? 'font-semibold' : 'font-medium hover:text-[var(--color-ink)]'
                             }`}
                             style={{
@@ -91,17 +90,13 @@ export default function PublicHeader({ auth }) {
                     ))}
                 </nav>
 
-                {/* Auth & action controls (desktop) */}
                 <div className="ml-auto hidden shrink-0 items-center gap-3 md:flex">
                     {user ? (
                         <>
                             {isCustomer && (
                                 <Link
                                     href="/pengajuan/create"
-                                    className="inline-flex items-center gap-1.5 rounded-full px-4 py-2 text-xs font-semibold text-white shadow-sm transition hover:-translate-y-px active:scale-[0.98]"
-                                    style={{ background: 'var(--color-accent)' }}
-                                    onMouseEnter={(e) => (e.currentTarget.style.background = 'var(--color-accent-hover)')}
-                                    onMouseLeave={(e) => (e.currentTarget.style.background = 'var(--color-accent)')}
+                                    className={`${ctaBase} bg-[var(--color-accent)] text-[var(--color-bg)] hover:bg-[var(--color-accent-hover)]`}
                                 >
                                     <Plus className="h-3.5 w-3.5" />
                                     Ajukan Layanan
@@ -111,20 +106,20 @@ export default function PublicHeader({ auth }) {
                             {isStaff && (
                                 <Link
                                     href={menuUrl(roleHome(user?.role))}
-                                    className="inline-flex items-center gap-1.5 rounded-full border px-4 py-2 text-xs font-semibold transition hover:-translate-y-px"
+                                    className={`${ctaBase} border`}
                                     style={{
                                         borderColor: 'var(--color-border)',
                                         color: 'var(--color-ink)',
                                         background: 'var(--color-surface)',
                                     }}
                                 >
-                                    <LayoutDashboard className="h-3.5 w-3.5 text-emerald-600" />
+                                    <LayoutDashboard className="h-3.5 w-3.5" style={{ color: 'var(--color-accent)' }} />
                                     Pusat Kendali
                                 </Link>
                             )}
 
                             <Menu
-                                buttonClassName="rounded-full border border-[var(--color-border)] bg-[var(--color-bg)] py-1.5 pl-1.5 pr-4 text-sm transition hover:border-[var(--color-muted)]"
+                                buttonClassName="rounded-full border py-1.5 pl-1.5 pr-4 text-sm transition duration-150 hover:border-[var(--color-accent)] focus-visible:ring-2 focus-visible:ring-[var(--color-accent)] focus-visible:ring-offset-2"
                                 menuClassName="w-56"
                                 button={
                                     <>
@@ -160,20 +155,16 @@ export default function PublicHeader({ auth }) {
                     ) : (
                         <Link
                             href={route('login')}
-                            className="inline-block rounded-full px-6 py-2.5 text-sm font-semibold text-white transition hover:-translate-y-px active:scale-[0.98]"
-                            style={{ background: 'var(--color-accent)' }}
-                            onMouseEnter={(e) => (e.currentTarget.style.background = 'var(--color-accent-hover)')}
-                            onMouseLeave={(e) => (e.currentTarget.style.background = 'var(--color-accent)')}
+                            className="inline-flex items-center rounded-full bg-[var(--color-accent)] px-6 py-2.5 text-sm font-semibold text-[var(--color-bg)] transition duration-150 hover:-translate-y-px hover:bg-[var(--color-accent-hover)] active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-accent)] focus-visible:ring-offset-2"
                         >
                             Masuk
                         </Link>
                     )}
                 </div>
 
-                {/* Hamburger (mobile) */}
                 <button
                     type="button"
-                    className="ml-auto rounded-lg p-2 lg:hidden"
+                    className="ml-auto rounded-lg p-2 transition duration-150 hover:bg-[var(--color-surface)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-accent)] lg:hidden"
                     aria-label={drawer ? 'Tutup menu' : 'Buka menu'}
                     aria-expanded={drawer}
                     onClick={() => setDrawer((v) => !v)}
@@ -186,16 +177,15 @@ export default function PublicHeader({ auth }) {
                 </button>
             </div>
 
-            {/* Mobile drawer */}
             <AnimatePresence>
                 {drawer && (
                     <motion.nav
                         initial={{ opacity: 0, height: 0 }}
                         animate={{ opacity: 1, height: 'auto' }}
                         exit={{ opacity: 0, height: 0 }}
-                        transition={{ duration: reduce ? 0 : 0.3, ease: EASE }}
-                        className="overflow-hidden border-t bg-white lg:hidden"
-                        style={{ borderColor: 'var(--color-border)' }}
+                        transition={{ duration: reduce ? 0 : 0.25, ease: EASE }}
+                        className="overflow-hidden border-t lg:hidden"
+                        style={{ borderColor: 'var(--color-border)', background: 'var(--color-bg)' }}
                         aria-label="Navigasi seluler"
                     >
                         <div className="space-y-1 px-5 py-4">
@@ -204,8 +194,8 @@ export default function PublicHeader({ auth }) {
                                     key={item.label}
                                     href={item.href}
                                     onClick={() => setDrawer(false)}
-                                    className={`block rounded-lg px-3 py-2.5 text-sm ${
-                                        item.active ? 'font-semibold' : 'font-medium'
+                                    className={`block rounded-xl px-3 py-2.5 text-sm transition duration-150 ${
+                                        item.active ? 'font-semibold' : 'font-medium hover:bg-[var(--color-surface)]'
                                     }`}
                                     style={{
                                         color: item.active ? 'var(--color-accent-hover)' : 'var(--color-ink)',
@@ -222,8 +212,8 @@ export default function PublicHeader({ auth }) {
                                         <Link
                                             href="/pengajuan/create"
                                             onClick={() => setDrawer(false)}
-                                            className="mb-2 flex w-full items-center justify-center gap-1.5 rounded-full py-2.5 text-center text-sm font-semibold text-white"
-                                            style={{ background: 'var(--color-accent)' }}
+                                            className="mb-2 flex w-full items-center justify-center gap-1.5 rounded-full py-2.5 text-center text-sm font-semibold transition duration-150"
+                                            style={{ background: 'var(--color-accent)', color: 'var(--color-bg)' }}
                                         >
                                             <Plus className="h-4 w-4" />
                                             Ajukan Layanan
@@ -234,14 +224,14 @@ export default function PublicHeader({ auth }) {
                                         <Link
                                             href={menuUrl(roleHome(user?.role))}
                                             onClick={() => setDrawer(false)}
-                                            className="mb-2 flex w-full items-center justify-center gap-1.5 rounded-full border py-2.5 text-center text-sm font-semibold"
+                                            className="mb-2 flex w-full items-center justify-center gap-1.5 rounded-full border py-2.5 text-center text-sm font-semibold transition duration-150"
                                             style={{
                                                 borderColor: 'var(--color-border)',
                                                 color: 'var(--color-ink)',
                                                 background: 'var(--color-surface)',
                                             }}
                                         >
-                                            <LayoutDashboard className="h-4 w-4 text-emerald-600" />
+                                            <LayoutDashboard className="h-4 w-4" style={{ color: 'var(--color-accent)' }} />
                                             Pusat Kendali
                                         </Link>
                                     )}
@@ -250,8 +240,8 @@ export default function PublicHeader({ auth }) {
                                         href={route('logout')}
                                         method="post"
                                         as="button"
-                                        className="mt-2 block w-full rounded-full py-2.5 text-center text-sm font-semibold text-white"
-                                        style={{ background: 'var(--color-danger)' }}
+                                        className="mt-2 block w-full rounded-full py-2.5 text-center text-sm font-semibold transition duration-150"
+                                        style={{ background: 'var(--color-danger)', color: 'var(--color-bg)' }}
                                     >
                                         Keluar
                                     </Link>
@@ -259,8 +249,8 @@ export default function PublicHeader({ auth }) {
                             ) : (
                                 <Link
                                     href={route('login')}
-                                    className="mt-3 block rounded-full py-2.5 text-center text-sm font-semibold text-white"
-                                    style={{ background: 'var(--color-accent)' }}
+                                    className="mt-3 block rounded-full py-2.5 text-center text-sm font-semibold transition duration-150"
+                                    style={{ background: 'var(--color-accent)', color: 'var(--color-bg)' }}
                                 >
                                     Masuk
                                 </Link>

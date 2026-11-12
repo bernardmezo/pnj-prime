@@ -2,13 +2,6 @@ import { useId } from 'react';
 import clsx from 'clsx';
 import Checkbox from './Checkbox';
 
-/**
- * CheckboxGroup — fieldset of related checkboxes with an optional "Pilih semua".
- *
- * @example
- * <CheckboxGroup label="Aksi tersedia" value={data.aksi} onChange={(v) => setData('aksi', v)}
- *   options={[{ value: 'Lihat', label: 'Lihat' }, { value: 'Tambah', label: 'Tambah' }]} selectAll />
- */
 export default function CheckboxGroup({
     label,
     legend,

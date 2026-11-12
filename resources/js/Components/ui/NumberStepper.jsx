@@ -3,12 +3,6 @@ import { Minus, Plus } from 'lucide-react';
 import clsx from 'clsx';
 import Field, { useField } from './Field';
 
-/**
- * NumberStepper — integer stepper with +/- buttons and keyboard support.
- *
- * @example
- * <NumberStepper label="Jumlah" min={1} max={10} value={data.jumlah} onChange={(v) => setData('jumlah', v)} />
- */
 export default function NumberStepper({
     value = 0,
     onChange,
@@ -41,7 +35,7 @@ export default function NumberStepper({
 
     const control = (
         <div
-            className={clsx('inline-flex items-center rounded-xl border', className)}
+            className={clsx('inline-flex items-center rounded-xl border transition duration-150 focus-within:ring-2 focus-within:ring-[var(--color-accent)] focus-within:ring-offset-1', className)}
             style={{
                 borderColor: shownError ? 'var(--color-danger)' : 'var(--color-border)',
                 background: disabled ? 'var(--color-surface)' : 'var(--color-bg)',
@@ -52,7 +46,7 @@ export default function NumberStepper({
                 aria-label="Kurangi"
                 disabled={disabled || atMin}
                 onClick={() => onChange?.(clamp(num - step))}
-                className="flex h-9 w-9 items-center justify-center rounded-l-xl disabled:cursor-not-allowed disabled:opacity-40 focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-[var(--color-accent)]"
+                className="flex h-9 w-9 items-center justify-center rounded-l-xl outline-none transition duration-150 hover:bg-[var(--color-surface)] disabled:cursor-not-allowed disabled:opacity-40 focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-[var(--color-accent)]"
                 style={{ color: 'var(--color-muted)' }}
             >
                 <Minus className="h-4 w-4" />
@@ -68,7 +62,7 @@ export default function NumberStepper({
                 aria-describedby={describedBy}
                 value={num}
                 onChange={(e) => onChange?.(clamp(parseInt(e.target.value.replace(/[^0-9-]/g, ''), 10) || 0))}
-                className="w-14 border-x bg-transparent py-2 text-center text-sm outline-none disabled:cursor-not-allowed"
+                className="w-14 border-x bg-transparent py-2 text-center text-sm outline-none transition duration-150 focus-visible:bg-[var(--color-accent-tint)] disabled:cursor-not-allowed"
                 style={{ borderColor: 'var(--color-border)', color: 'var(--color-ink)' }}
             />
             <button
@@ -76,7 +70,7 @@ export default function NumberStepper({
                 aria-label="Tambah"
                 disabled={disabled || atMax}
                 onClick={() => onChange?.(clamp(num + step))}
-                className="flex h-9 w-9 items-center justify-center rounded-r-xl disabled:cursor-not-allowed disabled:opacity-40 focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-[var(--color-accent)]"
+                className="flex h-9 w-9 items-center justify-center rounded-r-xl outline-none transition duration-150 hover:bg-[var(--color-surface)] disabled:cursor-not-allowed disabled:opacity-40 focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-[var(--color-accent)]"
                 style={{ color: 'var(--color-muted)' }}
             >
                 <Plus className="h-4 w-4" />

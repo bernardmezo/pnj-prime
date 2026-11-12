@@ -12,13 +12,6 @@ import clsx from 'clsx';
 import Field, { useField } from './Field';
 import { filterOptions } from './Combobox';
 
-/**
- * MultiSelect — pick many values, shown as removable chips.
- *
- * @example
- * <MultiSelect label="Tipe" value={data.tipe} onChange={(v) => setData('tipe', v)}
- *   options={tipeOptions} max={3} />
- */
 export default function MultiSelect({
     label,
     name,
@@ -83,7 +76,7 @@ export default function MultiSelect({
                                                 type="button"
                                                 aria-label={`Hapus ${o.label}`}
                                                 onClick={() => remove(o.value)}
-                                                className="rounded-full p-0.5"
+                                                className="rounded-full p-0.5 outline-none transition duration-150 hover:bg-[var(--color-accent)] hover:text-white focus-visible:ring-2 focus-visible:ring-[var(--color-accent)]"
                                             >
                                                 <X className="h-3 w-3" />
                                             </button>
@@ -100,7 +93,8 @@ export default function MultiSelect({
                             onChange={(e) => setQuery(e.target.value)}
                             placeholder={placeholder}
                             className={clsx(
-                                'w-full rounded-xl border pr-10 outline-none transition',
+                                'w-full rounded-xl border pr-10 outline-none transition duration-150',
+                                'focus-visible:border-[var(--color-accent)] focus-visible:ring-2 focus-visible:ring-[var(--color-accent)] focus-visible:ring-offset-1',
                                 size === 'sm' ? 'pl-3 py-1.5 text-[13px]' : 'pl-4 py-2.5 text-sm',
                                 disabled && 'cursor-not-allowed',
                             )}
@@ -112,18 +106,18 @@ export default function MultiSelect({
                         />
                         <ComboboxButton
                             type="button"
-                            className="absolute right-3 top-1/2 -translate-y-1/2 p-1"
+                            className="absolute right-3 top-1/2 -translate-y-1/2 rounded p-1 outline-none transition duration-150 hover:bg-[var(--color-surface)] focus-visible:ring-2 focus-visible:ring-[var(--color-accent)]"
                             aria-label="Buka pilihan"
                             style={{ color: 'var(--color-muted)' }}
                         >
-                            <ChevronDown className={clsx('h-4 w-4 transition-transform', open && 'rotate-180')} />
+                            <ChevronDown className={clsx('h-4 w-4 transition-transform duration-200', open && 'rotate-180')} />
                         </ComboboxButton>
 
                         <ComboboxOptions
                             anchor="bottom start"
                             transition
                             className={clsx(
-                                'z-[90] mt-1 max-h-64 w-[var(--input-width)] overflow-auto rounded-xl border bg-white py-1 text-sm shadow-card focus:outline-none',
+                                'z-[90] mt-1 max-h-64 w-[var(--input-width)] overflow-auto rounded-xl border bg-white py-1 text-sm shadow-dropdown focus:outline-none',
                                 !reduce && 'transition duration-100 ease-out data-[closed]:opacity-0 data-[closed]:scale-95',
                             )}
                             style={{ borderColor: 'var(--color-border)' }}
@@ -140,8 +134,8 @@ export default function MultiSelect({
                                     disabled={opt.disabled}
                                     className={({ focus }) =>
                                         clsx(
-                                            'flex cursor-pointer items-center justify-between gap-3 px-4 py-2.5',
-                                            focus && 'bg-[color:var(--color-accent-tint)]',
+                                            'flex cursor-pointer items-center justify-between gap-3 px-4 py-2.5 transition duration-150',
+                                            focus && 'bg-[var(--color-accent-tint)]',
                                         )
                                     }
                                 >

@@ -9,7 +9,6 @@ export const TYPE_META = {
     sewa: { label: 'Fasilitas', icon: Building2 },
 };
 
-/** Map a backend category slug to a card type. */
 export function typeFromCategory(slug) {
     const s = String(slug ?? '');
     if (s.includes('jasa')) return 'jasa';
@@ -21,9 +20,6 @@ export function formatRp(value) {
     return `Rp ${Number(value ?? 0).toLocaleString('id-ID')}`;
 }
 
-/**
- * Resolve relative or storage-backed product image path to a working public URL.
- */
 export function resolveImageUrl(path) {
     if (!path || typeof path !== 'string') return null;
     const trimmed = path.trim();
@@ -45,11 +41,6 @@ export function resolveImageUrl(path) {
     return `/storage/${trimmed}`;
 }
 
-/**
- * Catalog card, single design used by the landing preview and the full
- * catalog page: image placeholder area, small type label, title, price.
- * Hover lift + image zoom; scroll-reveal stagger (index * 70ms).
- */
 export default function CatalogCard({ item, index = 0, className = '' }) {
     const reduce = useReducedMotion();
     const meta = TYPE_META[item.type] ?? TYPE_META.produk;
@@ -69,13 +60,11 @@ export default function CatalogCard({ item, index = 0, className = '' }) {
         >
             <Wrapper
                 {...wrapperProps}
-                className="group relative flex h-full flex-col overflow-hidden rounded-[22px] border bg-white transition-all duration-300 hover:-translate-y-1.5 hover:shadow-card-hover hover:border-[var(--color-accent)]"
-                style={{ borderColor: 'var(--color-border)' }}
+                className="group relative flex h-full flex-col overflow-hidden rounded-[22px] border border-[var(--color-border)] bg-white shadow-card transition-all duration-200 hover:-translate-y-1.5 hover:border-[var(--color-accent)] hover:shadow-card-hover focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-accent)] focus-visible:ring-offset-2"
             >
-                {/* Speed-line accent top indicator inspired by Prime logo */}
                 <div
                     aria-hidden
-                    className="absolute top-0 left-0 right-0 h-[3px] bg-gradient-to-r from-[var(--color-accent)] via-[var(--color-gold)] to-[var(--color-accent)] opacity-0 transition-opacity duration-300 group-hover:opacity-100 z-10"
+                    className="absolute left-0 right-0 top-0 z-10 h-[3px] bg-gradient-to-r from-[var(--color-gradient-start)] via-[var(--color-gradient-end)] to-[var(--color-gradient-start)] opacity-0 transition-opacity duration-200 group-hover:opacity-100"
                 />
 
                 <div className="relative aspect-[4/3] w-full overflow-hidden">
@@ -102,28 +91,29 @@ export default function CatalogCard({ item, index = 0, className = '' }) {
                     )}
                 </div>
                 <div className="flex flex-1 flex-col p-5">
-                    <div className="mb-1.5 flex items-center justify-between gap-1.5 text-xs font-medium">
-                        <span className="inline-flex items-center gap-1 text-[11px] font-semibold text-[var(--color-accent)] uppercase tracking-wider">
+                    <div className="mb-2 flex items-center justify-between gap-2">
+                        <span className="inline-flex items-center rounded-full px-2.5 py-1 text-[10px] font-bold uppercase tracking-wider" style={{ background: 'var(--color-accent-tint)', color: 'var(--color-accent-hover)' }}>
                             {item.category_name ?? meta.label}
                         </span>
                         {item.target_audience === 'internal_pnj' && (
-                            <span className="rounded-full bg-amber-500/10 px-2 py-0.5 text-[10px] font-bold text-amber-800 border border-amber-300/60">
-                                🔒 Khusus PNJ
+                            <span className="inline-flex items-center rounded-full border px-2 py-0.5 text-[10px] font-bold" style={{ background: 'color-mix(in srgb, var(--color-gold) 14%, transparent)', borderColor: 'color-mix(in srgb, var(--color-gold) 40%, transparent)', color: 'var(--color-gold-deep)' }}>
+                                Khusus PNJ
                             </span>
                         )}
                     </div>
                     <h3
-                        className="mb-2 line-clamp-2 font-display text-[15px] font-semibold leading-snug group-hover:text-[var(--color-accent)] transition-colors"
+                        className="mb-2 line-clamp-2 font-display text-[16px] font-bold leading-snug transition-colors duration-150 group-hover:text-[var(--color-accent)]"
                         style={{ color: 'var(--color-ink)' }}
                     >
                         {item.title}
                     </h3>
-                    <div className="mt-auto flex items-center justify-between pt-2 border-t border-slate-100">
+                    <div className="mt-auto flex items-center justify-between border-t pt-3" style={{ borderColor: 'var(--color-border)' }}>
                         <p className="font-display text-[15px] font-bold" style={{ color: 'var(--color-ink)' }}>
                             {item.price}
                         </p>
                         <span
-                            className="flex h-7 w-7 items-center justify-center rounded-full bg-[var(--color-accent-tint)] text-[var(--color-accent)] opacity-0 -translate-x-2 transition-all duration-300 group-hover:opacity-100 group-hover:translate-x-0"
+                            className="flex h-7 w-7 translate-x-[-6px] items-center justify-center rounded-full text-white opacity-0 transition-all duration-200 group-hover:translate-x-0 group-hover:opacity-100"
+                            style={{ background: 'var(--color-accent)' }}
                             aria-hidden
                         >
                             <ArrowRight className="h-3.5 w-3.5" />

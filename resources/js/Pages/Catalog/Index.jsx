@@ -16,19 +16,12 @@ import { useEffect, useRef, useState } from 'react';
 import CatalogCard from '@/Components/Public/CatalogCard';
 import PublicFooter from '@/Components/Public/PublicFooter';
 import PublicHeader from '@/Components/Public/PublicHeader';
+import SpeedLines from '@/Components/SpeedLines';
+import SwooshLine from '@/Components/SwooshLine';
 import { EASE, Reveal, StatCounter, VisualPlaceholder } from '@/Components/Public/shared';
 
-/**
- * Set to a real photo URL to replace the hero placeholder.
- * null = show the grid-pattern placeholder with a centered icon tile.
- */
 const heroImage = null;
 
-/**
- * Static sample items for the landing mini-catalog. Backend items from the
- * `featured_products` Inertia prop are used first; these only fill the row
- * up to exactly 4 cards. No backend changes.
- */
 const LANDING_SAMPLES = [
     { id: 's1', type: 'produk', title: 'Alat Uji Kualitas Air Portable', price: 'Rp 2.450.000' },
     { id: 's2', type: 'produk', title: 'Modul Trainer IoT Berbasis ESP32', price: 'Rp 1.275.000' },
@@ -67,8 +60,8 @@ function HeroVisual({ reduce, style }) {
             style={style}
         >
             <div
-                className="relative overflow-hidden rounded-3xl border border-white/15"
-                style={{ boxShadow: '0 24px 60px -16px rgba(0,0,0,0.45)' }}
+                className="relative overflow-hidden rounded-3xl border"
+                style={{ borderColor: 'var(--color-dark-border)', boxShadow: 'var(--shadow-hero)' }}
             >
                 {heroImage ? (
                     <img
@@ -89,22 +82,22 @@ function HeroVisual({ reduce, style }) {
                         <div className="grid-pattern absolute inset-0" />
                         <div
                             className="absolute -right-10 -top-10 h-44 w-44 rounded-full"
-                            style={{ background: 'radial-gradient(circle, rgba(202,156,52,0.28), transparent 70%)' }}
+                            style={{ background: 'radial-gradient(circle, color-mix(in srgb, var(--color-gold) 28%, transparent), transparent 70%)' }}
                         />
                         <div
                             className="absolute -bottom-12 -left-12 h-48 w-48 rounded-full"
-                            style={{ background: 'radial-gradient(circle, rgba(255,255,255,0.16), transparent 70%)' }}
+                            style={{ background: 'radial-gradient(circle, color-mix(in srgb, var(--color-dark-text) 16%, transparent), transparent 70%)' }}
                         />
-                        <div className="absolute inset-0" style={{ boxShadow: 'inset 0 0 80px rgba(255,255,255,0.08)' }} />
+                        <div className="absolute inset-0" style={{ boxShadow: 'inset 0 0 80px color-mix(in srgb, var(--color-dark-text) 8%, transparent)' }} />
                         <span
                             className="relative flex h-20 w-20 items-center justify-center rounded-3xl"
                             style={{
-                                background: 'rgba(255,255,255,0.12)',
-                                border: '1px solid rgba(255,255,255,0.22)',
-                                boxShadow: '0 12px 32px -8px rgba(0,0,0,0.4)',
+                                background: 'color-mix(in srgb, var(--color-dark-text) 12%, transparent)',
+                                border: '1px solid var(--color-dark-border)',
+                                boxShadow: 'var(--shadow-hero)',
                             }}
                         >
-                            <ImageIcon className="h-9 w-9 text-white" />
+                            <ImageIcon className="h-9 w-9" style={{ color: 'var(--color-dark-text)' }} />
                         </span>
                     </div>
                 )}
@@ -126,7 +119,6 @@ function MiniCatalogCard({ item, index }) {
 export default function CatalogIndex({ auth, categories = [], featured_products = [] }) {
     const reduce = useReducedMotion();
 
-    // Hero parallax (desktop only, transform-only)
     const heroRef = useRef(null);
     const [isDesktop, setIsDesktop] = useState(false);
     useEffect(() => {
@@ -139,7 +131,6 @@ export default function CatalogIndex({ auth, categories = [], featured_products 
     const { scrollYProgress } = useScroll({ target: heroRef, offset: ['start start', 'end start'] });
     const visualY = useTransform(scrollYProgress, [0, 1], [0, isDesktop ? 28 : 0]);
 
-    // Backend items first (max 4), static samples fill the row up to exactly 4.
     const backendItems = (featured_products ?? []).slice(0, 4).map((p) => ({
         id: `b-${p.id}`,
         type: 'produk',
@@ -162,10 +153,8 @@ export default function CatalogIndex({ auth, categories = [], featured_products 
         <>
             <Head title="PNJ Prime, Marketplace Inovasi Politeknik Negeri Jakarta" />
 
-            {/* Header */}
             <PublicHeader auth={auth} />
 
-            {/* Hero */}
             <section
                 ref={heroRef}
                 className="relative overflow-hidden text-white"
@@ -174,41 +163,47 @@ export default function CatalogIndex({ auth, categories = [], featured_products 
                         'linear-gradient(120deg, var(--color-deep) 0%, var(--color-deep-soft) 55%, var(--color-accent-hover) 125%)',
                 }}
             >
-                {/* Ambient glow blobs */}
                 {!reduce ? (
                     <>
                         <motion.div
                             aria-hidden
                             className="pointer-events-none absolute -right-32 -top-32 h-[480px] w-[480px] rounded-full"
-                            style={{ background: 'radial-gradient(circle, rgba(255,255,255,0.14), transparent 70%)' }}
+                            style={{ background: 'radial-gradient(circle, color-mix(in srgb, var(--color-dark-text) 14%, transparent), transparent 70%)' }}
                             animate={{ x: [0, -24, 0], y: [0, 24, 0] }}
                             transition={{ duration: 16, repeat: Infinity, repeatType: 'mirror', ease: 'easeInOut' }}
                         />
                         <motion.div
                             aria-hidden
                             className="pointer-events-none absolute -bottom-40 -left-36 h-[420px] w-[420px] rounded-full"
-                            style={{ background: 'radial-gradient(circle, rgba(202,156,52,0.22), transparent 70%)' }}
+                            style={{ background: 'radial-gradient(circle, color-mix(in srgb, var(--color-gold) 22%, transparent), transparent 70%)' }}
                             animate={{ x: [0, 24, 0], y: [0, -24, 0] }}
                             transition={{ duration: 14, repeat: Infinity, repeatType: 'mirror', ease: 'easeInOut' }}
                         />
                     </>
                 ) : (
                     <>
-                        <div aria-hidden className="pointer-events-none absolute -right-32 -top-32 h-[480px] w-[480px] rounded-full" style={{ background: 'radial-gradient(circle, rgba(255,255,255,0.14), transparent 70%)' }} />
-                        <div aria-hidden className="pointer-events-none absolute -bottom-40 -left-36 h-[420px] w-[420px] rounded-full" style={{ background: 'radial-gradient(circle, rgba(202,156,52,0.22), transparent 70%)' }} />
+                        <div aria-hidden className="pointer-events-none absolute -right-32 -top-32 h-[480px] w-[480px] rounded-full" style={{ background: 'radial-gradient(circle, color-mix(in srgb, var(--color-dark-text) 14%, transparent), transparent 70%)' }} />
+                        <div aria-hidden className="pointer-events-none absolute -bottom-40 -left-36 h-[420px] w-[420px] rounded-full" style={{ background: 'radial-gradient(circle, color-mix(in srgb, var(--color-gold) 22%, transparent), transparent 70%)' }} />
                     </>
                 )}
 
+                <div className="pointer-events-none absolute -right-24 bottom-0 hidden w-[560px] opacity-20 lg:block" aria-hidden>
+                    <SwooshLine size="lg" opacity={1} color="var(--color-gold)" stroke={2} />
+                </div>
+
                 <div className="landing-container relative grid items-center gap-12 py-16 md:py-24 lg:grid-cols-[1.05fr_0.95fr]">
                     <div className="order-2 lg:order-1">
-                        <motion.p {...heroStagger(0)} className="mb-4 inline-flex items-center gap-2 rounded-full border border-white/20 bg-white/10 px-3.5 py-1 text-xs font-semibold tracking-wide text-white/90 backdrop-blur-sm">
-                            <span className="h-2 w-2 rounded-full bg-[var(--color-gold)] animate-pulse" />
-                            Rekayasa Teknologi &amp; Produk Unggulan PNJ
-                        </motion.p>
-                        <motion.h1 {...heroStagger(1)} className="landing-h1 font-display text-white">
+                        <motion.div {...heroStagger(0)} className="mb-5 flex items-center gap-3">
+                            <SpeedLines size="sm" />
+                            <span className="inline-flex items-center gap-2 rounded-full border px-3.5 py-1 text-xs font-semibold tracking-wide" style={{ borderColor: 'var(--color-dark-border)', background: 'color-mix(in srgb, var(--color-dark-text) 10%, transparent)', color: 'var(--color-dark-text)' }}>
+                                <span className="h-2 w-2 rounded-full" style={{ background: 'var(--color-gold)' }} />
+                                Rekayasa Teknologi &amp; Produk Unggulan PNJ
+                            </span>
+                        </motion.div>
+                        <motion.h1 {...heroStagger(1)} className="landing-h1 font-display" style={{ color: 'var(--color-dark-text)' }}>
                             Inovasi PNJ, siap melaju bersama <span style={{ color: 'var(--color-gold)' }}>industri</span> &amp; masyarakat
                         </motion.h1>
-                        <motion.p {...heroStagger(2)} className="mt-6 max-w-xl text-[17px] leading-relaxed text-white/80">
+                        <motion.p {...heroStagger(2)} className="mt-6 max-w-xl text-[17px] leading-relaxed" style={{ color: 'var(--color-dark-muted)' }}>
                             PNJ Prime mempertemukan produk, jasa pengujian, dan fasilitas unggulan
                             hasil riset kampus dengan masyarakat dan industri. Produk diajukan
                             Admin P3M, dikurasi Admin RTPU, dan pembayaran masuk ke rekening
@@ -217,24 +212,21 @@ export default function CatalogIndex({ auth, categories = [], featured_products 
                         <motion.div {...heroStagger(3)} className="mt-8 flex flex-wrap gap-3">
                             <a
                                 href="/katalog"
-                                className="group inline-flex items-center gap-2 rounded-full px-7 py-3.5 text-[15px] font-semibold text-white transition hover:-translate-y-px active:scale-[0.98]"
-                                style={{ background: 'var(--color-accent)' }}
-                                onMouseEnter={(e) => (e.currentTarget.style.background = 'var(--color-accent-hover)')}
-                                onMouseLeave={(e) => (e.currentTarget.style.background = 'var(--color-accent)')}
+                                className="group inline-flex items-center gap-2 rounded-full bg-[var(--color-gold)] px-7 py-3.5 text-[15px] font-semibold text-[var(--color-deep)] transition duration-150 hover:-translate-y-px hover:bg-[var(--color-gold-deep)] active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-gold)] focus-visible:ring-offset-2"
                             >
                                 Jelajahi Katalog
-                                <ArrowRight className="h-4 w-4 transition-transform duration-300 group-hover:translate-x-1" />
+                                <ArrowRight className="h-4 w-4 transition-transform duration-200 group-hover:translate-x-1" />
                             </a>
                             <a
                                 href="#tentang"
-                                className="group inline-flex items-center gap-2 rounded-full border bg-white px-7 py-3.5 text-[15px] font-semibold transition hover:-translate-y-px active:scale-[0.98]"
-                                style={{ borderColor: 'var(--color-border)', color: 'var(--color-ink)' }}
+                                className="group inline-flex items-center gap-2 rounded-full border px-7 py-3.5 text-[15px] font-semibold transition duration-150 hover:-translate-y-px hover:bg-[var(--color-dark-hover)] active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-dark-text)] focus-visible:ring-offset-2"
+                                style={{ borderColor: 'var(--color-dark-border)', color: 'var(--color-dark-text)' }}
                             >
                                 Tentang Kami
-                                <ArrowRight className="h-4 w-4 transition-transform duration-300 group-hover:translate-x-1" />
+                                <ArrowRight className="h-4 w-4 transition-transform duration-200 group-hover:translate-x-1" />
                             </a>
                         </motion.div>
-                        <motion.div {...heroStagger(4)} className="mt-8 flex items-center gap-3 text-sm text-white/75">
+                        <motion.div {...heroStagger(4)} className="mt-8 flex items-center gap-3 text-sm" style={{ color: 'var(--color-dark-muted)' }}>
                             <span className="flex items-center gap-1.5" style={{ color: 'var(--color-gold)' }}>
                                 <Star className="h-4 w-4 fill-current" />
                                 <Star className="h-4 w-4 fill-current" />
@@ -246,20 +238,19 @@ export default function CatalogIndex({ auth, categories = [], featured_products 
                         </motion.div>
                     </div>
 
-                    {/* Hero visual, clean picture placeholder, swappable via heroImage */}
                     <HeroVisual reduce={reduce} style={isDesktop ? { y: visualY } : undefined} />
                 </div>
             </section>
 
-            {/* Mini catalog preview */}
             <section id="katalog" className="landing-section scroll-mt-20 bg-white">
                 <div className="landing-container">
                     <Reveal>
-                        <p className="mb-3 text-sm font-semibold" style={{ color: 'var(--color-accent)' }}>
+                        <p className="mb-3 inline-flex items-center gap-2 text-sm font-semibold" style={{ color: 'var(--color-accent)' }}>
+                            <span className="h-1.5 w-1.5 rounded-full" style={{ background: 'var(--color-gold)' }} />
                             Katalog Pilihan
                         </p>
-                        <div className="max-w-xl">
-                            <h2 className="font-display text-3xl font-bold sm:text-4xl" style={{ color: 'var(--color-ink)' }}>
+                        <div className="max-w-2xl">
+                            <h2 className="font-display text-3xl font-bold sm:text-4xl lg:text-[42px] lg:leading-[1.1]" style={{ color: 'var(--color-ink)' }}>
                                 Produk, jasa, dan fasilitas unggulan
                             </h2>
                             <p className="mt-3 text-[15px] leading-relaxed" style={{ color: 'var(--color-muted)' }}>
@@ -278,21 +269,20 @@ export default function CatalogIndex({ auth, categories = [], featured_products 
                     <Reveal className="mt-10 text-center">
                         <Link
                             href={route('catalog.index')}
-                            className="group inline-flex items-center gap-2 rounded-full px-8 py-3.5 text-[15px] font-semibold text-white transition hover:-translate-y-px active:scale-[0.98]"
-                            style={{ background: 'var(--color-accent)' }}
-                            onMouseEnter={(e) => (e.currentTarget.style.background = 'var(--color-accent-hover)')}
-                            onMouseLeave={(e) => (e.currentTarget.style.background = 'var(--color-accent)')}
+                            className="group inline-flex items-center gap-2 rounded-full bg-[var(--color-accent)] px-8 py-3.5 text-[15px] font-semibold text-[var(--color-bg)] transition duration-150 hover:-translate-y-px hover:bg-[var(--color-accent-hover)] active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-accent)] focus-visible:ring-offset-2"
                         >
                             Lihat Semua Katalog
-                            <ArrowRight className="h-4 w-4 transition-transform duration-300 group-hover:translate-x-1" />
+                            <ArrowRight className="h-4 w-4 transition-transform duration-200 group-hover:translate-x-1" />
                         </Link>
                     </Reveal>
                 </div>
             </section>
 
-            {/* About RTPU PNJ */}
-            <section id="tentang" className="landing-section scroll-mt-20" style={{ background: 'var(--color-surface)' }}>
-                <div className="landing-container grid items-center gap-14 lg:grid-cols-[0.9fr_1.1fr]">
+            <section id="tentang" className="landing-section relative scroll-mt-20 overflow-hidden" style={{ background: 'var(--color-surface)' }}>
+                <div className="pointer-events-none absolute -left-24 top-10 w-[420px] opacity-30" aria-hidden>
+                    <SwooshLine size="md" opacity={0.5} color="var(--color-accent)" stroke={1.5} />
+                </div>
+                <div className="landing-container relative grid items-center gap-14 lg:grid-cols-[0.9fr_1.1fr]">
                     <div className="relative mx-auto w-full max-w-md">
                         <motion.div
                             aria-hidden
@@ -305,7 +295,7 @@ export default function CatalogIndex({ auth, categories = [], featured_products 
                         />
                         <motion.div
                             className="relative overflow-hidden rounded-3xl border bg-white"
-                            style={{ borderColor: 'var(--color-border)' }}
+                            style={{ borderColor: 'var(--color-border)', boxShadow: 'var(--shadow-layered)' }}
                             initial={{ opacity: 0, scale: reduce ? 1 : 1.04 }}
                             whileInView={{ opacity: 1, scale: 1 }}
                             viewport={{ once: true, margin: '-80px' }}
@@ -317,10 +307,11 @@ export default function CatalogIndex({ auth, categories = [], featured_products 
 
                     <div>
                         <Reveal>
-                            <p className="mb-3 text-sm font-semibold" style={{ color: 'var(--color-accent)' }}>
+                            <p className="mb-3 inline-flex items-center gap-2 text-sm font-semibold" style={{ color: 'var(--color-accent)' }}>
+                                <span className="h-1.5 w-1.5 rounded-full" style={{ background: 'var(--color-gold)' }} />
                                 Tentang RTPU PNJ
                             </p>
-                            <h2 className="font-display text-3xl font-bold sm:text-4xl" style={{ color: 'var(--color-ink)' }}>
+                            <h2 className="font-display text-3xl font-bold sm:text-4xl lg:text-[42px] lg:leading-[1.1]" style={{ color: 'var(--color-ink)' }}>
                                 Wadah resmi hilirisasi inovasi PNJ
                             </h2>
                             <p className="mt-4 max-w-xl text-[15px] leading-relaxed" style={{ color: 'var(--color-muted)' }}>
@@ -376,7 +367,6 @@ export default function CatalogIndex({ auth, categories = [], featured_products 
                 </div>
             </section>
 
-            {/* Footer */}
             <PublicFooter auth={auth} />
         </>
     );

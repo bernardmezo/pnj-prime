@@ -10,25 +10,6 @@ const SIZES = {
     md: 'px-4 py-2.5 text-sm',
 };
 
-/**
- * Select — accessible single-choice dropdown built on Headless UI Listbox.
- *
- * @example
- * <Select
- *   label="Satuan"
- *   value={data.satuan}
- *   onChange={(v) => setData('satuan', v)}
- *   options={[{ value: 'flat', label: 'Flat' }, { value: 'per_hari', label: 'Per hari' }]}
- *   error={errors.satuan}
- * />
- *
- * @param {object} props
- * @param {string} [props.label]
- * @param {string} [props.name]       renders a hidden input for native posts
- * @param {*} props.value
- * @param {(v: *) => void} props.onChange
- * @param {Array<{value:*, label:string, description?:string, disabled?:boolean, icon?:import('react').ReactNode}>} props.options
- */
 export default function Select({
     label,
     name,
@@ -69,7 +50,8 @@ export default function Select({
                             aria-describedby={describedBy}
                             aria-required={required || undefined}
                             className={clsx(
-                                'flex w-full items-center justify-between gap-2 rounded-xl border text-left outline-none transition',
+                                'flex w-full items-center justify-between gap-2 rounded-xl border text-left outline-none transition duration-150',
+                                'focus-visible:ring-2 focus-visible:ring-[var(--color-accent)] focus-visible:ring-offset-1',
                                 SIZES[size],
                                 disabled && 'cursor-not-allowed',
                             )}
@@ -84,7 +66,7 @@ export default function Select({
                                 <span className="truncate">{selected ? selected.label : placeholder}</span>
                             </span>
                             <ChevronDown
-                                className={clsx('h-4 w-4 shrink-0 transition-transform', open && 'rotate-180')}
+                                className={clsx('h-4 w-4 shrink-0 transition-transform duration-200', open && 'rotate-180')}
                                 style={{ color: 'var(--color-muted)' }}
                             />
                         </ListboxButton>
@@ -93,7 +75,7 @@ export default function Select({
                             anchor="bottom start"
                             transition
                             className={clsx(
-                                'z-[90] mt-1 max-h-64 w-[var(--button-width)] overflow-auto rounded-xl border bg-white py-1 text-sm shadow-card focus:outline-none',
+                                'z-[90] mt-1 max-h-64 w-[var(--button-width)] overflow-auto rounded-xl border bg-white py-1 text-sm shadow-dropdown focus:outline-none',
                                 !reduce && 'transition duration-100 ease-out data-[closed]:opacity-0 data-[closed]:scale-95',
                             )}
                             style={{ borderColor: 'var(--color-border)' }}
@@ -110,8 +92,8 @@ export default function Select({
                                     disabled={opt.disabled}
                                     className={({ focus, disabled: dis }) =>
                                         clsx(
-                                            'flex cursor-pointer items-center justify-between gap-3 px-4 py-2.5',
-                                            focus && 'bg-[color:var(--color-accent-tint)]',
+                                            'flex cursor-pointer items-center justify-between gap-3 px-4 py-2.5 transition duration-150',
+                                            focus && 'bg-[var(--color-accent-tint)]',
                                             dis && 'cursor-not-allowed opacity-50',
                                         )
                                     }
@@ -157,7 +139,7 @@ export default function Select({
                     type="button"
                     aria-label="Bersihkan pilihan"
                     onClick={() => onChange?.(null)}
-                    className="absolute right-8 top-1/2 z-10 -translate-y-1/2 rounded p-0.5"
+                    className="absolute right-8 top-1/2 z-10 -translate-y-1/2 rounded p-0.5 transition duration-150 hover:bg-[var(--color-surface)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-accent)]"
                     style={{ color: 'var(--color-muted)' }}
                 >
                     <X className="h-3.5 w-3.5" />

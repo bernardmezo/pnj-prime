@@ -242,13 +242,16 @@ export default function PengajuanCreate({ auth, layanan = [], selected = {} }) {
                 </div>
 
                 {/* Page Title & Muted line naming product */}
-                <div className="mt-4">
-                    <h1 className="font-display text-2xl font-bold tracking-tight text-[var(--color-ink)] sm:text-3xl">
-                        Ajukan Layanan
-                    </h1>
-                    <p className="mt-1 text-sm text-[var(--color-muted)]">
-                        {selectedName ? selectedName : 'Lengkapi detail permohonan layanan riset PNJ.'}
-                    </p>
+                <div className="relative mt-4 overflow-hidden rounded-2xl border border-[var(--color-border)] bg-white p-6 shadow-card sm:p-7">
+                    <div className="pointer-events-none absolute inset-x-0 top-0 h-[2px] bg-gradient-to-r from-[var(--color-gold)] via-[var(--color-accent)] to-[var(--color-gold)]" aria-hidden />
+                    <div className="relative">
+                        <h1 className="font-display text-[28px] font-bold tracking-tight text-[var(--color-ink)] sm:text-3xl">
+                            Ajukan Layanan
+                        </h1>
+                        <p className="mt-1.5 max-w-xl text-sm text-[var(--color-muted)]">
+                            {selectedName ? selectedName : 'Lengkapi detail permohonan layanan riset PNJ.'}
+                        </p>
+                    </div>
                 </div>
 
                 {/* Plain product row: Name left, base price right, separated by thin divider */}

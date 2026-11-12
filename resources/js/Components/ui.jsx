@@ -107,33 +107,38 @@ export function DangerButton({ children, className = '', ...props }) {
 export function Card({ children, className = '', style = {} }) {
     return (
         <div
-            className={`rounded-3xl border bg-white transition duration-150 hover:shadow-[var(--shadow-layered)] ${className}`}
+            className={`relative overflow-hidden rounded-3xl border bg-white shadow-card transition duration-150 hover:shadow-[var(--shadow-layered)] ${className}`}
             style={{ borderColor: 'var(--color-border)', ...style }}
         >
-            {children}
+            <div className="pointer-events-none absolute inset-x-0 top-0 h-[2px] bg-gradient-to-r from-transparent via-[var(--color-gold)] to-transparent opacity-60" aria-hidden />
+            <div className="relative">{children}</div>
         </div>
     );
 }
 
 export function PageHeader({ eyebrow, title, desc, actions }) {
     return (
-        <div className="mb-6 flex flex-wrap items-end justify-between gap-4">
-            <div className="max-w-2xl">
-                {eyebrow && (
-                    <p className="mb-2 text-sm font-semibold" style={{ color: 'var(--color-accent)' }}>
-                        {eyebrow}
-                    </p>
-                )}
-                <h1 className="font-display text-2xl font-bold sm:text-3xl" style={{ color: 'var(--color-ink)' }}>
-                    {title}
-                </h1>
-                {desc && (
-                    <p className="mt-2 text-sm leading-relaxed" style={{ color: 'var(--color-muted)' }}>
-                        {desc}
-                    </p>
-                )}
+        <div className="relative mb-8 overflow-hidden rounded-2xl border border-[var(--color-border)] bg-white p-6 shadow-card sm:p-7">
+            <div className="pointer-events-none absolute inset-x-0 top-0 h-[2px] bg-gradient-to-r from-[var(--color-gold)] via-[var(--color-accent)] to-[var(--color-gold)]" aria-hidden />
+            <div className="relative flex flex-wrap items-end justify-between gap-4">
+                <div className="max-w-2xl">
+                    {eyebrow && (
+                        <p className="mb-2 inline-flex items-center gap-2 rounded-full border px-3 py-1 text-[11px] font-bold uppercase tracking-widest" style={{ borderColor: 'color-mix(in srgb, var(--color-accent) 22%, transparent)', color: 'var(--color-accent)', background: 'color-mix(in srgb, var(--color-accent-tint) 50%, transparent)' }}>
+                            <span className="h-1.5 w-1.5 rounded-full" style={{ background: 'var(--color-gold)' }} />
+                            {eyebrow}
+                        </p>
+                    )}
+                    <h1 className="font-display text-[28px] font-bold tracking-tight sm:text-3xl" style={{ color: 'var(--color-ink)' }}>
+                        {title}
+                    </h1>
+                    {desc && (
+                        <p className="mt-1.5 max-w-xl text-sm leading-relaxed" style={{ color: 'var(--color-muted)' }}>
+                            {desc}
+                        </p>
+                    )}
+                </div>
+                {actions && <div className="flex flex-wrap gap-2">{actions}</div>}
             </div>
-            {actions && <div className="flex flex-wrap gap-2">{actions}</div>}
         </div>
     );
 }

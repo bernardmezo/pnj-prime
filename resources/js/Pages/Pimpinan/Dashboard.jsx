@@ -63,7 +63,7 @@ export default function PimpinanDashboard({
                         onClick={() => setPeriod('bulan_ini')}
                         className={`pb-1 transition-colors ${
                             period === 'bulan_ini'
-                                ? 'border-b-2 border-[var(--color-accent)] font-semibold text-[var(--color-accent)]'
+                                ? 'relative font-semibold text-[var(--color-accent)] after:absolute after:-bottom-[1px] after:left-0 after:right-0 after:h-[2px] after:rounded-full after:bg-gradient-to-r after:from-[var(--color-gold)] after:to-[var(--color-accent)]'
                                 : 'text-[var(--color-muted)] hover:text-[var(--color-ink)]'
                         }`}
                     >
@@ -74,7 +74,7 @@ export default function PimpinanDashboard({
                         onClick={() => setPeriod('3_bulan')}
                         className={`pb-1 transition-colors ${
                             period === '3_bulan'
-                                ? 'border-b-2 border-[var(--color-accent)] font-semibold text-[var(--color-accent)]'
+                                ? 'relative font-semibold text-[var(--color-accent)] after:absolute after:-bottom-[1px] after:left-0 after:right-0 after:h-[2px] after:rounded-full after:bg-gradient-to-r after:from-[var(--color-gold)] after:to-[var(--color-accent)]'
                                 : 'text-[var(--color-muted)] hover:text-[var(--color-ink)]'
                         }`}
                     >
@@ -85,7 +85,7 @@ export default function PimpinanDashboard({
                         onClick={() => setPeriod('tahun_ini')}
                         className={`pb-1 transition-colors ${
                             period === 'tahun_ini'
-                                ? 'border-b-2 border-[var(--color-accent)] font-semibold text-[var(--color-accent)]'
+                                ? 'relative font-semibold text-[var(--color-accent)] after:absolute after:-bottom-[1px] after:left-0 after:right-0 after:h-[2px] after:rounded-full after:bg-gradient-to-r after:from-[var(--color-gold)] after:to-[var(--color-accent)]'
                                 : 'text-[var(--color-muted)] hover:text-[var(--color-ink)]'
                         }`}
                     >

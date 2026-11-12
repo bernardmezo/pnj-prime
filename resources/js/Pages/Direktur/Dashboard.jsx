@@ -80,7 +80,7 @@ export default function DirekturDashboard({
                                             {t.count}
                                         </div>
                                         <div
-                                            className="w-full max-w-[36px] rounded-t-[3px] transition-all bg-[var(--color-accent)]"
+                                            className="relative w-full max-w-[36px] rounded-t-[3px] transition-all bg-[var(--color-accent)] after:absolute after:inset-x-0 after:top-0 after:h-[3px] after:bg-[var(--color-gold)]"
                                             style={{ height: `${heightPercent}%` }}
                                         />
                                         <span className="text-xs text-[var(--color-muted)] font-medium">

@@ -1,11 +1,13 @@
 import { Head, Link } from '@inertiajs/react';
 import { Box, CheckCircle2, Clock, Plus, ShieldCheck, XCircle } from 'lucide-react';
 import DashboardLayout from '@/Layouts/DashboardLayout';
+import { EmptyState } from '@/Components/Dashboard/SharedDashboard';
 
 function Card({ children, className = '' }) {
     return (
-        <div className={`rounded-2xl border bg-white shadow-sm ${className}`} style={{ borderColor: 'var(--color-border)' }}>
-            {children}
+        <div className={`relative overflow-hidden rounded-2xl border bg-white shadow-card ${className}`} style={{ borderColor: 'var(--color-border)' }}>
+            <div className="pointer-events-none absolute inset-x-0 top-0 h-[2px] bg-gradient-to-r from-transparent via-[var(--color-gold)] to-transparent opacity-60" aria-hidden />
+            <div className="relative">{children}</div>
         </div>
     );
 }
@@ -49,7 +51,8 @@ export default function PengelolaDashboard({ auth, stats = {}, recentProducts = 
             <Head title="Dashboard Pengelola · PNJ Prime" />
             <FadeIn>
                 <div className="space-y-6">
-                    <div className="bg-white p-8 rounded-3xl border border-[var(--color-border)] shadow-sm flex flex-col md:flex-row md:items-center md:justify-between gap-6">
+                    <div className="relative overflow-hidden bg-white p-8 rounded-3xl border border-[var(--color-border)] shadow-card flex flex-col md:flex-row md:items-center md:justify-between gap-6">
+                        <div className="pointer-events-none absolute inset-x-0 top-0 h-[2px] bg-gradient-to-r from-[var(--color-gold)] via-[var(--color-accent)] to-[var(--color-gold)]" aria-hidden />
                         <div>
                             <span className="inline-block px-3 py-1 rounded-full text-xs font-semibold bg-[var(--color-accent-tint)] text-[var(--color-accent)] mb-2">Admin Pengelola Unit</span>
                             <h1 className="text-2xl font-bold text-[var(--color-ink)]">Selamat Datang, {auth?.user?.name || 'Pengelola Unit'}</h1>
@@ -57,7 +60,7 @@ export default function PengelolaDashboard({ auth, stats = {}, recentProducts = 
                         </div>
                         <Link
                             href={route('pengelola.produk.create')}
-                            className="inline-flex items-center justify-center gap-2 rounded-2xl px-6 py-3 text-xs font-bold text-white shadow-sm transition hover:opacity-90 self-start md:self-auto"
+                            className="inline-flex items-center justify-center gap-2 rounded-full px-6 py-3 text-sm font-semibold text-[var(--color-bg)] shadow-sm transition hover:bg-[var(--color-accent-hover)] self-start md:self-auto"
                             style={{ background: 'var(--color-accent)' }}
                         >
                             <Plus className="w-4 h-4" />
@@ -66,22 +69,22 @@ export default function PengelolaDashboard({ auth, stats = {}, recentProducts = 
                     </div>
 
                     <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-                        <Card className="p-6 rounded-2xl shadow-sm border-[var(--color-border)]">
+                        <Card className="p-6 rounded-2xl border-[var(--color-border)]">
                             <span className="text-xs font-bold uppercase tracking-wider text-[var(--color-muted)]">Total Produk</span>
                             <p className="text-3xl font-extrabold text-[var(--color-ink)] mt-2">{stats?.total ?? 0}</p>
                             <span className="text-[11px] text-[var(--color-muted)] mt-1 block">Seluruh inovasi terdaftar</span>
                         </Card>
-                        <Card className="p-6 rounded-2xl shadow-sm border-[var(--color-border)]">
+                        <Card className="p-6 rounded-2xl border-[var(--color-border)]">
                             <span className="text-xs font-bold uppercase tracking-wider text-[var(--color-muted)]">Pending Kurasi</span>
                             <p className="text-3xl font-extrabold text-[var(--color-ink)] mt-2">{stats?.pending ?? 0}</p>
                             <span className="text-[11px] text-[var(--color-muted)] mt-1 block">Menunggu review kurator</span>
                         </Card>
-                        <Card className="p-6 rounded-2xl shadow-sm border-[var(--color-border)]">
+                        <Card className="p-6 rounded-2xl border-[var(--color-border)]">
                             <span className="text-xs font-bold uppercase tracking-wider text-[var(--color-muted)]">Verifikasi RTPU</span>
                             <p className="text-3xl font-extrabold text-[var(--color-ink)] mt-2">{stats?.verified ?? 0}</p>
                             <span className="text-[11px] text-[var(--color-muted)] mt-1 block">Proses akhir pimpinan</span>
                         </Card>
-                        <Card className="p-6 rounded-2xl shadow-sm border-[var(--color-border)]">
+                        <Card className="p-6 rounded-2xl border-[var(--color-border)]">
                             <span className="text-xs font-bold uppercase tracking-wider text-[var(--color-muted)]">Disetujui Publikasi</span>
                             <p className="text-3xl font-extrabold text-[var(--color-ink)] mt-2">{stats?.approved ?? 0}</p>
                             <span className="text-[11px] text-[var(--color-muted)] mt-1 block">Tayang di katalog umum</span>

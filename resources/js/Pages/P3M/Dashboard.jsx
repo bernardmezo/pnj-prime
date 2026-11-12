@@ -52,7 +52,7 @@ export default function P3mDashboard({ auth, stats = {}, daftar = [], recentActi
                 <button
                     type="button"
                     onClick={() => setModalOpen(true)}
-                    className="inline-flex items-center justify-center rounded-full bg-[var(--color-accent)] px-4 py-2 text-sm font-semibold text-white transition hover:bg-[var(--color-accent-hover)] self-start sm:self-auto"
+                    className="inline-flex items-center justify-center rounded-full bg-[var(--color-accent)] px-4 py-2 text-sm font-semibold text-[var(--color-bg)] transition hover:bg-[var(--color-accent-hover)] self-start sm:self-auto"
                 >
                     + Ajukan Produk Unggulan
                 </button>

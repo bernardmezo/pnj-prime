@@ -1,25 +1,40 @@
 import React from 'react';
 import { Head } from '@inertiajs/react';
+import DashboardLayout from '@/Layouts/DashboardLayout';
+import { PageHeader, Panel, StatRow } from '@/Components/Dashboard/SharedDashboard';
 
 export default function ReportsIndex({ filter, summary, orders, audit_logs }) {
+    const statItems = [
+        {
+            label: 'Total Pendapatan',
+            value: summary?.total_revenue ?? 0,
+            formattedValue: `Rp ${Number(summary?.total_revenue || 0).toLocaleString('id-ID')}`,
+        },
+        {
+            label: 'Total Pajak (PPN)',
+            value: summary?.total_tax ?? 0,
+            formattedValue: `Rp ${Number(summary?.total_tax || 0).toLocaleString('id-ID')}`,
+        },
+        {
+            label: 'Total Pesanan',
+            value: summary?.total_orders ?? 0,
+        },
+    ];
+
     return (
-        <div className="p-6 max-w-7xl mx-auto">
+        <DashboardLayout title="Laporan & Audit Transaksi" activeKey="reports">
             <Head title="Laporan & Audit Transaksi" />
-            <h1 className="text-2xl font-bold mb-4">Laporan & Audit Transaksi</h1>
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
-                <div className="p-4 bg-white rounded-lg shadow border">
-                    <div className="text-sm text-[var(--color-muted)]">Total Pendapatan</div>
-                    <div className="text-xl font-bold">Rp {Number(summary?.total_revenue || 0).toLocaleString('id-ID')}</div>
-                </div>
-                <div className="p-4 bg-white rounded-lg shadow border">
-                    <div className="text-sm text-[var(--color-muted)]">Total Pajak (PPN)</div>
-                    <div className="text-xl font-bold">Rp {Number(summary?.total_tax || 0).toLocaleString('id-ID')}</div>
-                </div>
-                <div className="p-4 bg-white rounded-lg shadow border">
-                    <div className="text-sm text-[var(--color-muted)]">Total Pesanan</div>
-                    <div className="text-xl font-bold">{summary?.total_orders || 0}</div>
-                </div>
+
+            <div className="space-y-6">
+                <PageHeader
+                    title="Laporan & Audit Transaksi"
+                    subtitle="Ringkasan pendapatan dan aktivitas transaksi sistem"
+                />
+
+                <Panel>
+                    <StatRow stats={statItems} />
+                </Panel>
             </div>
-        </div>
+        </DashboardLayout>
     );
 }

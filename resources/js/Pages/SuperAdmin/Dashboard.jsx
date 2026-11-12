@@ -62,7 +62,7 @@ export default function SuperAdminDashboard({ auth, stats = {}, recentUsers = []
                 <PageHeader title="Dashboard" />
                 <Link
                     href={navHref('superadmin.users', {}, role)}
-                    className="inline-flex items-center justify-center rounded-xl border border-[var(--color-border)] bg-white px-4 py-2 text-sm font-semibold text-[var(--color-ink)] transition hover:border-[var(--color-accent)] hover:text-[var(--color-accent)] self-start sm:self-auto"
+                    className="inline-flex items-center justify-center rounded-full border border-[var(--color-border)] bg-white px-4 py-2 text-sm font-semibold text-[var(--color-ink)] transition hover:border-[var(--color-accent)] hover:bg-[var(--color-accent-tint)] hover:text-[var(--color-accent)] self-start sm:self-auto"
                 >
                     Kelola Semua Pengguna →
                 </Link>

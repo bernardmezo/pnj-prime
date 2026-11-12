@@ -137,33 +137,33 @@ export default function RtpuDashboard({
 
 
                 {/* 3. Queue: Dedicated white panel (12px radius, 1px border) */}
-                <div className="rounded-[12px] border border-[#E5E7EB] bg-white p-6 sm:p-8 space-y-5">
+                <div className="rounded-2xl border border-[var(--color-border)] bg-white p-6 sm:p-8 space-y-5">
                     {/* Heading & Search row */}
                     <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
                         <div className="flex items-center gap-2">
-                            <h2 className="text-base font-semibold text-[#111827]">
+                            <h2 className="text-base font-semibold text-[var(--color-ink)]">
                                 Antrean pengajuan
                             </h2>
-                            <span className="text-xs text-slate-400 tabular-nums">
+                            <span className="text-xs text-[var(--color-muted)] tabular-nums">
                                 ({filteredPengajuan.length})
                             </span>
                         </div>
 
                         {/* Search input: 6px radius, not a pill */}
                         <div className="relative w-full sm:w-64">
-                            <Search className="pointer-events-none absolute left-3 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-slate-400" />
+                            <Search className="pointer-events-none absolute left-3 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-[var(--color-muted)]" />
                             <input
                                 type="text"
                                 value={searchQuery}
                                 onChange={(e) => setSearchQuery(e.target.value)}
                                 placeholder="Cari pemohon, kode, layanan…"
-                                className="w-full rounded-[6px] border border-[#E5E7EB] bg-white py-1.5 pl-8 pr-3 text-xs text-[#111827] placeholder:text-slate-400 outline-none transition focus:border-[var(--color-accent)] focus:ring-1 focus:ring-[var(--color-accent)]"
+                                className="w-full rounded-xl border border-[var(--color-border)] bg-white py-1.5 pl-8 pr-3 text-xs text-[var(--color-ink)] placeholder:text-[var(--color-muted)] outline-none transition focus:border-[var(--color-accent)] focus:ring-1 focus:ring-[var(--color-accent)]"
                             />
                         </div>
                     </div>
 
                     {/* Filter tabs: Underlined text with active 2px teal underline */}
-                    <div className="flex gap-6 border-b border-[#E5E7EB] text-sm">
+                    <div className="flex gap-6 border-b border-[var(--color-border)] text-sm">
                         {[
                             { key: 'perlu_tindakan', label: 'Perlu tindakan' },
                             { key: 'semua', label: 'Semua' },
@@ -179,7 +179,7 @@ export default function RtpuDashboard({
                                     className={`relative pb-3 text-xs sm:text-sm transition-colors ${
                                         isTabActive
                                             ? 'font-semibold text-[var(--color-accent)]'
-                                            : 'font-normal text-slate-500 hover:text-slate-900'
+                                            : 'font-normal text-[var(--color-muted)] hover:text-[var(--color-ink)]'
                                     }`}
                                 >
                                     <span>{t.label}</span>
@@ -193,7 +193,7 @@ export default function RtpuDashboard({
 
                     {/* Table inside panel: 72px row height, 14px main text, 12px muted, 3px amber left accent on action rows */}
                     {filteredPengajuan.length === 0 ? (
-                        <div className="py-16 text-center text-sm text-slate-500">
+                        <div className="py-16 text-center text-sm text-[var(--color-muted)]">
                             {activeTab === 'perlu_tindakan' && !searchQuery
                                 ? 'Tidak ada pengajuan yang perlu ditindaklanjuti.'
                                 : 'Tidak ada pengajuan ditemukan.'}
@@ -202,7 +202,7 @@ export default function RtpuDashboard({
                         <div className="overflow-x-auto">
                             <table className="w-full text-left text-sm">
                                 <thead>
-                                    <tr className="border-b border-[#E5E7EB] bg-[#F9FAFB] text-xs text-slate-500">
+                                    <tr className="border-b border-[var(--color-border)] bg-[var(--color-surface)] text-xs text-[var(--color-muted)]">
                                         <th className="py-2.5 px-3 font-normal">Pemohon</th>
                                         <th className="py-2.5 px-3 font-normal">Layanan</th>
                                         <th className="py-2.5 px-3 font-normal">Tanggal</th>
@@ -211,7 +211,7 @@ export default function RtpuDashboard({
                                         <th className="py-2.5 px-3 text-right font-normal">Aksi</th>
                                     </tr>
                                 </thead>
-                                <tbody className="divide-y divide-[#E5E7EB]">
+                                <tbody className="divide-y divide-[var(--color-border)]">
                                     {filteredPengajuan.map((p) => {
                                         const needsVerify = p.status === 'Diajukan';
                                         const needsPaymentCheck = p.status === 'Menunggu Verifikasi Pembayaran';
@@ -222,29 +222,29 @@ export default function RtpuDashboard({
                                             <tr
                                                 key={p.id}
                                                 onClick={() => handleRowClick(p)}
-                                                className={`h-[72px] cursor-pointer transition-colors hover:bg-[#F9FAFB] relative ${
+                                                className={`h-[72px] cursor-pointer transition-colors hover:bg-[var(--color-surface)] relative ${
                                                     isActionRequired ? 'border-l-[3px] border-l-amber-500' : ''
                                                 }`}
                                             >
                                                 {/* Pemohon */}
                                                 <td className="py-3 px-3">
-                                                    <span className="block text-sm font-medium text-[#111827]">{p.customer}</span>
-                                                    <span className="block text-xs text-slate-400 mt-0.5">{p.code}</span>
+                                                    <span className="block text-sm font-medium text-[var(--color-ink)]">{p.customer}</span>
+                                                    <span className="block text-xs text-[var(--color-muted)] mt-0.5">{p.code}</span>
                                                 </td>
 
                                                 {/* Layanan */}
                                                 <td className="py-3 px-3">
-                                                    <span className="block text-sm font-medium text-[#111827]">{p.layanan}</span>
-                                                    <span className="block text-xs text-slate-400 capitalize mt-0.5">{p.tipe}</span>
+                                                    <span className="block text-sm font-medium text-[var(--color-ink)]">{p.layanan}</span>
+                                                    <span className="block text-xs text-[var(--color-muted)] capitalize mt-0.5">{p.tipe}</span>
                                                 </td>
 
                                                 {/* Tanggal */}
-                                                <td className="py-3 px-3 tabular-nums text-xs text-slate-500 whitespace-nowrap">
+                                                <td className="py-3 px-3 tabular-nums text-xs text-[var(--color-muted)] whitespace-nowrap">
                                                     {formatDateId(p.date)}
                                                 </td>
 
                                                 {/* Biaya (right-aligned, tabular-nums) */}
-                                                <td className="py-3 px-3 text-right tabular-nums text-sm font-medium text-[#111827]">
+                                                <td className="py-3 px-3 text-right tabular-nums text-sm font-medium text-[var(--color-ink)]">
                                                     {p.total ? `Rp ${Number(p.total).toLocaleString('id-ID')}` : '-'}
                                                 </td>
 
@@ -262,7 +262,7 @@ export default function RtpuDashboard({
                                                                 e.stopPropagation();
                                                                 handleRowClick(p);
                                                             }}
-                                                            className="inline-flex h-8 items-center justify-center rounded-[6px] border border-[var(--color-accent)] px-3 text-xs font-semibold text-[var(--color-accent)] transition hover:bg-[var(--color-accent-tint)]"
+                                                            className="inline-flex h-8 items-center justify-center rounded-xl border border-[var(--color-accent)] px-3 text-xs font-semibold text-[var(--color-accent)] transition hover:bg-[var(--color-accent-tint)]"
                                                         >
                                                             {actionLabel}
                                                         </button>
@@ -273,7 +273,7 @@ export default function RtpuDashboard({
                                                                 e.stopPropagation();
                                                                 handleRowClick(p);
                                                             }}
-                                                            className="text-xs text-slate-500 hover:text-slate-800 transition"
+                                                            className="text-xs text-[var(--color-muted)] hover:text-[var(--color-ink)] transition"
                                                         >
                                                             Lihat
                                                         </button>
@@ -288,8 +288,8 @@ export default function RtpuDashboard({
                     )}
 
                     {/* Footer directly below content */}
-                    <div className="pt-4 border-t border-[#E5E7EB] flex flex-col sm:flex-row sm:items-center justify-between gap-2 text-xs">
-                        <span className="text-slate-500">
+                    <div className="pt-4 border-t border-[var(--color-border)] flex flex-col sm:flex-row sm:items-center justify-between gap-2 text-xs">
+                        <span className="text-[var(--color-muted)]">
                             {activeTab === 'perlu_tindakan'
                                 ? `${filteredPengajuan.length} pengajuan perlu tindakan`
                                 : `Menampilkan ${filteredPengajuan.length} pengajuan`}
@@ -308,18 +308,18 @@ export default function RtpuDashboard({
 
                 {/* 4. Quiet second block: "Aktivitas terbaru" (plain list of last 5 events) */}
                 {recentActivities.length > 0 && (
-                    <div className="rounded-[12px] border border-[#E5E7EB] bg-white p-6 sm:p-8">
-                        <h3 className="text-sm font-semibold text-[#111827] mb-4">
+                    <div className="rounded-2xl border border-[var(--color-border)] bg-white p-6 sm:p-8">
+                        <h3 className="text-sm font-semibold text-[var(--color-ink)] mb-4">
                             Aktivitas terbaru
                         </h3>
-                        <div className="divide-y divide-[#E5E7EB]">
+                        <div className="divide-y divide-[var(--color-border)]">
                             {recentActivities.map((act) => (
                                 <div
                                     key={act.id}
                                     className="py-3 flex items-center justify-between gap-4 text-xs first:pt-0 last:pb-0"
                                 >
-                                    <span className="text-slate-700 truncate">{act.text}</span>
-                                    <span className="text-slate-400 shrink-0 tabular-nums">{act.timestamp}</span>
+                                    <span className="text-[var(--color-ink)] truncate">{act.text}</span>
+                                    <span className="text-[var(--color-muted)] shrink-0 tabular-nums">{act.timestamp}</span>
                                 </div>
                             ))}
                         </div>

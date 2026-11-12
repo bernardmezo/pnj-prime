@@ -220,7 +220,7 @@ export default function CatalogShow({ auth, product, isPreview = false }) {
                                             onClick={() => setSelectedPhotoIndex(idx)}
                                             className={`relative h-14 w-18 shrink-0 overflow-hidden rounded border transition-all ${
                                                 selectedPhotoIndex === idx
-                                                    ? 'border-slate-900 ring-1 ring-slate-900 opacity-100'
+                                                    ? 'border-[var(--color-ink)] ring-1 ring-[var(--color-ink)] opacity-100'
                                                     : 'border-[var(--color-border)] opacity-60 hover:opacity-100'
                                             }`}
                                         >
@@ -295,7 +295,7 @@ export default function CatalogShow({ auth, product, isPreview = false }) {
                             {/* Category & Code */}
                             <div className="text-xs text-[var(--color-muted)]">
                                 <span>{categoryText}</span>
-                                <span className="mx-1.5 text-slate-300">/</span>
+                                <span className="mx-1.5 text-[var(--color-border)]">/</span>
                                 <span>{codeText}</span>
                             </div>
 

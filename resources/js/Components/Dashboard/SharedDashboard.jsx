@@ -7,21 +7,21 @@ import { Search } from 'lucide-react';
  */
 export const TOKENS = {
     colors: {
-        bg: '#F7F8FA',
+        bg: 'var(--color-bg)',
         panelBg: '#FFFFFF',
-        border: '#E5E7EB',
-        ink: '#111827',
-        muted: '#6B7280',
-        subtle: '#9CA3AF',
-        strip: '#F9FAFB',
-        accent: 'var(--color-accent, #005f6e)',
-        accentHover: 'var(--color-accent-hover, #004b57)',
-        accentTint: 'var(--color-accent-tint, #e6f4f6)',
-        amber: 'var(--color-gold, #ca9c34)',
-        amberText: 'var(--color-gold-deep, #a87d20)',
+        border: 'var(--color-border)',
+        ink: 'var(--color-ink)',
+        muted: 'var(--color-muted)',
+        subtle: 'var(--color-muted)',
+        strip: 'var(--color-surface)',
+        accent: 'var(--color-accent, var(--color-accent))',
+        accentHover: 'var(--color-accent-hover, var(--color-deep))',
+        accentTint: 'var(--color-accent-tint, var(--color-accent-tint))',
+        amber: 'var(--color-gold, var(--color-gold))',
+        amberText: 'var(--color-gold-deep, var(--color-gold-deep))',
         green: '#059669',
         red: '#EF4444',
-        gray: '#9CA3AF',
+        gray: 'var(--color-muted)',
     },
     radii: {
         sm: '6px',
@@ -56,11 +56,15 @@ export function PageHeader({ title = 'Dashboard', subtitle }) {
     })();
 
     return (
-        <div className="mb-6">
-            <h1 className="text-2xl font-semibold text-[#111827]">
+        <div className="mb-7">
+            <p className="mb-2 inline-flex items-center gap-2 rounded-full border px-3 py-1 text-[11px] font-bold uppercase tracking-widest" style={{ borderColor: 'color-mix(in srgb, var(--color-accent) 22%, transparent)', color: 'var(--color-accent)', background: 'color-mix(in srgb, var(--color-accent-tint) 50%, transparent)' }}>
+                <span className="h-1.5 w-1.5 rounded-full" style={{ background: 'var(--color-gold)' }} />
+                Dashboard
+            </p>
+            <h1 className="font-display text-[28px] font-bold tracking-tight text-[var(--color-ink)] sm:text-3xl">
                 {title}
             </h1>
-            <p className="mt-1 text-sm text-slate-500">
+            <p className="mt-1.5 text-sm text-[var(--color-muted)]">
                 {subtitle ?? today}
             </p>
         </div>
@@ -69,12 +73,12 @@ export function PageHeader({ title = 'Dashboard', subtitle }) {
 
 /**
  * Shared Panel:
- * White, 1px border (#E5E7EB), 14px radius, subtle clean shadow, no nesting.
+ * White, 1px border (var(--color-border)), 14px radius, subtle clean shadow, no nesting.
  */
 export function Panel({ children, className = '', noPadding = false }) {
     return (
         <div
-            className={`rounded-[14px] border border-[#E5E7EB] bg-white shadow-xs ${
+            className={`rounded-2xl border border-[var(--color-border)] bg-white shadow-card ${
                 noPadding ? '' : 'p-6 sm:p-8'
             } ${className}`}
         >
@@ -91,7 +95,7 @@ export function Panel({ children, className = '', noPadding = false }) {
  */
 export function StatRow({ stats = [] }) {
     return (
-        <div className={`grid grid-cols-2 lg:grid-cols-${stats.length} divide-y lg:divide-y-0 lg:divide-x divide-[#E5E7EB]`}>
+        <div className={`grid grid-cols-2 lg:grid-cols-${stats.length} divide-y lg:divide-y-0 lg:divide-x divide-[var(--color-border)]`}>
             {stats.map((item) => {
                 const needsAction = Boolean(item.needsAction && item.value > 0);
                 const isZero = item.value === 0;
@@ -112,20 +116,20 @@ export function StatRow({ stats = [] }) {
                                 needsAction
                                     ? 'text-[32px] sm:text-[36px] font-semibold text-[var(--color-gold-deep)]'
                                     : isZero
-                                      ? 'text-[32px] font-semibold text-slate-400'
-                                      : 'text-[32px] font-semibold text-[#111827]'
+                                      ? 'text-[32px] font-semibold text-[var(--color-muted)]'
+                                      : 'text-[32px] font-semibold text-[var(--color-ink)]'
                             }`}
                         >
                             {item.formattedValue ?? item.value}
                         </div>
-                        <div className="mt-1.5 flex items-center gap-1.5 text-[13px] text-slate-600 font-normal">
+                        <div className="mt-1.5 flex items-center gap-1.5 text-[13px] text-[var(--color-muted)] font-normal">
                             {needsAction && (
                                 <span className="inline-block h-2 w-2 rounded-full bg-[var(--color-gold)] shrink-0" aria-hidden />
                             )}
                             <span>{item.label}</span>
                         </div>
                         {item.helper && (
-                            <p className="mt-0.5 text-[11px] text-slate-400">{item.helper}</p>
+                            <p className="mt-0.5 text-[11px] text-[var(--color-muted)]">{item.helper}</p>
                         )}
                     </div>
                 );
@@ -141,7 +145,7 @@ export function StatRow({ stats = [] }) {
  */
 export function StatusDot({ status }) {
     const s = String(status || '').toLowerCase();
-    let bg = '#9CA3AF'; // gray
+    let bg = 'var(--color-muted)'; // gray
 
     if (
         s.includes('diajukan') ||
@@ -150,14 +154,14 @@ export function StatusDot({ status }) {
         s.includes('menunggu keputusan') ||
         s.includes('revisi')
     ) {
-        bg = 'var(--color-gold, #ca9c34)'; // amber
+        bg = 'var(--color-gold, var(--color-gold))'; // amber
     } else if (
         s.includes('proses') ||
         s.includes('menunggu pembayaran') ||
         s.includes('aktif') ||
         s.includes('dikerjakan')
     ) {
-        bg = 'var(--color-accent, #005f6e)'; // teal
+        bg = 'var(--color-accent, var(--color-accent))'; // teal
     } else if (
         s.includes('selesai') ||
         s.includes('disetujui') ||
@@ -173,7 +177,7 @@ export function StatusDot({ status }) {
     }
 
     return (
-        <div className="inline-flex items-center gap-2 whitespace-nowrap text-xs text-slate-700 font-normal">
+        <div className="inline-flex items-center gap-2 whitespace-nowrap text-xs text-[var(--color-ink)] font-normal">
             <span
                 className="inline-block h-2 w-2 rounded-full shrink-0"
                 style={{ background: bg }}
@@ -197,16 +201,16 @@ export function Button({
     ...props
 }) {
     const baseStyle =
-        'inline-flex items-center justify-center rounded-[6px] text-xs font-semibold transition focus:outline-none focus:ring-2 focus:ring-[var(--color-accent)] focus:ring-offset-1';
+        'inline-flex items-center justify-center text-xs font-semibold transition focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-accent)] focus-visible:ring-offset-1';
 
     let variantStyle = '';
     if (variant === 'primary') {
-        variantStyle = 'bg-[var(--color-accent)] text-white hover:bg-[var(--color-accent-hover)] px-4 py-2';
+        variantStyle = 'rounded-full bg-[var(--color-accent)] px-4 py-2 text-[var(--color-bg)] shadow-sm hover:bg-[var(--color-accent-hover)]';
     } else if (variant === 'outline') {
         variantStyle =
-            'border border-[#E5E7EB] bg-white text-slate-700 hover:border-[var(--color-accent)] hover:text-[var(--color-accent)] px-3 py-1.5';
+            'rounded-xl border border-[var(--color-border)] bg-white px-3 py-1.5 text-[var(--color-ink)] hover:border-[var(--color-accent)] hover:bg-[var(--color-accent-tint)] hover:text-[var(--color-accent)]';
     } else if (variant === 'secondary') {
-        variantStyle = 'bg-slate-100 text-slate-700 hover:bg-slate-200 px-3 py-1.5';
+        variantStyle = 'rounded-xl bg-[var(--color-surface)] px-3 py-1.5 text-[var(--color-ink)] hover:bg-[var(--color-border)]';
     }
 
     if (href) {
@@ -235,13 +239,13 @@ export function Button({
 export function SearchInput({ value, onChange, placeholder = 'Cari...', className = '' }) {
     return (
         <div className={`relative w-full sm:w-64 ${className}`}>
-            <Search className="pointer-events-none absolute left-3 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-slate-400" />
+            <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-[var(--color-muted)]" />
             <input
                 type="text"
                 value={value}
                 onChange={(e) => onChange(e.target.value)}
                 placeholder={placeholder}
-                className="w-full rounded-[6px] border border-[#E5E7EB] bg-white py-1.5 pl-8 pr-3 text-xs placeholder:text-slate-400 focus:border-[var(--color-accent)] focus:outline-none focus:ring-1 focus:ring-[var(--color-accent)]"
+                className="w-full rounded-xl border border-[var(--color-border)] bg-white py-2 pl-9 pr-3 text-xs text-[var(--color-ink)] placeholder:text-[var(--color-muted)] outline-none transition duration-150 focus:border-[var(--color-accent)] focus:ring-4 focus:ring-[var(--color-accent-tint)]"
             />
         </div>
     );
@@ -252,7 +256,7 @@ export function SearchInput({ value, onChange, placeholder = 'Cari...', classNam
  */
 export function Tabs({ tabs = [], activeTab, onChange }) {
     return (
-        <div className="flex items-center gap-6 border-b border-[#E5E7EB] pb-2 text-xs">
+        <div className="flex items-center gap-6 border-b border-[var(--color-border)] pb-2 text-xs">
             {tabs.map((tab) => {
                 const isActive = activeTab === tab.id;
                 return (
@@ -263,17 +267,17 @@ export function Tabs({ tabs = [], activeTab, onChange }) {
                         className={`relative pb-1 transition-colors ${
                             isActive
                                 ? 'font-semibold text-[var(--color-accent)]'
-                                : 'text-slate-500 hover:text-slate-900 font-normal'
+                                : 'text-[var(--color-muted)] hover:text-[var(--color-ink)] font-normal'
                         }`}
                     >
                         <span>{tab.label}</span>
                         {tab.count !== undefined && tab.count > 0 && (
-                            <span className="ml-1.5 tabular-nums text-[11px] text-slate-400">
+                            <span className="ml-1.5 tabular-nums text-[11px] text-[var(--color-muted)]">
                                 ({tab.count})
                             </span>
                         )}
                         {isActive && (
-                            <span className="absolute inset-x-0 -bottom-2 h-[2px] bg-[var(--color-accent)]" />
+                            <span className="absolute inset-x-0 -bottom-2 h-[2px] rounded-full bg-gradient-to-r from-[var(--color-gold)] to-[var(--color-accent)]" />
                         )}
                     </button>
                 );
@@ -285,7 +289,7 @@ export function Tabs({ tabs = [], activeTab, onChange }) {
 /**
  * Shared DataTable Container & Row specs:
  * 72px rows, 14px main text with 12px muted second line,
- * 1px dividers, header on #F9FAFB strip, numbers right-aligned with tabular-nums,
+ * 1px dividers, header on var(--color-surface) strip, numbers right-aligned with tabular-nums,
  * 3px amber left edge on rows needing action.
  */
 export function DataTable({ headers = [], children, emptyMessage = 'Tidak ada data ditemukan.' }) {
@@ -293,7 +297,7 @@ export function DataTable({ headers = [], children, emptyMessage = 'Tidak ada da
         <div className="overflow-x-auto">
             <table className="w-full text-left text-sm">
                 <thead>
-                    <tr className="bg-[#F9FAFB] border-b border-[#E5E7EB] text-[11px] font-semibold uppercase tracking-wider text-slate-500">
+                    <tr className="bg-[var(--color-surface)] border-b border-[var(--color-border)] text-[11px] font-semibold uppercase tracking-wider text-[var(--color-muted)]">
                         {headers.map((h, i) => (
                             <th
                                 key={i}
@@ -304,7 +308,7 @@ export function DataTable({ headers = [], children, emptyMessage = 'Tidak ada da
                         ))}
                     </tr>
                 </thead>
-                <tbody className="divide-y divide-[#E5E7EB]">
+                <tbody className="divide-y divide-[var(--color-border)]">
                     {children}
                 </tbody>
             </table>
@@ -317,7 +321,7 @@ export function DataTable({ headers = [], children, emptyMessage = 'Tidak ada da
  */
 export function Skeleton({ className = 'h-6 w-full' }) {
     return (
-        <div className={`animate-pulse rounded-[4px] bg-slate-200/70 ${className}`} />
+        <div className={`animate-pulse rounded-md bg-[var(--color-border)]/70 ${className}`} />
     );
 }
 
@@ -327,7 +331,7 @@ export function Skeleton({ className = 'h-6 w-full' }) {
  */
 export function EmptyState({ message = 'Tidak ada data ditemukan.' }) {
     return (
-        <div className="py-16 text-center text-sm text-slate-500">
+        <div className="rounded-2xl border border-dashed border-[var(--color-border)] bg-[var(--color-surface)] py-16 text-center text-sm text-[var(--color-muted)]">
             {message}
         </div>
     );
@@ -342,17 +346,17 @@ export function ActivityList({ title = 'Aktivitas terbaru', items = [] }) {
 
     return (
         <Panel className="space-y-4">
-            <h3 className="text-sm font-semibold text-[#111827]">
+            <h3 className="text-sm font-semibold text-[var(--color-ink)]">
                 {title}
             </h3>
-            <div className="divide-y divide-[#E5E7EB]">
+            <div className="divide-y divide-[var(--color-border)]">
                 {items.map((it, idx) => (
                     <div
                         key={it.id ?? idx}
                         className="py-3 flex items-center justify-between gap-4 text-xs first:pt-0 last:pb-0"
                     >
-                        <span className="text-slate-700 truncate">{it.text}</span>
-                        <span className="text-slate-400 shrink-0 tabular-nums">{it.timestamp}</span>
+                        <span className="text-[var(--color-ink)] truncate">{it.text}</span>
+                        <span className="text-[var(--color-muted)] shrink-0 tabular-nums">{it.timestamp}</span>
                     </div>
                 ))}
             </div>

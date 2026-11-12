@@ -383,7 +383,7 @@ export default function UiKit() {
                         <span className="rounded-md px-2.5 py-1 text-[11px] font-semibold" style={{ background: 'color-mix(in srgb, var(--color-gold) 22%, transparent)', color: 'var(--color-gold)' }}>Gold badge</span>
                         <span className="rounded-md px-2.5 py-1 text-[11px] font-semibold" style={{ background: 'var(--color-accent-tint)', color: 'var(--color-accent-hover)' }}>Teal badge</span>
                     </div>
-                    <div className="rounded-[22px] border border-[var(--color-dark-border)] bg-[var(--color-deep)] p-5" style={{ boxShadow: 'var(--shadow-layered)' }}>
+                    <div className="rounded-3xl border border-[var(--color-dark-border)] bg-[var(--color-deep)] p-5" style={{ boxShadow: 'var(--shadow-layered)' }}>
                         <h3 className="font-display font-bold" style={{ color: 'var(--color-dark-text)' }}>Panel gelap</h3>
                         <p className="mt-1 text-sm" style={{ color: 'var(--color-dark-muted)' }}>
                             Latar teal gelap dengan teks putih dan muted kebiruan. Logo putih cocok di sini.

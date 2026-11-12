@@ -38,7 +38,7 @@ export default function VerifikasiLayanan({ auth, antrean = [], selected = null 
                 ) : (
                     <div className="grid gap-6 lg:grid-cols-[1fr_1.3fr] items-start">
                         <div>
-                            <h2 className="mb-3 text-sm font-semibold text-slate-500">
+                            <h2 className="mb-3 text-sm font-semibold text-[var(--color-muted)]">
                                 Antrean Pengajuan ({rows.length})
                             </h2>
                             <div className="space-y-2.5">
@@ -71,11 +71,11 @@ export default function VerifikasiLayanan({ auth, antrean = [], selected = null 
                         </div>
 
                         <div>
-                            <h2 className="mb-3 text-sm font-semibold text-slate-500">
+                            <h2 className="mb-3 text-sm font-semibold text-[var(--color-muted)]">
                                 Detail Pengajuan & Verifikasi
                             </h2>
                             {!sel ? (
-                                <Card className="flex flex-col items-center justify-center p-12 text-center text-sm text-slate-500">
+                                <Card className="flex flex-col items-center justify-center p-12 text-center text-sm text-[var(--color-muted)]">
                                     Pilih pengajuan dari antrean untuk meninjau.
                                 </Card>
                             ) : (

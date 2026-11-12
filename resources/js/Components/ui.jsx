@@ -107,7 +107,7 @@ export function DangerButton({ children, className = '', ...props }) {
 export function Card({ children, className = '', style = {} }) {
     return (
         <div
-            className={`rounded-[22px] border bg-white transition duration-150 hover:shadow-[var(--shadow-layered)] ${className}`}
+            className={`rounded-3xl border bg-white transition duration-150 hover:shadow-[var(--shadow-layered)] ${className}`}
             style={{ borderColor: 'var(--color-border)', ...style }}
         >
             {children}

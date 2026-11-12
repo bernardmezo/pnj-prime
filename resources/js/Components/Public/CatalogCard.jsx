@@ -65,7 +65,7 @@ const AUDIENCE_META = {
     publik: {
         label: 'Publik',
         icon: Globe,
-        className: 'bg-slate-100 text-slate-600 border-slate-200',
+        className: 'bg-[var(--color-surface)] text-[var(--color-muted)] border-[var(--color-border)]',
     },
 };
 

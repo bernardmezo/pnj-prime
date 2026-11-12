@@ -7,15 +7,15 @@ export default function TenantIndex({ tenants }) {
             <Head title="Verifikasi Profil Tenant" />
             <h1 className="text-2xl font-bold mb-4">Verifikasi Profil Tenant</h1>
             <div className="bg-white rounded-lg shadow overflow-hidden border">
-                <table className="min-w-full divide-y divide-gray-200">
-                    <thead className="bg-gray-50">
+                <table className="min-w-full divide-y divide-[var(--color-border)]">
+                    <thead className="bg-[var(--color-surface)]">
                         <tr>
-                            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Perusahaan</th>
-                            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Kontak</th>
-                            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Status</th>
+                            <th className="px-6 py-3 text-left text-xs font-medium text-[var(--color-muted)] uppercase">Perusahaan</th>
+                            <th className="px-6 py-3 text-left text-xs font-medium text-[var(--color-muted)] uppercase">Kontak</th>
+                            <th className="px-6 py-3 text-left text-xs font-medium text-[var(--color-muted)] uppercase">Status</th>
                         </tr>
                     </thead>
-                    <tbody className="divide-y divide-gray-200">
+                    <tbody className="divide-y divide-[var(--color-border)]">
                         {(tenants || []).map((t) => (
                             <tr key={t.id}>
                                 <td className="px-6 py-4 whitespace-nowrap text-sm font-semibold">{t.company_name}</td>

@@ -46,7 +46,7 @@ export default function VerifikasiProduk({ auth, products }) {
                 ) : (
                     <div className="grid gap-6 lg:grid-cols-[1fr_1.3fr] items-start">
                         <div>
-                            <h2 className="mb-3 text-sm font-semibold text-slate-500">
+                            <h2 className="mb-3 text-sm font-semibold text-[var(--color-muted)]">
                                 Antrean Produk Riset ({rows.length})
                             </h2>
                             <div className="space-y-2.5">
@@ -58,7 +58,7 @@ export default function VerifikasiProduk({ auth, products }) {
                                             type="button"
                                             onClick={() => setSelId(p.id)}
                                             aria-pressed={isSelected}
-                                            className="block w-full rounded-[6px] border p-4 text-left transition"
+                                            className="block w-full rounded-xl border p-4 text-left transition"
                                             style={
                                                 isSelected
                                                     ? { borderColor: 'var(--color-accent)', background: 'var(--color-accent-tint)' }
@@ -71,7 +71,7 @@ export default function VerifikasiProduk({ auth, products }) {
                                                 </span>
                                                 <StatusBadge status={p.status_kurasi ?? 'pending_review'} />
                                             </div>
-                                            <p className="mt-1 text-xs text-slate-500 line-clamp-1">
+                                            <p className="mt-1 text-xs text-[var(--color-muted)] line-clamp-1">
                                                 {p.deskripsi_singkat ?? p.description ?? 'Produk riset civitas PNJ'}
                                             </p>
                                         </button>
@@ -83,14 +83,14 @@ export default function VerifikasiProduk({ auth, products }) {
                         {sel && (
                             <Card className="p-6">
                                 <div className="border-b pb-4 mb-4">
-                                    <h3 className="text-lg font-bold text-slate-900">{sel.nama ?? sel.name}</h3>
-                                    <p className="text-sm text-slate-600 mt-1">{sel.deskripsi ?? sel.deskripsi_singkat ?? 'Tanpa deskripsi tambahan.'}</p>
-                                    <div className="mt-3 flex flex-wrap gap-4 text-xs text-slate-500">
-                                        <span>Status: <strong className="text-slate-700">{sel.status_kurasi}</strong></span>
+                                    <h3 className="text-lg font-bold text-[var(--color-ink)]">{sel.nama ?? sel.name}</h3>
+                                    <p className="text-sm text-[var(--color-muted)] mt-1">{sel.deskripsi ?? sel.deskripsi_singkat ?? 'Tanpa deskripsi tambahan.'}</p>
+                                    <div className="mt-3 flex flex-wrap gap-4 text-xs text-[var(--color-muted)]">
+                                        <span>Status: <strong className="text-[var(--color-ink)]">{sel.status_kurasi}</strong></span>
                                         <span>Sasaran: <strong className={sel.target_audience === 'internal_pnj' ? 'text-amber-700 font-bold' : 'text-[var(--color-accent)] font-bold'}>
                                             {sel.target_audience === 'internal_pnj' ? '🔒 Khusus Sivitas PNJ' : '🌐 Publik & Eksternal'}
                                         </strong></span>
-                                        <span>Unit: <strong className="text-slate-700">{sel.unit?.name ?? 'Unit Riset PNJ'}</strong></span>
+                                        <span>Unit: <strong className="text-[var(--color-ink)]">{sel.unit?.name ?? 'Unit Riset PNJ'}</strong></span>
                                     </div>
                                 </div>
 

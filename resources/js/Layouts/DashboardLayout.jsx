@@ -22,6 +22,7 @@ import {
 import { useState } from 'react';
 import Logo from '@/Components/Logo';
 import FlashToast from '@/Components/FlashToast';
+import SwooshLine from '@/Components/SwooshLine';
 import { EASE } from '@/Components/ui';
 import { filterMenuByFitur, menuForRole, roleLabel } from '@/lib/roles';
 import { href as navHref } from '@/lib/nav';
@@ -203,8 +204,14 @@ function SidebarBody({ user, menu, activeKey, pendingCounts, currentUrl, onNavig
 
     return (
         <div className="flex h-full flex-col bg-white">
-            <div className="shrink-0 border-b border-slate-200 px-6 py-5">
-                <Logo height={32} />
+            <div className="relative shrink-0 overflow-hidden border-b border-[var(--color-border)] px-6 py-5">
+                <div className="pointer-events-none absolute inset-x-0 top-0 h-[3px] bg-gradient-to-r from-[var(--color-gold)] via-[var(--color-accent)] to-[var(--color-gold)]" aria-hidden />
+                <div className="relative">
+                    <Logo height={34} />
+                </div>
+                <div className="pointer-events-none absolute -right-10 -bottom-8 w-36 opacity-[0.06]" aria-hidden>
+                    <SwooshLine size="md" opacity={1} color="var(--color-accent)" stroke={2} />
+                </div>
             </div>
 
             <nav className="flex-1 overflow-y-auto px-4 py-4" aria-label="Navigasi dasbor">
@@ -214,7 +221,7 @@ function SidebarBody({ user, menu, activeKey, pendingCounts, currentUrl, onNavig
                     return (
                         <div key={secKey} className={idx === 0 ? '' : 'mt-5'}>
                             {secLabel && (
-                                <div className="px-3 mb-2 text-[11px] font-semibold uppercase tracking-[0.04em] text-slate-400">
+                                <div className="px-3 mb-2 text-[11px] font-semibold uppercase tracking-[0.04em] text-[var(--color-muted)]">
                                     {secLabel}
                                 </div>
                             )}
@@ -231,10 +238,10 @@ function SidebarBody({ user, menu, activeKey, pendingCounts, currentUrl, onNavig
                                             href={url}
                                             onClick={onNavigate}
                                             aria-current={active ? 'page' : undefined}
-                                            className={`group relative flex h-10 items-center justify-between rounded-[8px] px-3 text-sm transition-all duration-150 ${
+                                            className={`group relative flex h-10 items-center justify-between rounded-lg px-3 text-sm transition-all duration-150 ${
                                                 active
                                                     ? 'bg-[var(--color-accent-tint)] text-[var(--color-accent)] font-semibold'
-                                                    : 'text-slate-600 hover:bg-slate-100 hover:text-slate-900 font-normal'
+                                                    : 'text-[var(--color-muted)] hover:bg-[var(--color-surface)] hover:text-[var(--color-ink)] font-normal'
                                             }`}
                                         >
                                             {active && (
@@ -246,7 +253,7 @@ function SidebarBody({ user, menu, activeKey, pendingCounts, currentUrl, onNavig
                                             <div className="flex items-center gap-3 min-w-0">
                                                 <Icon
                                                     className={`h-4 w-4 shrink-0 transition-colors ${
-                                                        active ? 'text-[var(--color-accent)]' : 'text-slate-500 group-hover:text-slate-800'
+                                                        active ? 'text-[var(--color-accent)]' : 'text-[var(--color-muted)] group-hover:text-[var(--color-ink)]'
                                                     }`}
                                                 />
                                                 <span className="truncate">{item.label}</span>
@@ -257,7 +264,7 @@ function SidebarBody({ user, menu, activeKey, pendingCounts, currentUrl, onNavig
                                                 <span
                                                     className={`text-xs tabular-nums rounded-full px-2 py-0.5 font-semibold ${
                                                         active
-                                                            ? 'bg-white text-[var(--color-accent)] shadow-xs'
+                                                            ? 'bg-white text-[var(--color-accent)] shadow-sm'
                                                             : 'bg-[var(--color-accent-tint)] text-[var(--color-accent)]'
                                                     }`}
                                                 >
@@ -274,7 +281,7 @@ function SidebarBody({ user, menu, activeKey, pendingCounts, currentUrl, onNavig
             </nav>
 
             {/* User block at bottom with inline red logout button */}
-            <div className="shrink-0 border-t border-slate-200 p-3.5">
+            <div className="shrink-0 border-t border-[var(--color-border)] p-3.5">
                 <div className="flex items-center justify-between gap-2.5">
                     <div className="flex items-center gap-2.5 min-w-0">
                         <div
@@ -284,10 +291,10 @@ function SidebarBody({ user, menu, activeKey, pendingCounts, currentUrl, onNavig
                             {userInitials}
                         </div>
                         <div className="min-w-0">
-                            <p className="truncate text-xs font-semibold text-slate-900 leading-tight">
+                            <p className="truncate text-xs font-semibold text-[var(--color-ink)] leading-tight">
                                 {user?.name ?? 'Pengguna'}
                             </p>
-                            <p className="truncate text-[10px] text-slate-400 font-medium leading-tight mt-0.5">
+                            <p className="truncate text-[10px] text-[var(--color-muted)] font-medium leading-tight mt-0.5">
                                 {displayRole}
                             </p>
                         </div>
@@ -298,7 +305,7 @@ function SidebarBody({ user, menu, activeKey, pendingCounts, currentUrl, onNavig
                         method="post"
                         as="button"
                         title="Keluar dari akun"
-                        className="inline-flex h-8 items-center gap-1.5 rounded-[6px] px-2 text-xs font-medium text-red-600 transition-colors hover:bg-red-50 hover:text-red-700 shrink-0"
+                        className="inline-flex h-8 items-center gap-1.5 rounded-full px-2.5 text-xs font-semibold text-red-600 transition-colors hover:bg-red-50 hover:text-red-700 shrink-0 focus:outline-none focus-visible:ring-2 focus-visible:ring-red-400"
                     >
                         <LogOut className="h-3.5 w-3.5 shrink-0" />
                         <span>Keluar</span>
@@ -311,7 +318,7 @@ function SidebarBody({ user, menu, activeKey, pendingCounts, currentUrl, onNavig
 
 /**
  * DashboardLayout for all staff roles.
- * Clean #F7F8FA background, 1px right border on sidebar.
+ * Clean var(--color-bg) background, 1px right border on sidebar.
  * Top bar content aligned with 32px padding, user on the right.
  * Full width content next to sidebar, centered and max 1400px only on screens > 1600px.
  */
@@ -329,9 +336,9 @@ export default function DashboardLayout({ title, activeKey, children }) {
     const userInitials = getInitials(user?.name);
 
     return (
-        <div className="min-h-screen bg-[#F7F8FA]">
+        <div className="min-h-screen bg-[var(--color-bg)]">
             {/* Desktop sidebar with 1px right border */}
-            <aside className="fixed inset-y-0 left-0 z-40 hidden w-64 border-r border-[#E5E7EB] bg-white lg:block">
+            <aside className="fixed inset-y-0 left-0 z-40 hidden w-64 border-r border-[var(--color-border)] bg-white lg:block">
                 <SidebarBody
                     user={user}
                     menu={menu}
@@ -354,7 +361,7 @@ export default function DashboardLayout({ title, activeKey, children }) {
                             onClick={() => setDrawer(false)}
                         />
                         <motion.aside
-                            className="fixed inset-y-0 left-0 z-50 w-72 bg-white lg:hidden shadow-lg"
+                            className="fixed inset-y-0 left-0 z-50 w-72 bg-white lg:hidden shadow-layered"
                             initial={{ x: reduce ? 0 : '-100%' }}
                             animate={{ x: 0 }}
                             exit={{ x: reduce ? 0 : '-100%' }}
@@ -364,7 +371,7 @@ export default function DashboardLayout({ title, activeKey, children }) {
                                 type="button"
                                 aria-label="Tutup menu"
                                 onClick={() => setDrawer(false)}
-                                className="absolute right-3 top-4 rounded-md p-1.5 text-slate-400 hover:text-slate-600"
+                                className="absolute right-3 top-4 rounded-full border border-transparent p-1.5 text-[var(--color-muted)] transition hover:bg-[var(--color-surface)] hover:border-[var(--color-border)] hover:text-[var(--color-ink)]"
                             >
                                 <X className="h-5 w-5" />
                             </button>
@@ -383,19 +390,20 @@ export default function DashboardLayout({ title, activeKey, children }) {
 
             <div className="lg:pl-64 flex flex-col min-h-screen">
                 {/* Top bar with 1px bottom border, aligned to 32px padding, user menu on the right only */}
-                <header className="sticky top-0 z-30 border-b border-[#E5E7EB] bg-white">
+                <header className="relative sticky top-0 z-30 border-b border-[var(--color-border)] bg-white">
+                    <div className="pointer-events-none absolute inset-x-0 top-0 h-[2px] bg-gradient-to-r from-[var(--color-gold)] via-[var(--color-accent)] to-[var(--color-gold)]" aria-hidden />
                     <div className="w-full 2xl:max-w-[1400px] 2xl:mx-auto flex h-14 items-center justify-between px-8">
                         <div className="flex items-center gap-3">
                             <button
                                 type="button"
                                 aria-label="Buka menu"
                                 onClick={() => setDrawer(true)}
-                                className="rounded-md p-1.5 text-slate-700 hover:bg-slate-100 lg:hidden"
+                                className="rounded-full border border-transparent p-1.5 text-[var(--color-ink)] transition hover:bg-[var(--color-surface)] hover:border-[var(--color-border)] focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-accent)] lg:hidden"
                             >
                                 <Menu className="h-5 w-5" />
                             </button>
                             {title && title !== 'Dashboard' && (
-                                <h1 className="text-base font-semibold text-[#111827]">
+                                <h1 className="text-base font-semibold text-[var(--color-ink)]">
                                     {title}
                                 </h1>
                             )}
@@ -403,7 +411,7 @@ export default function DashboardLayout({ title, activeKey, children }) {
 
                         {/* Top right: small avatar circle with initials and name */}
                         <div className="flex items-center gap-2.5">
-                            <span className="hidden sm:inline-flex items-center rounded-full bg-[var(--color-accent-tint)] px-2.5 py-0.5 text-[11px] font-semibold text-[var(--color-accent)]">
+                            <span className="hidden sm:inline-flex items-center rounded-full border border-[var(--color-accent-tint)] bg-[var(--color-accent-tint)] px-2.5 py-0.5 text-[11px] font-semibold text-[var(--color-accent-hover)]">
                                 {roleLabel(user.role)}
                             </span>
                             <div
@@ -412,7 +420,7 @@ export default function DashboardLayout({ title, activeKey, children }) {
                             >
                                 {userInitials}
                             </div>
-                            <span className="text-sm font-medium text-[#111827]">
+                            <span className="text-sm font-medium text-[var(--color-ink)]">
                                 {user?.name}
                             </span>
                         </div>

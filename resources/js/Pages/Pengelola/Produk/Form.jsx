@@ -91,15 +91,15 @@ export default function PengelolaProdukForm({ auth, categories = [], item = null
             <Head title={`${isEdit ? 'Ubah' : 'Tambah'} Produk · PNJ Prime`} />
             <FadeIn>
                 <div className="max-w-7xl mx-auto space-y-6 pb-12">
-                    <div className="flex items-center justify-between bg-white p-6 rounded-2xl border border-slate-100 shadow-sm">
+                    <div className="flex items-center justify-between bg-white p-6 rounded-2xl border border-[var(--color-border)] shadow-sm">
                         <div>
                             <span className="inline-block px-3 py-1 rounded-full text-xs font-semibold bg-teal-50 text-teal-700 mb-2">Admin Pengelola Unit</span>
-                            <h1 className="text-xl font-bold text-slate-950">{isEdit ? 'Ubah Informasi Produk Riset' : 'Daftarkan Produk / Inovasi Baru'}</h1>
-                            <p className="text-xs text-slate-500 mt-1">Lengkapi spesifikasi teknis dan rincian inovasi untuk diajukan ke kurator RTPU.</p>
+                            <h1 className="text-xl font-bold text-[var(--color-ink)]">{isEdit ? 'Ubah Informasi Produk Riset' : 'Daftarkan Produk / Inovasi Baru'}</h1>
+                            <p className="text-xs text-[var(--color-muted)] mt-1">Lengkapi spesifikasi teknis dan rincian inovasi untuk diajukan ke kurator RTPU.</p>
                         </div>
                         <a
                             href={route('pengelola.produk.index')}
-                            className="inline-flex items-center gap-2 px-4 py-2 rounded-xl border border-slate-200 text-xs font-semibold text-slate-700 hover:bg-slate-50 transition"
+                            className="inline-flex items-center gap-2 px-4 py-2 rounded-xl border border-[var(--color-border)] text-xs font-semibold text-[var(--color-ink)] hover:bg-[var(--color-surface)] transition"
                         >
                             <ArrowLeft className="w-4 h-4" />
                             Kembali
@@ -109,16 +109,16 @@ export default function PengelolaProdukForm({ auth, categories = [], item = null
                     <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
                         {/* Kolom Form Utama (8 Span dari 12 - Lebih Lebar & Proporsional) */}
                         <div className="lg:col-span-8">
-                            <Card className="p-8 shadow-sm border-slate-100 rounded-2xl">
+                            <Card className="p-8 shadow-sm border-[var(--color-border)] rounded-2xl">
                                 <form onSubmit={submit} id="productForm" className="space-y-6" noValidate>
                             <div className="space-y-1">
-                                <label className="block text-xs font-bold uppercase tracking-wider text-slate-600 mb-1">Nama Produk / Inovasi <span className="text-red-500">*</span></label>
+                                <label className="block text-xs font-bold uppercase tracking-wider text-[var(--color-muted)] mb-1">Nama Produk / Inovasi <span className="text-red-500">*</span></label>
                                 <input
                                     type="text"
                                     value={data.name}
                                     onChange={(e) => setData('name', e.target.value)}
                                     placeholder="Contoh: Alat Sensor Kualitas Udara Pintar"
-                                    className="w-full rounded-xl border border-slate-200 focus:border-teal-500 focus:ring-2 focus:ring-teal-500/20 p-3 text-sm transition"
+                                    className="w-full rounded-xl border border-[var(--color-border)] focus:border-teal-500 focus:ring-2 focus:ring-teal-500/20 p-3 text-sm transition"
                                     required
                                 />
                                 {formErrors.name && <p className="text-xs text-red-500 mt-1">{formErrors.name}</p>}
@@ -126,11 +126,11 @@ export default function PengelolaProdukForm({ auth, categories = [], item = null
 
                             <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                                 <div className="space-y-1">
-                                    <label className="block text-xs font-bold uppercase tracking-wider text-slate-600 mb-1">Jenis Item <span className="text-red-500">*</span></label>
+                                    <label className="block text-xs font-bold uppercase tracking-wider text-[var(--color-muted)] mb-1">Jenis Item <span className="text-red-500">*</span></label>
                                     <select
                                         value={data.item_type}
                                         onChange={(e) => setData('item_type', e.target.value)}
-                                        className="w-full rounded-xl border border-slate-200 focus:border-teal-500 focus:ring-2 focus:ring-teal-500/20 p-3 text-sm bg-white transition"
+                                        className="w-full rounded-xl border border-[var(--color-border)] focus:border-teal-500 focus:ring-2 focus:ring-teal-500/20 p-3 text-sm bg-white transition"
                                         required
                                     >
                                         <option value="produk">Produk Fisik</option>
@@ -141,11 +141,11 @@ export default function PengelolaProdukForm({ auth, categories = [], item = null
                                 </div>
 
                                 <div className="space-y-1">
-                                    <label className="block text-xs font-bold uppercase tracking-wider text-slate-600 mb-1">Ketersediaan <span className="text-red-500">*</span></label>
+                                    <label className="block text-xs font-bold uppercase tracking-wider text-[var(--color-muted)] mb-1">Ketersediaan <span className="text-red-500">*</span></label>
                                     <select
                                         value={data.availability_status}
                                         onChange={(e) => setData('availability_status', e.target.value)}
-                                        className="w-full rounded-xl border border-slate-200 focus:border-teal-500 focus:ring-2 focus:ring-teal-500/20 p-3 text-sm bg-white transition"
+                                        className="w-full rounded-xl border border-[var(--color-border)] focus:border-teal-500 focus:ring-2 focus:ring-teal-500/20 p-3 text-sm bg-white transition"
                                         required
                                     >
                                         <option value="tersedia">Tersedia (Ready)</option>
@@ -155,7 +155,7 @@ export default function PengelolaProdukForm({ auth, categories = [], item = null
                                 </div>
 
                                 <div className="space-y-1">
-                                    <label className="block text-xs font-bold uppercase tracking-wider text-slate-600 mb-1">
+                                    <label className="block text-xs font-bold uppercase tracking-wider text-[var(--color-muted)] mb-1">
                                         {data.availability_status === 'preorder' ? 'Estimasi PO' : 'Stok'}
                                     </label>
                                     {data.availability_status === 'preorder' ? (
@@ -164,7 +164,7 @@ export default function PengelolaProdukForm({ auth, categories = [], item = null
                                             value={data.preorder_duration}
                                             onChange={(e) => setData('preorder_duration', e.target.value)}
                                             placeholder="Cth: 3-5 hari"
-                                            className="w-full rounded-xl border border-slate-200 focus:border-teal-500 focus:ring-2 focus:ring-teal-500/20 p-3 text-sm transition"
+                                            className="w-full rounded-xl border border-[var(--color-border)] focus:border-teal-500 focus:ring-2 focus:ring-teal-500/20 p-3 text-sm transition"
                                             required
                                         />
                                     ) : (
@@ -173,7 +173,7 @@ export default function PengelolaProdukForm({ auth, categories = [], item = null
                                             value={data.stock}
                                             onChange={(e) => setData('stock', e.target.value)}
                                             placeholder="10"
-                                            className="w-full rounded-xl border border-slate-200 focus:border-teal-500 focus:ring-2 focus:ring-teal-500/20 p-3 text-sm transition"
+                                            className="w-full rounded-xl border border-[var(--color-border)] focus:border-teal-500 focus:ring-2 focus:ring-teal-500/20 p-3 text-sm transition"
                                             required
                                         />
                                     )}
@@ -184,17 +184,17 @@ export default function PengelolaProdukForm({ auth, categories = [], item = null
 
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                                 <div className="space-y-1">
-                                    <label className="block text-xs font-bold uppercase tracking-wider text-slate-600 mb-1">Sasaran Akses Produk <span className="text-red-500">*</span></label>
+                                    <label className="block text-xs font-bold uppercase tracking-wider text-[var(--color-muted)] mb-1">Sasaran Akses Produk <span className="text-red-500">*</span></label>
                                     <select
                                         value={data.target_audience}
                                         onChange={(e) => setData('target_audience', e.target.value)}
-                                        className="w-full rounded-xl border border-slate-200 focus:border-teal-500 focus:ring-2 focus:ring-teal-500/20 p-3 text-sm bg-white transition"
+                                        className="w-full rounded-xl border border-[var(--color-border)] focus:border-teal-500 focus:ring-2 focus:ring-teal-500/20 p-3 text-sm bg-white transition"
                                         required
                                     >
                                         <option value="publik">Semua Pengguna (Publik & Eksternal)</option>
                                         <option value="internal_pnj">Khusus Sivitas Akademika PNJ (Internal / SSO)</option>
                                     </select>
-                                    <p className="text-[11px] text-slate-400">
+                                    <p className="text-[11px] text-[var(--color-muted)]">
                                         {data.target_audience === 'internal_pnj'
                                             ? 'Hanya dapat dilihat dan dipesan oleh mahasiswa/dosen/staf PNJ.'
                                             : 'Dapat dilihat dan dipesan oleh masyarakat umum dan perusahaan.'}
@@ -203,11 +203,11 @@ export default function PengelolaProdukForm({ auth, categories = [], item = null
                                 </div>
 
                                 <div className="space-y-1">
-                                    <label className="block text-xs font-bold uppercase tracking-wider text-slate-600 mb-1">Kategori Produk <span className="text-red-500">*</span></label>
+                                    <label className="block text-xs font-bold uppercase tracking-wider text-[var(--color-muted)] mb-1">Kategori Produk <span className="text-red-500">*</span></label>
                                     <select
                                         value={data.category_id}
                                         onChange={(e) => setData('category_id', e.target.value)}
-                                        className="w-full rounded-xl border border-slate-200 focus:border-teal-500 focus:ring-2 focus:ring-teal-500/20 p-3 text-sm bg-white transition"
+                                        className="w-full rounded-xl border border-[var(--color-border)] focus:border-teal-500 focus:ring-2 focus:ring-teal-500/20 p-3 text-sm bg-white transition"
                                         required
                                     >
                                         <option value="" disabled>Pilih Kategori</option>
@@ -221,15 +221,15 @@ export default function PengelolaProdukForm({ auth, categories = [], item = null
 
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                                 <div className="space-y-1">
-                                    <label className="block text-xs font-bold uppercase tracking-wider text-slate-600 mb-1">Estimasi Harga <span className="text-red-500">*</span></label>
+                                    <label className="block text-xs font-bold uppercase tracking-wider text-[var(--color-muted)] mb-1">Estimasi Harga <span className="text-red-500">*</span></label>
                                     <div className="relative">
-                                        <span className="absolute inset-y-0 left-0 flex items-center pl-3.5 text-xs font-bold text-slate-400">Rp</span>
+                                        <span className="absolute inset-y-0 left-0 flex items-center pl-3.5 text-xs font-bold text-[var(--color-muted)]">Rp</span>
                                         <input
                                             type="number"
                                             value={data.base_price}
                                             onChange={(e) => setData('base_price', e.target.value)}
                                             placeholder="Contoh: 1500000"
-                                            className="w-full rounded-xl border border-slate-200 focus:border-teal-500 focus:ring-2 focus:ring-teal-500/20 py-3 pl-10 pr-3 text-sm transition"
+                                            className="w-full rounded-xl border border-[var(--color-border)] focus:border-teal-500 focus:ring-2 focus:ring-teal-500/20 py-3 pl-10 pr-3 text-sm transition"
                                             required
                                         />
                                     </div>
@@ -239,86 +239,86 @@ export default function PengelolaProdukForm({ auth, categories = [], item = null
                                             <span>Rp {Number(data.base_price).toLocaleString('id-ID')}</span>
                                         </p>
                                     ) : (
-                                        <p className="mt-1 text-[11px] text-slate-400">Masukkan angka tanpa titik/koma (misal: 1500000)</p>
+                                        <p className="mt-1 text-[11px] text-[var(--color-muted)]">Masukkan angka tanpa titik/koma (misal: 1500000)</p>
                                     )}
                                     {formErrors.base_price && <p className="text-xs text-red-500 mt-1">{formErrors.base_price}</p>}
                                 </div>
                             </div>
 
                             <div className="space-y-1">
-                                <label className="block text-xs font-bold uppercase tracking-wider text-slate-600 mb-1">Deskripsi Singkat</label>
+                                <label className="block text-xs font-bold uppercase tracking-wider text-[var(--color-muted)] mb-1">Deskripsi Singkat</label>
                                 <textarea
                                     id="short_description"
                                     value={data.short_description}
                                     onChange={(e) => setData('short_description', e.target.value)}
                                     rows={2}
                                     placeholder="Ringkasan singkat produk..."
-                                    className="w-full rounded-xl border border-slate-200 focus:border-teal-500 focus:ring-2 focus:ring-teal-500/20 p-3 text-sm transition"
+                                    className="w-full rounded-xl border border-[var(--color-border)] focus:border-teal-500 focus:ring-2 focus:ring-teal-500/20 p-3 text-sm transition"
                                 />
                                 {formErrors.short_description && <p className="text-xs text-red-500 mt-1">{formErrors.short_description}</p>}
                             </div>
 
                             <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
                                 <div className="space-y-1">
-                                    <label className="block text-xs font-bold uppercase tracking-wider text-slate-600 mb-1">Berat (gram) <span className="text-red-500">*</span></label>
+                                    <label className="block text-xs font-bold uppercase tracking-wider text-[var(--color-muted)] mb-1">Berat (gram) <span className="text-red-500">*</span></label>
                                     <input
                                         id="weight"
                                         type="number"
                                         value={data.weight}
                                         onChange={(e) => setData('weight', e.target.value)}
                                         placeholder="500"
-                                        className="w-full rounded-xl border border-slate-200 focus:border-teal-500 focus:ring-2 focus:ring-teal-500/20 p-3 text-sm transition"
+                                        className="w-full rounded-xl border border-[var(--color-border)] focus:border-teal-500 focus:ring-2 focus:ring-teal-500/20 p-3 text-sm transition"
                                         required
                                     />
                                     {formErrors.weight && <p className="text-xs text-red-500 mt-1">{formErrors.weight}</p>}
                                 </div>
                                 <div className="space-y-1">
-                                    <label className="block text-xs font-bold uppercase tracking-wider text-slate-600 mb-1">Panjang (cm)</label>
+                                    <label className="block text-xs font-bold uppercase tracking-wider text-[var(--color-muted)] mb-1">Panjang (cm)</label>
                                     <input
                                         id="length"
                                         type="number"
                                         value={data.length}
                                         onChange={(e) => setData('length', e.target.value)}
                                         placeholder="20"
-                                        className="w-full rounded-xl border border-slate-200 focus:border-teal-500 focus:ring-2 focus:ring-teal-500/20 p-3 text-sm transition"
+                                        className="w-full rounded-xl border border-[var(--color-border)] focus:border-teal-500 focus:ring-2 focus:ring-teal-500/20 p-3 text-sm transition"
                                     />
                                     {formErrors.length && <p className="text-xs text-red-500 mt-1">{formErrors.length}</p>}
                                 </div>
                                 <div className="space-y-1">
-                                    <label className="block text-xs font-bold uppercase tracking-wider text-slate-600 mb-1">Lebar (cm)</label>
+                                    <label className="block text-xs font-bold uppercase tracking-wider text-[var(--color-muted)] mb-1">Lebar (cm)</label>
                                     <input
                                         id="width"
                                         type="number"
                                         value={data.width}
                                         onChange={(e) => setData('width', e.target.value)}
                                         placeholder="10"
-                                        className="w-full rounded-xl border border-slate-200 focus:border-teal-500 focus:ring-2 focus:ring-teal-500/20 p-3 text-sm transition"
+                                        className="w-full rounded-xl border border-[var(--color-border)] focus:border-teal-500 focus:ring-2 focus:ring-teal-500/20 p-3 text-sm transition"
                                     />
                                     {formErrors.width && <p className="text-xs text-red-500 mt-1">{formErrors.width}</p>}
                                 </div>
                                 <div className="space-y-1">
-                                    <label className="block text-xs font-bold uppercase tracking-wider text-slate-600 mb-1">Tinggi (cm)</label>
+                                    <label className="block text-xs font-bold uppercase tracking-wider text-[var(--color-muted)] mb-1">Tinggi (cm)</label>
                                     <input
                                         id="height"
                                         type="number"
                                         value={data.height}
                                         onChange={(e) => setData('height', e.target.value)}
                                         placeholder="5"
-                                        className="w-full rounded-xl border border-slate-200 focus:border-teal-500 focus:ring-2 focus:ring-teal-500/20 p-3 text-sm transition"
+                                        className="w-full rounded-xl border border-[var(--color-border)] focus:border-teal-500 focus:ring-2 focus:ring-teal-500/20 p-3 text-sm transition"
                                     />
                                     {formErrors.height && <p className="text-xs text-red-500 mt-1">{formErrors.height}</p>}
                                 </div>
                             </div>
 
                         <div className="space-y-2">
-                            <label className="block text-xs font-bold uppercase tracking-wider text-slate-600">
+                            <label className="block text-xs font-bold uppercase tracking-wider text-[var(--color-muted)]">
                                 Foto Utama / Thumbnail <span className="text-red-500">*</span>
                             </label>
-                            <p className="text-[11px] text-slate-400">Digunakan sebagai gambar utama pada katalog e-commerce dan kartu produk.</p>
+                            <p className="text-[11px] text-[var(--color-muted)]">Digunakan sebagai gambar utama pada katalog e-commerce dan kartu produk.</p>
                             <div className="flex items-center gap-4">
-                                <label className="flex-1 cursor-pointer flex flex-col items-center justify-center border-2 border-dashed border-slate-200 hover:border-teal-500 rounded-2xl p-4 bg-slate-50/50 hover:bg-teal-50/30 transition group">
-                                    <div className="flex items-center gap-2 text-xs font-semibold text-slate-600 group-hover:text-teal-700">
-                                        <svg className="w-5 h-5 text-slate-400 group-hover:text-teal-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg>
+                                <label className="flex-1 cursor-pointer flex flex-col items-center justify-center border-2 border-dashed border-[var(--color-border)] hover:border-teal-500 rounded-2xl p-4 bg-[var(--color-surface)]/50 hover:bg-teal-50/30 transition group">
+                                    <div className="flex items-center gap-2 text-xs font-semibold text-[var(--color-muted)] group-hover:text-teal-700">
+                                        <svg className="w-5 h-5 text-[var(--color-muted)] group-hover:text-teal-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg>
                                         <span>Klik untuk pilih foto utama</span>
                                     </div>
                                     <input
@@ -336,10 +336,10 @@ export default function PengelolaProdukForm({ auth, categories = [], item = null
                             </div>
 
                             {data.thumbnail_file && (
-                                <div className="mt-3 relative inline-block group rounded-2xl border border-slate-200 overflow-hidden bg-white shadow-sm p-1">
+                                <div className="mt-3 relative inline-block group rounded-2xl border border-[var(--color-border)] overflow-hidden bg-white shadow-sm p-1">
                                     <div 
                                         onClick={() => setModalImageIndex(0)}
-                                        className="relative cursor-pointer w-36 h-24 rounded-xl overflow-hidden bg-slate-100 flex items-center justify-center"
+                                        className="relative cursor-pointer w-36 h-24 rounded-xl overflow-hidden bg-[var(--color-surface)] flex items-center justify-center"
                                     >
                                         <img src={URL.createObjectURL(data.thumbnail_file)} alt="Thumbnail" className="h-full w-full object-cover group-hover:scale-105 transition duration-300" />
                                         <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition flex items-center justify-center text-white">
@@ -358,10 +358,10 @@ export default function PengelolaProdukForm({ auth, categories = [], item = null
                             )}
 
                             {!data.thumbnail_file && data.existing_thumbnail && (
-                                <div className="mt-3 relative inline-block group rounded-2xl border border-slate-200 overflow-hidden bg-white shadow-sm p-1">
+                                <div className="mt-3 relative inline-block group rounded-2xl border border-[var(--color-border)] overflow-hidden bg-white shadow-sm p-1">
                                     <div 
                                         onClick={() => setModalImageIndex(0)}
-                                        className="relative cursor-pointer w-36 h-24 rounded-xl overflow-hidden bg-slate-100 flex items-center justify-center"
+                                        className="relative cursor-pointer w-36 h-24 rounded-xl overflow-hidden bg-[var(--color-surface)] flex items-center justify-center"
                                     >
                                         <img src={`/storage/${data.existing_thumbnail}`} alt="Existing Thumbnail" className="h-full w-full object-cover group-hover:scale-105 transition duration-300" />
                                         <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition flex items-center justify-center text-white">
@@ -382,14 +382,14 @@ export default function PengelolaProdukForm({ auth, categories = [], item = null
                         </div>
 
                         <div className="space-y-2">
-                            <label className="block text-xs font-bold uppercase tracking-wider text-slate-600">
-                                Galeri Foto Tambahan <span className="text-slate-400 font-normal">(Opsional: Variasi Warna/Tipe)</span>
+                            <label className="block text-xs font-bold uppercase tracking-wider text-[var(--color-muted)]">
+                                Galeri Foto Tambahan <span className="text-[var(--color-muted)] font-normal">(Opsional: Variasi Warna/Tipe)</span>
                             </label>
-                            <p className="text-[11px] text-slate-400">Pilih foto satu per satu atau sekaligus banyak. Klik pada foto untuk memperbesar.</p>
+                            <p className="text-[11px] text-[var(--color-muted)]">Pilih foto satu per satu atau sekaligus banyak. Klik pada foto untuk memperbesar.</p>
                             
-                            <label className="cursor-pointer flex flex-col items-center justify-center border-2 border-dashed border-slate-200 hover:border-teal-500 rounded-2xl p-5 bg-slate-50/50 hover:bg-teal-50/30 transition group">
-                                <div className="flex items-center gap-2 text-xs font-semibold text-slate-600 group-hover:text-teal-700">
-                                    <svg className="w-5 h-5 text-slate-400 group-hover:text-teal-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 4v16m8-8H4"/></svg>
+                            <label className="cursor-pointer flex flex-col items-center justify-center border-2 border-dashed border-[var(--color-border)] hover:border-teal-500 rounded-2xl p-5 bg-[var(--color-surface)]/50 hover:bg-teal-50/30 transition group">
+                                <div className="flex items-center gap-2 text-xs font-semibold text-[var(--color-muted)] group-hover:text-teal-700">
+                                    <svg className="w-5 h-5 text-[var(--color-muted)] group-hover:text-teal-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 4v16m8-8H4"/></svg>
                                     <span>Tambah Foto ke Galeri</span>
                                 </div>
                                 <input
@@ -410,10 +410,10 @@ export default function PengelolaProdukForm({ auth, categories = [], item = null
                                     {data.images.map((file, idx) => {
                                         const previewUrl = URL.createObjectURL(file);
                                         return (
-                                            <div key={idx} className="relative group rounded-2xl border border-slate-200 overflow-hidden bg-white shadow-sm flex flex-col p-1">
+                                            <div key={idx} className="relative group rounded-2xl border border-[var(--color-border)] overflow-hidden bg-white shadow-sm flex flex-col p-1">
                                                 <div 
                                                     onClick={() => setModalImageIndex((data.thumbnail_file || data.existing_thumbnail ? 1 : 0) + idx)}
-                                                    className="relative cursor-pointer w-full h-24 rounded-xl overflow-hidden bg-slate-100 flex items-center justify-center"
+                                                    className="relative cursor-pointer w-full h-24 rounded-xl overflow-hidden bg-[var(--color-surface)] flex items-center justify-center"
                                                 >
                                                     <img src={previewUrl} alt="Preview" className="h-full w-full object-cover group-hover:scale-105 transition duration-300" />
                                                     <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition flex items-center justify-center text-white">
@@ -421,7 +421,7 @@ export default function PengelolaProdukForm({ auth, categories = [], item = null
                                                     </div>
                                                 </div>
                                                 <div className="p-1.5 w-full">
-                                                    <span className="text-[10px] text-slate-500 truncate block text-center">{file.name}</span>
+                                                    <span className="text-[10px] text-[var(--color-muted)] truncate block text-center">{file.name}</span>
                                                 </div>
                                                 <button
                                                     type="button"
@@ -443,15 +443,15 @@ export default function PengelolaProdukForm({ auth, categories = [], item = null
                             {/* Existing images for edit mode */}
                             {data.existing_images.length > 0 && (
                                 <div className="mt-4 space-y-2">
-                                    <p className="text-xs font-bold uppercase tracking-wider text-slate-500">Foto Tersimpan Sebelumnya:</p>
+                                    <p className="text-xs font-bold uppercase tracking-wider text-[var(--color-muted)]">Foto Tersimpan Sebelumnya:</p>
                                     <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
                                         {data.existing_images.map((imgUrl, idx) => {
                                             const fullUrl = `/storage/${imgUrl}`;
                                             return (
-                                                <div key={idx} className="relative group rounded-2xl border border-slate-200 overflow-hidden bg-white shadow-sm flex flex-col p-1">
+                                                <div key={idx} className="relative group rounded-2xl border border-[var(--color-border)] overflow-hidden bg-white shadow-sm flex flex-col p-1">
                                                     <div 
                                                         onClick={() => setModalImageIndex((data.thumbnail_file || data.existing_thumbnail ? 1 : 0) + data.images.length + idx)}
-                                                        className="relative cursor-pointer w-full h-24 rounded-xl overflow-hidden bg-slate-100 flex items-center justify-center"
+                                                        className="relative cursor-pointer w-full h-24 rounded-xl overflow-hidden bg-[var(--color-surface)] flex items-center justify-center"
                                                     >
                                                         <img src={fullUrl} alt="Product" className="h-full w-full object-cover group-hover:scale-105 transition duration-300" />
                                                         <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition flex items-center justify-center text-white">
@@ -480,24 +480,24 @@ export default function PengelolaProdukForm({ auth, categories = [], item = null
                         </div>
 
                         <div>
-                            <label className="block text-xs font-semibold text-slate-700 mb-1">Link Video Promosi (YouTube / Demo Produk)</label>
+                            <label className="block text-xs font-semibold text-[var(--color-ink)] mb-1">Link Video Promosi (YouTube / Demo Produk)</label>
                             <input
                                 type="url"
                                 value={data.video_url}
                                 onChange={(e) => setData('video_url', e.target.value)}
                                 placeholder="https://www.youtube.com/watch?v=..."
-                                className="w-full rounded border border-slate-300 p-2.5 text-sm"
+                                className="w-full rounded border border-[var(--color-border)] p-2.5 text-sm"
                             />
                             {formErrors.video_url && <p className="text-xs text-red-500 mt-1">{formErrors.video_url}</p>}
                         </div>
 
                         <div>
-                            <label className="block text-xs font-semibold text-slate-700 mb-1">Atau Upload File Video (MP4 / MOV, Max 20MB)</label>
+                            <label className="block text-xs font-semibold text-[var(--color-ink)] mb-1">Atau Upload File Video (MP4 / MOV, Max 20MB)</label>
                             <input
                                 type="file"
                                 accept="video/mp4,video/quicktime,video/avi,video/x-ms-wmv"
                                 onChange={(e) => setData('video_file', e.target.files[0])}
-                                className="w-full rounded border border-slate-300 p-2 text-sm file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-xs file:font-semibold file:bg-teal-50 file:text-teal-700 hover:file:bg-teal-100"
+                                className="w-full rounded border border-[var(--color-border)] p-2 text-sm file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-xs file:font-semibold file:bg-teal-50 file:text-teal-700 hover:file:bg-teal-100"
                             />
                             {data.video_file && (
                                 <div className="mt-3 relative rounded-xl border overflow-hidden bg-black max-w-sm">
@@ -535,13 +535,13 @@ export default function PengelolaProdukForm({ auth, categories = [], item = null
                         </div>
 
                         <div>
-                            <label className="block text-xs font-semibold text-slate-700 mb-1">Deskripsi Lengkap & Spesifikasi</label>
+                            <label className="block text-xs font-semibold text-[var(--color-ink)] mb-1">Deskripsi Lengkap & Spesifikasi</label>
                             <textarea
                                 value={data.description}
                                 onChange={(e) => setData('description', e.target.value)}
                                 rows={5}
                                 placeholder="Jelaskan spesifikasi alat, standar pengujian, dan kegunaan..."
-                                className="w-full rounded border border-slate-300 p-2.5 text-sm"
+                                className="w-full rounded border border-[var(--color-border)] p-2.5 text-sm"
                             />
                             {formErrors.description && <p className="text-xs text-red-500 mt-1">{formErrors.description}</p>}
                         </div>
@@ -568,12 +568,12 @@ export default function PengelolaProdukForm({ auth, categories = [], item = null
 
                         {/* Kolom Informasi / Panduan (4 Span dari 12) */}
                         <div className="lg:col-span-4 space-y-6">
-                            <Card className="p-6 shadow-sm border-slate-100 rounded-2xl bg-gradient-to-br from-teal-50/50 via-white to-white">
-                                <h3 className="text-sm font-bold text-slate-900 mb-2 flex items-center gap-2">
+                            <Card className="p-6 shadow-sm border-[var(--color-border)] rounded-2xl bg-gradient-to-br from-teal-50/50 via-white to-white">
+                                <h3 className="text-sm font-bold text-[var(--color-ink)] mb-2 flex items-center gap-2">
                                     <span className="w-2 h-2 rounded-full bg-teal-600"></span>
                                     Panduan Pengajuan Inovasi
                                 </h3>
-                                <ul className="space-y-2 text-xs text-slate-600 list-disc list-inside">
+                                <ul className="space-y-2 text-xs text-[var(--color-muted)] list-disc list-inside">
                                     <li>Pastikan nama produk dan kategori sesuai dengan riset atau karya unit Anda.</li>
                                     <li>Estimasi harga mencerminkan nilai pasar atau biaya produksi dasar.</li>
                                     <li>Unggah thumbnail utama yang menarik agar produk menonjol di katalog e-commerce PNJ.</li>
@@ -582,9 +582,9 @@ export default function PengelolaProdukForm({ auth, categories = [], item = null
                                 </ul>
                             </Card>
 
-                            <Card className="p-6 shadow-sm border-slate-100 rounded-2xl">
-                                <h3 className="text-sm font-bold text-slate-900 mb-2">Status & Validasi</h3>
-                                <p className="text-xs text-slate-500 mb-4">
+                            <Card className="p-6 shadow-sm border-[var(--color-border)] rounded-2xl">
+                                <h3 className="text-sm font-bold text-[var(--color-ink)] mb-2">Status & Validasi</h3>
+                                <p className="text-xs text-[var(--color-muted)] mb-4">
                                     Produk yang disimpan akan berstatus <strong>Draft</strong> sebelum Anda mengajukannya secara resmi ke kurator RTPU.
                                 </p>
                                 <button
@@ -632,7 +632,7 @@ export default function PengelolaProdukForm({ auth, categories = [], item = null
                                     type="button"
                                     aria-label="Foto Sebelumnya"
                                     onClick={() => setModalImageIndex((modalImageIndex - 1 + allGalleryUrls.length) % allGalleryUrls.length)}
-                                    className="absolute -left-12 top-1/2 -translate-y-1/2 bg-white/90 hover:bg-white text-slate-900 rounded-full w-10 h-10 flex items-center justify-center font-bold shadow-lg transition"
+                                    className="absolute -left-12 top-1/2 -translate-y-1/2 bg-white/90 hover:bg-white text-[var(--color-ink)] rounded-full w-10 h-10 flex items-center justify-center font-bold shadow-lg transition"
                                 >
                                     <ChevronLeft className="w-6 h-6" />
                                 </button>
@@ -641,7 +641,7 @@ export default function PengelolaProdukForm({ auth, categories = [], item = null
                                     type="button"
                                     aria-label="Foto Selanjutnya"
                                     onClick={() => setModalImageIndex((modalImageIndex + 1) % allGalleryUrls.length)}
-                                    className="absolute -right-12 top-1/2 -translate-y-1/2 bg-white/90 hover:bg-white text-slate-900 rounded-full w-10 h-10 flex items-center justify-center font-bold shadow-lg transition"
+                                    className="absolute -right-12 top-1/2 -translate-y-1/2 bg-white/90 hover:bg-white text-[var(--color-ink)] rounded-full w-10 h-10 flex items-center justify-center font-bold shadow-lg transition"
                                 >
                                     <ChevronRight className="w-6 h-6" />
                                 </button>
@@ -654,7 +654,7 @@ export default function PengelolaProdukForm({ auth, categories = [], item = null
                             type="button"
                             aria-label="Tutup Lightbox"
                             onClick={() => setModalImageIndex(null)}
-                            className="absolute -top-4 -right-4 bg-white text-slate-900 rounded-full w-9 h-9 flex items-center justify-center font-bold shadow-lg hover:bg-slate-100 transition"
+                            className="absolute -top-4 -right-4 bg-white text-[var(--color-ink)] rounded-full w-9 h-9 flex items-center justify-center font-bold shadow-lg hover:bg-[var(--color-surface)] transition"
                         >
                             <X className="w-5 h-5" />
                         </button>

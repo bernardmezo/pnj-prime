@@ -40,14 +40,14 @@ export default function PengelolaProdukIndex({ auth, products = [] }) {
                             <Card key={item.id} className="p-5 flex flex-col justify-between">
                                 <div>
                                     <div className="flex items-start justify-between gap-2 mb-2">
-                                        <h3 className="font-bold text-slate-900 text-sm line-clamp-1">{item.name || item.nama}</h3>
+                                        <h3 className="font-bold text-[var(--color-ink)] text-sm line-clamp-1">{item.name || item.nama}</h3>
                                         <StatusBadge
                                             status={item.curation_status || 'draft'}
                                             label={item.curation_status === 'approved' ? 'Disetujui' : item.curation_status === 'rejected' ? 'Ditolak' : item.curation_status === 'pending' ? 'Menunggu Persetujuan' : 'Draft'}
                                             tone={item.curation_status === 'approved' ? 'teal' : item.curation_status === 'rejected' ? 'danger' : 'gold'}
                                         />
                                     </div>
-                                    <p className="text-xs text-slate-500 line-clamp-2 mb-3">
+                                    <p className="text-xs text-[var(--color-muted)] line-clamp-2 mb-3">
                                         {item.short_description || item.description || 'Tidak ada deskripsi singkat.'}
                                     </p>
                                     {item.curation_status === 'rejected' && item.rejection_reason && (
@@ -56,7 +56,7 @@ export default function PengelolaProdukIndex({ auth, products = [] }) {
                                         </div>
                                     )}
                                 </div>
-                                <div className="border-t pt-3 flex items-center justify-between text-xs text-slate-600">
+                                <div className="border-t pt-3 flex items-center justify-between text-xs text-[var(--color-muted)]">
                                     <span className="font-semibold">Rp {Number(item.base_price || item.harga || 0).toLocaleString('id-ID')}</span>
                                     <div className="flex items-center gap-2">
                                         <Link href={route('pengelola.produk.edit', item.id)} className="text-blue-600 font-semibold hover:underline">

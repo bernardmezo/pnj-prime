@@ -7,16 +7,16 @@ export default function TaxRatesIndex({ rates }) {
             <Head title="Master Tarif Pajak" />
             <h1 className="text-2xl font-bold mb-4">Master Tarif Pajak</h1>
             <div className="bg-white rounded-lg shadow overflow-hidden border">
-                <table className="min-w-full divide-y divide-gray-200">
-                    <thead className="bg-gray-50">
+                <table className="min-w-full divide-y divide-[var(--color-border)]">
+                    <thead className="bg-[var(--color-surface)]">
                         <tr>
-                            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Kode</th>
-                            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Nama</th>
-                            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Tarif (%)</th>
-                            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Status</th>
+                            <th className="px-6 py-3 text-left text-xs font-medium text-[var(--color-muted)] uppercase">Kode</th>
+                            <th className="px-6 py-3 text-left text-xs font-medium text-[var(--color-muted)] uppercase">Nama</th>
+                            <th className="px-6 py-3 text-left text-xs font-medium text-[var(--color-muted)] uppercase">Tarif (%)</th>
+                            <th className="px-6 py-3 text-left text-xs font-medium text-[var(--color-muted)] uppercase">Status</th>
                         </tr>
                     </thead>
-                    <tbody className="divide-y divide-gray-200">
+                    <tbody className="divide-y divide-[var(--color-border)]">
                         {(rates || []).map((r) => (
                             <tr key={r.id}>
                                 <td className="px-6 py-4 whitespace-nowrap text-sm font-semibold">{r.code}</td>

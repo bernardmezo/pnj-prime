@@ -47,7 +47,7 @@ export default function DirekturDashboard({
                 />
                 <Link
                     href={navHref('direktur.monitor', {}, role)}
-                    className="inline-flex items-center justify-center rounded-[6px] border border-[#E5E7EB] bg-white px-4 py-2 text-sm font-semibold text-slate-700 transition hover:border-[var(--color-accent)] hover:text-[var(--color-accent)] self-start sm:self-auto"
+                    className="inline-flex items-center justify-center rounded-xl border border-[var(--color-border)] bg-white px-4 py-2 text-sm font-semibold text-[var(--color-ink)] transition hover:border-[var(--color-accent)] hover:text-[var(--color-accent)] self-start sm:self-auto"
                 >
                     Buka Pemantauan Lengkap →
                 </Link>
@@ -62,28 +62,28 @@ export default function DirekturDashboard({
                 {/* Trend Chart Panel: 6 months activity */}
                 <Panel className="lg:col-span-1 space-y-4">
                     <div>
-                        <h2 className="text-base font-semibold text-[#111827]">
+                        <h2 className="text-base font-semibold text-[var(--color-ink)]">
                             Tren Pengajuan Layanan
                         </h2>
-                        <p className="mt-0.5 text-xs text-slate-500">
+                        <p className="mt-0.5 text-xs text-[var(--color-muted)]">
                             Aktivitas permintaan layanan dalam 6 bulan terakhir
                         </p>
                     </div>
 
                     <div className="pt-6 pb-2">
-                        <div className="flex items-end justify-between gap-3 h-48 border-b border-[#E5E7EB] px-2">
+                        <div className="flex items-end justify-between gap-3 h-48 border-b border-[var(--color-border)] px-2">
                             {monthlyTrends.map((t) => {
                                 const heightPercent = Math.max(10, Math.round((t.count / maxTrend) * 100));
                                 return (
                                     <div key={t.month} className="flex-1 flex flex-col items-center gap-2 h-full justify-end group">
-                                        <div className="text-[11px] text-slate-400 opacity-0 group-hover:opacity-100 transition-opacity tabular-nums">
+                                        <div className="text-[11px] text-[var(--color-muted)] opacity-0 group-hover:opacity-100 transition-opacity tabular-nums">
                                             {t.count}
                                         </div>
                                         <div
                                             className="w-full max-w-[36px] rounded-t-[3px] transition-all bg-[var(--color-accent)]"
                                             style={{ height: `${heightPercent}%` }}
                                         />
-                                        <span className="text-xs text-slate-600 font-medium">
+                                        <span className="text-xs text-[var(--color-muted)] font-medium">
                                             {t.month}
                                         </span>
                                     </div>
@@ -96,11 +96,11 @@ export default function DirekturDashboard({
                 {/* Top 5 Services by Revenue */}
                 <Panel className="lg:col-span-2 !p-0 overflow-hidden flex flex-col justify-between">
                     <div>
-                        <div className="p-6 border-b border-[#E5E7EB]">
-                            <h2 className="text-base font-semibold text-[#111827]">
+                        <div className="p-6 border-b border-[var(--color-border)]">
+                            <h2 className="text-base font-semibold text-[var(--color-ink)]">
                                 5 Layanan Teratas berdasarkan Pendapatan
                             </h2>
-                            <p className="mt-0.5 text-xs text-slate-500">
+                            <p className="mt-0.5 text-xs text-[var(--color-muted)]">
                                 Unit layanan dengan kontribusi nilai penyelesaian tertinggi
                             </p>
                         </div>
@@ -111,31 +111,31 @@ export default function DirekturDashboard({
                             <div className="overflow-x-auto">
                                 <table className="w-full text-left text-sm">
                                     <thead>
-                                        <tr className="bg-[#F9FAFB] border-b border-[#E5E7EB] text-[11px] font-semibold uppercase tracking-wider text-slate-500">
+                                        <tr className="bg-[var(--color-surface)] border-b border-[var(--color-border)] text-[11px] font-semibold uppercase tracking-wider text-[var(--color-muted)]">
                                             <th className="py-3 px-6">Layanan</th>
                                             <th className="py-3 px-6">Kategori</th>
                                             <th className="py-3 px-6 text-right">Frekuensi</th>
                                             <th className="py-3 px-6 text-right">Total Pendapatan</th>
                                         </tr>
                                     </thead>
-                                    <tbody className="divide-y divide-[#E5E7EB]">
+                                    <tbody className="divide-y divide-[var(--color-border)]">
                                         {topLayanan.map((item, idx) => (
-                                            <tr key={item.id ?? idx} className="h-[72px] transition-colors hover:bg-slate-50">
+                                            <tr key={item.id ?? idx} className="h-[72px] transition-colors hover:bg-[var(--color-surface)]">
                                                 <td className="py-3 px-6">
-                                                    <div className="font-semibold text-slate-900 text-sm">
+                                                    <div className="font-semibold text-[var(--color-ink)] text-sm">
                                                         {item.name}
                                                     </div>
-                                                    <div className="text-xs text-slate-400 font-normal">
+                                                    <div className="text-xs text-[var(--color-muted)] font-normal">
                                                         Peringkat #{idx + 1}
                                                     </div>
                                                 </td>
-                                                <td className="py-3 px-6 text-xs text-slate-600">
+                                                <td className="py-3 px-6 text-xs text-[var(--color-muted)]">
                                                     {item.category}
                                                 </td>
-                                                <td className="py-3 px-6 text-xs text-slate-700 text-right tabular-nums font-semibold">
+                                                <td className="py-3 px-6 text-xs text-[var(--color-ink)] text-right tabular-nums font-semibold">
                                                     {item.count} transaksi
                                                 </td>
-                                                <td className="py-3 px-6 text-sm text-slate-900 text-right tabular-nums font-semibold">
+                                                <td className="py-3 px-6 text-sm text-[var(--color-ink)] text-right tabular-nums font-semibold">
                                                     {formatRupiah(item.revenue)}
                                                 </td>
                                             </tr>

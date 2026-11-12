@@ -29,7 +29,7 @@ function PageHeader({ eyebrow, title, desc, actions }) {
 
 function StatusBadge({ status }) {
     const map = {
-        draft: { label: 'Draft', bg: 'bg-slate-100', text: 'text-slate-700 border-slate-200' },
+        draft: { label: 'Draft', bg: 'bg-[var(--color-surface)]', text: 'text-[var(--color-ink)] border-[var(--color-border)]' },
         pending: { label: 'Pending Kurasi', bg: 'bg-amber-500/10', text: 'text-amber-800 border-amber-300/60' },
         verified: { label: 'Verifikasi RTPU', bg: 'bg-[var(--color-accent-tint)]', text: 'text-[var(--color-accent)] border-teal-200/60' },
         approved: { label: 'Disetujui', bg: 'bg-emerald-50', text: 'text-emerald-700 border-emerald-200/60' },
@@ -49,11 +49,11 @@ export default function PengelolaDashboard({ auth, stats = {}, recentProducts = 
             <Head title="Dashboard Pengelola · PNJ Prime" />
             <FadeIn>
                 <div className="space-y-6">
-                    <div className="bg-white p-8 rounded-3xl border border-slate-100 shadow-sm flex flex-col md:flex-row md:items-center md:justify-between gap-6">
+                    <div className="bg-white p-8 rounded-3xl border border-[var(--color-border)] shadow-sm flex flex-col md:flex-row md:items-center md:justify-between gap-6">
                         <div>
                             <span className="inline-block px-3 py-1 rounded-full text-xs font-semibold bg-[var(--color-accent-tint)] text-[var(--color-accent)] mb-2">Admin Pengelola Unit</span>
-                            <h1 className="text-2xl font-bold text-slate-950">Selamat Datang, {auth?.user?.name || 'Pengelola Unit'}</h1>
-                            <p className="text-xs text-slate-500 mt-1 max-w-2xl">Kelola katalog produk inovasi riset, pantau status kurasi kurator RTPU hingga terbit di katalog umum PNJ Prime.</p>
+                            <h1 className="text-2xl font-bold text-[var(--color-ink)]">Selamat Datang, {auth?.user?.name || 'Pengelola Unit'}</h1>
+                            <p className="text-xs text-[var(--color-muted)] mt-1 max-w-2xl">Kelola katalog produk inovasi riset, pantau status kurasi kurator RTPU hingga terbit di katalog umum PNJ Prime.</p>
                         </div>
                         <Link
                             href={route('pengelola.produk.create')}
@@ -66,25 +66,25 @@ export default function PengelolaDashboard({ auth, stats = {}, recentProducts = 
                     </div>
 
                     <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-                        <Card className="p-6 rounded-2xl shadow-sm border-slate-100">
-                            <span className="text-xs font-bold uppercase tracking-wider text-slate-500">Total Produk</span>
-                            <p className="text-3xl font-extrabold text-slate-950 mt-2">{stats?.total ?? 0}</p>
-                            <span className="text-[11px] text-slate-400 mt-1 block">Seluruh inovasi terdaftar</span>
+                        <Card className="p-6 rounded-2xl shadow-sm border-[var(--color-border)]">
+                            <span className="text-xs font-bold uppercase tracking-wider text-[var(--color-muted)]">Total Produk</span>
+                            <p className="text-3xl font-extrabold text-[var(--color-ink)] mt-2">{stats?.total ?? 0}</p>
+                            <span className="text-[11px] text-[var(--color-muted)] mt-1 block">Seluruh inovasi terdaftar</span>
                         </Card>
-                        <Card className="p-6 rounded-2xl shadow-sm border-slate-100">
-                            <span className="text-xs font-bold uppercase tracking-wider text-slate-500">Pending Kurasi</span>
-                            <p className="text-3xl font-extrabold text-slate-950 mt-2">{stats?.pending ?? 0}</p>
-                            <span className="text-[11px] text-slate-400 mt-1 block">Menunggu review kurator</span>
+                        <Card className="p-6 rounded-2xl shadow-sm border-[var(--color-border)]">
+                            <span className="text-xs font-bold uppercase tracking-wider text-[var(--color-muted)]">Pending Kurasi</span>
+                            <p className="text-3xl font-extrabold text-[var(--color-ink)] mt-2">{stats?.pending ?? 0}</p>
+                            <span className="text-[11px] text-[var(--color-muted)] mt-1 block">Menunggu review kurator</span>
                         </Card>
-                        <Card className="p-6 rounded-2xl shadow-sm border-slate-100">
-                            <span className="text-xs font-bold uppercase tracking-wider text-slate-500">Verifikasi RTPU</span>
-                            <p className="text-3xl font-extrabold text-slate-950 mt-2">{stats?.verified ?? 0}</p>
-                            <span className="text-[11px] text-slate-400 mt-1 block">Proses akhir pimpinan</span>
+                        <Card className="p-6 rounded-2xl shadow-sm border-[var(--color-border)]">
+                            <span className="text-xs font-bold uppercase tracking-wider text-[var(--color-muted)]">Verifikasi RTPU</span>
+                            <p className="text-3xl font-extrabold text-[var(--color-ink)] mt-2">{stats?.verified ?? 0}</p>
+                            <span className="text-[11px] text-[var(--color-muted)] mt-1 block">Proses akhir pimpinan</span>
                         </Card>
-                        <Card className="p-6 rounded-2xl shadow-sm border-slate-100">
-                            <span className="text-xs font-bold uppercase tracking-wider text-slate-500">Disetujui Publikasi</span>
-                            <p className="text-3xl font-extrabold text-slate-950 mt-2">{stats?.approved ?? 0}</p>
-                            <span className="text-[11px] text-slate-400 mt-1 block">Tayang di katalog umum</span>
+                        <Card className="p-6 rounded-2xl shadow-sm border-[var(--color-border)]">
+                            <span className="text-xs font-bold uppercase tracking-wider text-[var(--color-muted)]">Disetujui Publikasi</span>
+                            <p className="text-3xl font-extrabold text-[var(--color-ink)] mt-2">{stats?.approved ?? 0}</p>
+                            <span className="text-[11px] text-[var(--color-muted)] mt-1 block">Tayang di katalog umum</span>
                         </Card>
                     </div>
 
@@ -92,8 +92,8 @@ export default function PengelolaDashboard({ auth, stats = {}, recentProducts = 
                         <Card className="p-6 lg:col-span-2 rounded-3xl">
                             <div className="flex items-center justify-between mb-4">
                                 <div>
-                                    <h2 className="text-base font-bold text-slate-900">Produk Inovasi Terbaru</h2>
-                                    <p className="text-xs text-slate-500">Daftar produk atau layanan riset yang baru saja diajukan</p>
+                                    <h2 className="text-base font-bold text-[var(--color-ink)]">Produk Inovasi Terbaru</h2>
+                                    <p className="text-xs text-[var(--color-muted)]">Daftar produk atau layanan riset yang baru saja diajukan</p>
                                 </div>
                                 <Link href={route('pengelola.produk.index')} className="text-xs font-bold text-teal-700 hover:underline">
                                     Lihat Semua →
@@ -101,16 +101,16 @@ export default function PengelolaDashboard({ auth, stats = {}, recentProducts = 
                             </div>
 
                             {recentProducts.length === 0 ? (
-                                <div className="py-12 text-center text-slate-400 text-sm">
+                                <div className="py-12 text-center text-[var(--color-muted)] text-sm">
                                     Belum ada produk inovasi yang didaftarkan.
                                 </div>
                             ) : (
-                                <div className="divide-y divide-slate-100">
+                                <div className="divide-y divide-[var(--color-border)]">
                                     {recentProducts.map((p) => (
                                         <div key={p.id} className="py-3.5 flex items-center justify-between">
                                             <div>
-                                                <p className="text-sm font-semibold text-slate-900">{p.name || p.nama}</p>
-                                                <p className="text-xs text-slate-500">{p.category?.name || 'Inovasi'} · Rp {Number(p.base_price || 0).toLocaleString('id-ID')}</p>
+                                                <p className="text-sm font-semibold text-[var(--color-ink)]">{p.name || p.nama}</p>
+                                                <p className="text-xs text-[var(--color-muted)]">{p.category?.name || 'Inovasi'} · Rp {Number(p.base_price || 0).toLocaleString('id-ID')}</p>
                                             </div>
                                             <StatusBadge status={p.curation_status || p.status_kurasi || 'draft'} />
                                         </div>
@@ -119,19 +119,19 @@ export default function PengelolaDashboard({ auth, stats = {}, recentProducts = 
                             )}
                         </Card>
 
-                        <Card className="p-6 rounded-3xl bg-white border border-slate-100 shadow-sm">
-                            <h3 className="text-sm font-bold text-slate-900 mb-2">Informasi & Panduan Unit</h3>
-                            <p className="text-xs text-slate-500 leading-relaxed mb-4">
+                        <Card className="p-6 rounded-3xl bg-white border border-[var(--color-border)] shadow-sm">
+                            <h3 className="text-sm font-bold text-[var(--color-ink)] mb-2">Informasi & Panduan Unit</h3>
+                            <p className="text-xs text-[var(--color-muted)] leading-relaxed mb-4">
                                 Pastikan setiap produk riset atau layanan yang didaftarkan melampirkan foto utama, galeri variasi, serta deskripsi spesifikasi yang lengkap.
                             </p>
-                            <div className="border-t border-slate-100 pt-4 space-y-2 text-xs text-slate-600">
+                            <div className="border-t border-[var(--color-border)] pt-4 space-y-2 text-xs text-[var(--color-muted)]">
                                 <div className="flex items-center justify-between">
                                     <span>Status Akun:</span>
                                     <span className="font-bold text-emerald-600">Aktif & Terverifikasi</span>
                                 </div>
                                 <div className="flex items-center justify-between">
                                     <span>Unit / Jurusan:</span>
-                                    <span className="font-bold text-slate-900">{auth?.user?.jurusan || 'Pengelola PNJ'}</span>
+                                    <span className="font-bold text-[var(--color-ink)]">{auth?.user?.jurusan || 'Pengelola PNJ'}</span>
                                 </div>
                             </div>
                         </Card>

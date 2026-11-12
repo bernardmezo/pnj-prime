@@ -37,7 +37,7 @@ export default function PengelolaApplicationsIndex({ auth, applications }) {
                 ) : (
                     <div className="grid gap-6 lg:grid-cols-[1fr_1.3fr] items-start">
                         <div>
-                            <h2 className="mb-3 text-sm font-semibold text-slate-500">
+                            <h2 className="mb-3 text-sm font-semibold text-[var(--color-muted)]">
                                 Daftar Permohonan ({rows.length})
                             </h2>
                             <div className="space-y-2.5">
@@ -49,7 +49,7 @@ export default function PengelolaApplicationsIndex({ auth, applications }) {
                                             type="button"
                                             onClick={() => setSelectedId(app.id)}
                                             aria-pressed={isSelected}
-                                            className="block w-full rounded-[6px] border p-4 text-left transition"
+                                            className="block w-full rounded-xl border p-4 text-left transition"
                                             style={
                                                 isSelected
                                                     ? { borderColor: 'var(--color-accent)', background: 'var(--color-accent-tint)' }
@@ -62,7 +62,7 @@ export default function PengelolaApplicationsIndex({ auth, applications }) {
                                                 </span>
                                                 <StatusBadge status={app.status} />
                                             </div>
-                                            <p className="mt-1 text-xs text-slate-500">
+                                            <p className="mt-1 text-xs text-[var(--color-muted)]">
                                                 Pemohon: {app.user?.name ?? app.pic_name} ({app.user?.email})
                                             </p>
                                         </button>
@@ -73,37 +73,37 @@ export default function PengelolaApplicationsIndex({ auth, applications }) {
 
                         {selected && (
                             <Card className="p-6">
-                                <h3 className="text-lg font-bold text-slate-900 border-b pb-3 mb-4">
+                                <h3 className="text-lg font-bold text-[var(--color-ink)] border-b pb-3 mb-4">
                                     Detail Permohonan Pengelola
                                 </h3>
 
                                 <div className="space-y-3 text-sm mb-6">
                                     <div className="flex justify-between border-b pb-2">
-                                        <span className="text-slate-500">Nama Unit / Jurusan</span>
-                                        <span className="font-semibold text-slate-800">{selected.unit_name}</span>
+                                        <span className="text-[var(--color-muted)]">Nama Unit / Jurusan</span>
+                                        <span className="font-semibold text-[var(--color-ink)]">{selected.unit_name}</span>
                                     </div>
                                     <div className="flex justify-between border-b pb-2">
-                                        <span className="text-slate-500">Nama PIC</span>
-                                        <span className="font-semibold text-slate-800">{selected.pic_name}</span>
+                                        <span className="text-[var(--color-muted)]">Nama PIC</span>
+                                        <span className="font-semibold text-[var(--color-ink)]">{selected.pic_name}</span>
                                     </div>
                                     <div className="flex justify-between border-b pb-2">
-                                        <span className="text-slate-500">Nomor Telepon</span>
-                                        <span className="font-mono text-slate-800">{selected.pic_phone}</span>
+                                        <span className="text-[var(--color-muted)]">Nomor Telepon</span>
+                                        <span className="font-mono text-[var(--color-ink)]">{selected.pic_phone}</span>
                                     </div>
                                     <div className="flex justify-between border-b pb-2">
-                                        <span className="text-slate-500">Status Saat Ini</span>
+                                        <span className="text-[var(--color-muted)]">Status Saat Ini</span>
                                         <StatusBadge status={selected.status} />
                                     </div>
                                     {selected.sk_document_path && (
                                         <div className="flex justify-between border-b pb-2">
-                                            <span className="text-slate-500">Dokumen SK / Surat Tugas</span>
+                                            <span className="text-[var(--color-muted)]">Dokumen SK / Surat Tugas</span>
                                             <span className="text-emerald-600 font-medium">Terlampir</span>
                                         </div>
                                     )}
                                 </div>
 
                                 <div className="mb-6">
-                                    <label className="block text-xs font-semibold text-slate-600 mb-2">
+                                    <label className="block text-xs font-semibold text-[var(--color-muted)] mb-2">
                                         Catatan / Keterangan Persetujuan:
                                     </label>
                                     <textarea
@@ -111,7 +111,7 @@ export default function PengelolaApplicationsIndex({ auth, applications }) {
                                         onChange={(e) => setNotes(e.target.value)}
                                         placeholder="Berikan catatan bila ada syarat tambahan..."
                                         rows={3}
-                                        className="w-full rounded border border-slate-300 p-2.5 text-sm"
+                                        className="w-full rounded border border-[var(--color-border)] p-2.5 text-sm"
                                     />
                                 </div>
 

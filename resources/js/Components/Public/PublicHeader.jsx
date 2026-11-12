@@ -2,7 +2,7 @@ import { Link, router, usePage } from '@inertiajs/react';
 import { AnimatePresence, motion, useReducedMotion } from 'framer-motion';
 import { ChevronDown, LayoutDashboard, LogOut, Menu as MenuIcon, Plus, X } from 'lucide-react';
 import { useEffect, useState } from 'react';
-import Logo from '@/Components/Logo';
+import LogoMotion from '@/Components/LogoMotion';
 import Menu from '@/Components/ui/Menu';
 import { CUSTOMER_MENU, filterMenuByFitur, isStaffRole, normalizeRole, roleHome } from '@/lib/roles';
 import { href as navHref } from '@/lib/nav';
@@ -70,7 +70,7 @@ export default function PublicHeader({ auth }) {
                 className="landing-container flex items-center gap-4 transition-all duration-200"
                 style={{ height: scrolled ? 64 : 76 }}
             >
-                <Logo />
+                <LogoMotion />
 
                 <nav className="ml-6 hidden items-center gap-7 lg:flex" aria-label="Navigasi utama">
                     {navLinks.map((item) => (

@@ -187,7 +187,7 @@ export default function Pembayaran({
             <PublicLayout auth={auth}>
                 <Head title="Pembayaran · PNJ Prime" />
                 <div className="mx-auto w-full max-w-[560px] px-4 py-16 text-center">
-                    <p className="text-sm text-slate-500">Data tagihan tidak ditemukan.</p>
+                    <p className="text-sm text-[var(--color-muted)]">Data tagihan tidak ditemukan.</p>
                 </div>
             </PublicLayout>
         );
@@ -197,12 +197,12 @@ export default function Pembayaran({
         <PublicLayout auth={auth}>
             <Head title={`Pembayaran ${p.code} · PNJ Prime`} />
 
-            <div className="mx-auto w-full max-w-[560px] px-4 py-8 sm:px-6">
+            <div className="mx-auto w-full max-w-[640px] px-4 py-8 sm:px-6">
                 {/* 1. Header */}
                 <div>
                     <a
                         href={navHref('customer.pengajuan.show', { id: p.id }, role)}
-                        className="inline-flex items-center gap-1.5 text-xs text-slate-500 hover:text-slate-800 transition"
+                        className="inline-flex items-center gap-1.5 text-xs text-[var(--color-muted)] hover:text-[var(--color-ink)] transition"
                     >
                         <ArrowLeft className="h-3.5 w-3.5" />
                         <span>Kembali ke Detail</span>
@@ -210,23 +210,23 @@ export default function Pembayaran({
                 </div>
 
                 <div className="mt-4">
-                    <h1 className="font-display text-2xl font-bold tracking-tight text-slate-900 sm:text-3xl">
+                    <h1 className="font-display text-3xl font-bold tracking-tight text-[var(--color-ink)] sm:text-4xl">
                         Pembayaran Layanan
                     </h1>
-                    <p className="mt-1 text-xs text-slate-500">
+                    <p className="mt-1 text-xs text-[var(--color-muted)]">
                         {p.code} · {p.layanan}
                     </p>
                 </div>
 
                 {/* 2. Amount (the hero of the page) */}
-                <div className="mt-6 border-b border-slate-200 pb-6">
-                    <span className="block text-xs text-slate-500">
+                <div className="mt-6 rounded-2xl border border-[var(--color-border)] bg-white p-6 shadow-card sm:p-7">
+                    <span className="block text-xs text-[var(--color-muted)]">
                         Total tagihan
                     </span>
-                    <div className="mt-1 font-sans text-3xl sm:text-4xl font-bold tracking-tight text-slate-900 tabular-nums">
+                    <div className="mt-1 font-display text-4xl font-bold tracking-tight text-[var(--color-ink)] tabular-nums sm:text-5xl">
                         {fmt(total)}
                     </div>
-                    <div className="mt-2 flex items-center gap-2 text-xs text-slate-500">
+                    <div className="mt-2 flex items-center gap-2 text-xs text-[var(--color-muted)]">
                         <span
                             className="inline-block h-2 w-2 rounded-full"
                             style={{
@@ -239,11 +239,11 @@ export default function Pembayaran({
 
                     {/* Multiple line items definition list (tarif, add-ons, PPN, total) */}
                     {(items.length > 0 || ppn > 0) && (
-                        <dl className="mt-4 space-y-1.5 border-t border-slate-100 pt-3 text-xs text-slate-600">
+                        <dl className="mt-4 space-y-1.5 border-t border-[var(--color-border)] pt-3 text-xs text-[var(--color-muted)]">
                             {subtotal > 0 && items.length === 0 && (
                                 <div className="flex justify-between">
                                     <span>Tarif layanan</span>
-                                    <span className="tabular-nums text-slate-800">{fmt(subtotal)}</span>
+                                    <span className="tabular-nums text-[var(--color-ink)]">{fmt(subtotal)}</span>
                                 </div>
                             )}
                             {items.map((it, idx) => (
@@ -251,16 +251,16 @@ export default function Pembayaran({
                                     <span>
                                         {it.nama} {it.qty && it.qty > 1 ? `(${it.qty}x)` : ''}
                                     </span>
-                                    <span className="tabular-nums text-slate-800">{fmt(it.total)}</span>
+                                    <span className="tabular-nums text-[var(--color-ink)]">{fmt(it.total)}</span>
                                 </div>
                             ))}
                             {ppn > 0 && (
-                                <div className="flex justify-between text-slate-500">
+                                <div className="flex justify-between text-[var(--color-muted)]">
                                     <span>PPN (12%)</span>
                                     <span className="tabular-nums">{fmt(ppn)}</span>
                                 </div>
                             )}
-                            <div className="flex justify-between font-semibold text-slate-900 pt-1 border-t border-slate-100">
+                            <div className="flex justify-between font-semibold text-[var(--color-ink)] pt-1 border-t border-[var(--color-border)]">
                                 <span>Total</span>
                                 <span className="tabular-nums">{fmt(total)}</span>
                             </div>
@@ -272,14 +272,14 @@ export default function Pembayaran({
                 <div className="mt-6 space-y-4">
                     {/* Error message */}
                     {errorMessage && (
-                        <div className="rounded-[6px] border border-red-200 bg-red-50 p-3 text-xs text-red-700">
+                        <div className="rounded-xl border border-red-200 bg-red-50 p-3.5 text-xs font-medium text-red-700">
                             {errorMessage}
                         </div>
                     )}
 
                     {/* Status Polling Line */}
                     {polling && (
-                        <p className="text-xs text-slate-500 animate-pulse">
+                        <p className="text-xs text-[var(--color-muted)] animate-pulse">
                             Memeriksa status pembayaran...
                         </p>
                     )}
@@ -287,27 +287,27 @@ export default function Pembayaran({
                     {/* Buttons depending on state */}
                     {isPaid ? (
                         <div className="space-y-3 pt-2">
-                            <div className="flex items-center gap-2 rounded-[6px] border border-[var(--color-accent)]/20 bg-[var(--color-accent-tint)] px-4 py-3 text-xs font-medium text-[var(--color-accent)]">
+                            <div className="flex items-center gap-2 rounded-xl border border-[var(--color-accent-tint)] bg-[var(--color-accent-tint)] px-4 py-3.5 text-xs font-medium text-[var(--color-accent-hover)]">
                                 <CheckCircle2 className="h-4 w-4 text-[var(--color-accent)] shrink-0" />
                                 <span>Pembayaran diterima. Pengajuan Anda sedang diproses.</span>
                             </div>
                             <Link
                                 href={navHref('customer.pengajuan.show', { id: p.id }, role)}
-                                className="inline-flex w-full items-center justify-center rounded-[6px] border border-slate-200 bg-white py-2.5 text-xs font-semibold text-slate-700 transition hover:bg-slate-50 hover:text-slate-900"
+                                className="inline-flex w-full items-center justify-center rounded-full border border-[var(--color-border)] bg-white py-3 text-sm font-semibold text-[var(--color-ink)] transition hover:border-[var(--color-accent)] hover:bg-[var(--color-accent-tint)]"
                             >
                                 Kembali ke Detail Pengajuan
                             </Link>
                         </div>
                     ) : isExpired ? (
                         <div className="space-y-3 pt-2">
-                            <div className="rounded-[6px] border border-red-200 bg-red-50 px-4 py-3 text-xs text-red-700">
+                            <div className="rounded-xl border border-red-200 bg-red-50 px-4 py-3.5 text-xs font-medium text-red-700">
                                 Pembayaran kedaluwarsa. Silakan buat pembayaran baru.
                             </div>
                             <button
                                 type="button"
                                 disabled={loading || polling}
                                 onClick={handlePayClick}
-                                className="w-full rounded-[6px] bg-[var(--color-accent)] py-3 text-sm font-semibold text-white transition hover:bg-[var(--color-accent-hover)] active:scale-[0.99] disabled:cursor-not-allowed disabled:opacity-40"
+                                className="w-full rounded-full bg-[var(--color-accent)] py-3.5 text-sm font-semibold text-[var(--color-bg)] shadow-sm transition hover:bg-[var(--color-accent-hover)] active:scale-[0.99] disabled:cursor-not-allowed disabled:opacity-40"
                             >
                                 {loading ? 'Menyiapkan...' : 'Buat pembayaran baru'}
                             </button>
@@ -318,11 +318,11 @@ export default function Pembayaran({
                                 type="button"
                                 disabled={loading || polling}
                                 onClick={handlePayClick}
-                                className="w-full rounded-[6px] bg-[var(--color-accent)] py-3 text-sm font-semibold text-white transition hover:bg-[var(--color-accent-hover)] active:scale-[0.99] disabled:cursor-not-allowed disabled:opacity-40"
+                                className="w-full rounded-full bg-[var(--color-accent)] py-3.5 text-sm font-semibold text-[var(--color-bg)] shadow-sm transition hover:bg-[var(--color-accent-hover)] active:scale-[0.99] disabled:cursor-not-allowed disabled:opacity-40"
                             >
                                 {loading ? 'Memproses...' : 'Bayar sekarang'}
                             </button>
-                            <p className="mt-2 text-center text-xs text-slate-400">
+                            <p className="mt-2 text-center text-xs text-[var(--color-muted)]">
                                 Pembayaran diproses secara instan dan aman via Midtrans.
                             </p>
                         </div>

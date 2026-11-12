@@ -155,30 +155,30 @@ export default function CatalogShow({ auth, product, isPreview = false }) {
             <div className="mx-auto w-full max-w-[1200px] px-4 py-8 sm:px-6 sm:py-10">
                 {/* Preview note for unapproved/inactive products viewable by admins */}
                 {isPreview && (
-                    <div className="mb-4 text-xs text-slate-500">
+                    <div className="mb-4 text-xs text-[var(--color-muted)]">
                         Pratinjau: belum tampil di katalog publik.
                     </div>
                 )}
 
                 {/* 1. Breadcrumb & Back button */}
-                <div className="mb-6 flex items-center justify-between">
-                    <nav className="flex items-center gap-2 text-xs text-slate-500" aria-label="Breadcrumb">
-                        <Link href={route('home')} className="hover:text-slate-900 transition-colors">
+                <div className="mb-8 flex flex-wrap items-center justify-between gap-3">
+                    <nav className="flex items-center gap-2 text-xs text-[var(--color-muted)]" aria-label="Breadcrumb">
+                        <Link href={route('home')} className="hover:text-[var(--color-ink)] transition-colors">
                             Beranda
                         </Link>
                         <span>/</span>
-                        <Link href={route('catalog.index')} className="hover:text-slate-900 transition-colors">
+                        <Link href={route('catalog.index')} className="hover:text-[var(--color-ink)] transition-colors">
                             Katalog
                         </Link>
                         <span>/</span>
-                        <span className="truncate max-w-[200px] sm:max-w-xs text-slate-700">
+                        <span className="truncate max-w-[200px] sm:max-w-xs text-[var(--color-ink)]">
                             {product.name}
                         </span>
                     </nav>
 
                     <Link
                         href={route('catalog.index')}
-                        className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl border border-slate-200 text-xs font-semibold text-slate-700 hover:bg-slate-50 transition"
+                        className="inline-flex items-center gap-1.5 rounded-full border border-[var(--color-border)] bg-white px-3.5 py-2 text-xs font-semibold text-[var(--color-ink)] shadow-sm transition hover:border-[var(--color-accent)] hover:bg-[var(--color-accent-tint)]"
                     >
                         <ArrowLeft className="w-3.5 h-3.5" />
                         Kembali ke Katalog
@@ -194,7 +194,7 @@ export default function CatalogShow({ auth, product, isPreview = false }) {
                             {/* Big Photo */}
                             <div 
                                 onClick={() => setIsLightboxOpen(true)}
-                                className="group relative cursor-pointer overflow-hidden rounded-lg border border-slate-200 bg-slate-100"
+                                className="group relative cursor-pointer overflow-hidden rounded-2xl border border-[var(--color-border)] bg-[var(--color-surface)] shadow-card"
                                 title="Klik untuk perbesar foto (Lightbox)"
                             >
                                 <div className="aspect-[4/3] w-full">
@@ -221,7 +221,7 @@ export default function CatalogShow({ auth, product, isPreview = false }) {
                                             className={`relative h-14 w-18 shrink-0 overflow-hidden rounded border transition-all ${
                                                 selectedPhotoIndex === idx
                                                     ? 'border-slate-900 ring-1 ring-slate-900 opacity-100'
-                                                    : 'border-slate-200 opacity-60 hover:opacity-100'
+                                                    : 'border-[var(--color-border)] opacity-60 hover:opacity-100'
                                             }`}
                                         >
                                             <VisualPlaceholder
@@ -238,11 +238,11 @@ export default function CatalogShow({ auth, product, isPreview = false }) {
 
                         {/* ── Uploaded Video Player ── */}
                         {product.video_path && (
-                            <div className="pt-3 border-t border-slate-100">
-                                <div className="mb-2 text-xs font-semibold text-slate-800">
+                            <div className="pt-3 border-t border-[var(--color-border)]">
+                                <div className="mb-2 text-xs font-semibold text-[var(--color-ink)]">
                                     Video Demo Produk
                                 </div>
-                                <div className="overflow-hidden rounded-lg border border-slate-200 bg-black aspect-[16/9] w-full">
+                                <div className="overflow-hidden rounded-lg border border-[var(--color-border)] bg-black aspect-[16/9] w-full">
                                     <video
                                         controls
                                         className="h-full w-full object-contain"
@@ -256,9 +256,9 @@ export default function CatalogShow({ auth, product, isPreview = false }) {
 
                         {/* ── Video Player ── */}
                         {videoRawUrl && (
-                            <div className="pt-3 border-t border-slate-100">
+                            <div className="pt-3 border-t border-[var(--color-border)]">
                                 <div className="mb-2 flex items-center justify-between text-xs">
-                                    <span className="font-semibold text-slate-800">
+                                    <span className="font-semibold text-[var(--color-ink)]">
                                         Tautan Video Promosi / Demo
                                     </span>
                                     <a
@@ -274,7 +274,7 @@ export default function CatalogShow({ auth, product, isPreview = false }) {
                                 </div>
 
                                 {embedUrl && (
-                                    <div className="overflow-hidden rounded-lg border border-slate-200 bg-black aspect-[16/9] w-full">
+                                    <div className="overflow-hidden rounded-lg border border-[var(--color-border)] bg-black aspect-[16/9] w-full">
                                         <iframe
                                             className="h-full w-full"
                                             src={embedUrl}
@@ -291,9 +291,9 @@ export default function CatalogShow({ auth, product, isPreview = false }) {
                     {/* Right Column (5 cols): Sticky Buy Box + In-depth Information Tabs */}
                     <div className="lg:col-span-5 flex flex-col space-y-6 lg:sticky lg:top-24">
                         {/* ── Main Purchasing Block ── */}
-                        <div className="border border-slate-200 rounded-lg p-5 sm:p-6 bg-white">
+                        <div className="rounded-2xl border border-[var(--color-border)] bg-white p-5 shadow-card sm:p-6">
                             {/* Category & Code */}
-                            <div className="text-xs text-slate-500">
+                            <div className="text-xs text-[var(--color-muted)]">
                                 <span>{categoryText}</span>
                                 <span className="mx-1.5 text-slate-300">/</span>
                                 <span>{codeText}</span>
@@ -307,52 +307,52 @@ export default function CatalogShow({ auth, product, isPreview = false }) {
                             )}
 
                             {/* Product Title */}
-                            <h1 className="mt-1.5 font-display text-xl font-bold tracking-tight text-slate-900 sm:text-2xl leading-snug">
+                            <h1 className="mt-1.5 font-display text-xl font-bold tracking-tight text-[var(--color-ink)] sm:text-2xl leading-snug">
                                 {product.name}
                             </h1>
 
                             {/* Managed by */}
-                            <div className="mt-1 text-xs text-slate-500">
+                            <div className="mt-1 text-xs text-[var(--color-muted)]">
                                 Dikelola oleh {ownerText}
                             </div>
 
                             {/* Short Description */}
-                            <p className="mt-2.5 text-xs text-slate-600 leading-relaxed">
+                            <p className="mt-2.5 text-xs text-[var(--color-muted)] leading-relaxed">
                                 {product.short_description || 'Layanan dan produk riset terapan resmi dari sivitas akademika Politeknik Negeri Jakarta.'}
                             </p>
 
                             {/* Ketersediaan, Berat, Dimensi badges */}
                             <div className="mt-3 flex flex-wrap gap-2 text-xs font-semibold">
                                 {product.target_audience === 'internal_pnj' ? (
-                                    <span className="inline-block px-2.5 py-1 rounded-md bg-purple-50 text-purple-700 border border-purple-200">
+                                    <span className="inline-flex items-center gap-1 rounded-full border px-2.5 py-1" style={{ background: 'color-mix(in srgb, var(--color-gold) 12%, transparent)', borderColor: 'color-mix(in srgb, var(--color-gold) 35%, transparent)', color: 'var(--color-gold-deep)' }}>
                                         🔒 Khusus Sivitas PNJ
                                     </span>
                                 ) : (
-                                    <span className="inline-block px-2.5 py-1 rounded-md bg-[var(--color-accent-tint)] text-[var(--color-accent)] border border-teal-200/60">
+                                    <span className="inline-flex items-center gap-1 rounded-full border border-[var(--color-accent-tint)] bg-[var(--color-accent-tint)] px-2.5 py-1 text-[var(--color-accent-hover)]">
                                         🌐 Terbuka untuk Umum
                                     </span>
                                 )}
-                                <span className={`inline-block px-2.5 py-1 rounded-md border ${product.meta?.availability_status === 'preorder' ? 'bg-amber-500/10 text-amber-800 border-amber-300/60' : 'bg-emerald-50 text-emerald-700 border-emerald-200'}`}>
+                                <span className={`inline-flex items-center gap-1 rounded-full border px-2.5 py-1 ${product.meta?.availability_status === 'preorder' ? 'bg-amber-50 text-amber-800 border-amber-200' : 'bg-teal-50 text-teal-700 border-teal-100'}`}>
                                     {availabilityLabel}
                                 </span>
                                 {weightVal && (
-                                    <span className="inline-block px-2.5 py-1 rounded-md bg-slate-50 text-slate-700 border border-slate-200">
+                                    <span className="inline-flex items-center gap-1 rounded-full border border-[var(--color-border)] bg-[var(--color-surface)] px-2.5 py-1 text-[var(--color-ink)]">
                                         Berat: {weightVal} gram
                                     </span>
                                 )}
                                 {lengthVal && widthVal && heightVal && (
-                                    <span className="inline-block px-2.5 py-1 rounded-md bg-slate-50 text-slate-700 border border-slate-200">
+                                    <span className="inline-flex items-center gap-1 rounded-full border border-[var(--color-border)] bg-[var(--color-surface)] px-2.5 py-1 text-[var(--color-ink)]">
                                         Dimensi: {lengthVal} x {widthVal} x {heightVal} cm
                                     </span>
                                 )}
                             </div>
 
                             {/* Price display */}
-                            <div className="mt-4 pt-3 border-t border-slate-100">
-                                <div className="font-display text-2xl font-bold text-slate-900">
+                            <div className="mt-4 pt-3 border-t border-[var(--color-border)]">
+                                <div className="font-display text-2xl font-bold text-[var(--color-ink)]">
                                     {priceFormatted}
                                 </div>
-                                <div className="text-[11px] text-slate-500 mt-0.5">
+                                <div className="text-[11px] text-[var(--color-muted)] mt-0.5">
                                     Belum termasuk PPN {taxRate}% (Total: Rp {totalAmount.toLocaleString('id-ID')})
                                 </div>
                             </div>
@@ -362,7 +362,7 @@ export default function CatalogShow({ auth, product, isPreview = false }) {
                                 {isStaff ? (
                                     <Link
                                         href={route('rtpu.layanan')}
-                                        className="inline-flex w-full items-center justify-center gap-1.5 rounded-[6px] border border-slate-200 bg-white px-4 py-2.5 text-xs font-medium text-slate-700 hover:bg-slate-50 hover:text-slate-900 transition"
+                                        className="inline-flex w-full items-center justify-center gap-1.5 rounded-full border border-[var(--color-border)] bg-white px-4 py-2.5 text-xs font-semibold text-[var(--color-ink)] transition hover:border-[var(--color-accent)] hover:bg-[var(--color-accent-tint)]"
                                     >
                                         <span>Kelola layanan ini</span>
                                         <ArrowRight className="h-3.5 w-3.5" />
@@ -370,7 +370,7 @@ export default function CatalogShow({ auth, product, isPreview = false }) {
                                 ) : user ? (
                                     <a
                                         href={navHref('customer.pengajuan.create', { product_id: product.id, tipe: type }, user.role)}
-                                        className="inline-flex w-full items-center justify-center gap-2 rounded-md px-5 py-2.5 text-xs font-semibold text-white bg-[var(--color-accent)] hover:opacity-90 active:scale-[0.99] transition"
+                                        className="inline-flex w-full items-center justify-center gap-2 rounded-full bg-[var(--color-accent)] px-5 py-3 text-sm font-semibold text-[var(--color-bg)] transition hover:bg-[var(--color-accent-hover)] active:scale-[0.99]"
                                     >
                                         <span>Ajukan Layanan</span>
                                         <ArrowRight className="h-4 w-4" />
@@ -378,7 +378,7 @@ export default function CatalogShow({ auth, product, isPreview = false }) {
                                 ) : (
                                     <Link
                                         href={route('login')}
-                                        className="inline-flex w-full items-center justify-center gap-2 rounded-md px-5 py-2.5 text-xs font-semibold text-white bg-[var(--color-accent)] hover:opacity-90 active:scale-[0.99] transition"
+                                        className="inline-flex w-full items-center justify-center gap-2 rounded-full bg-[var(--color-accent)] px-5 py-3 text-sm font-semibold text-[var(--color-bg)] transition hover:bg-[var(--color-accent-hover)] active:scale-[0.99]"
                                     >
                                         <span>Masuk untuk Mengajukan</span>
                                         <ArrowRight className="h-4 w-4" />
@@ -388,7 +388,7 @@ export default function CatalogShow({ auth, product, isPreview = false }) {
                                 <div className="text-xs pt-1">
                                     <Link
                                         href={route('catalog.index')}
-                                        className="text-slate-500 hover:text-slate-900 hover:underline transition"
+                                        className="text-[var(--color-muted)] hover:text-[var(--color-ink)] hover:underline transition"
                                     >
                                         ← Kembali ke katalog
                                     </Link>
@@ -397,9 +397,9 @@ export default function CatalogShow({ auth, product, isPreview = false }) {
                         </div>
 
                         {/* ── Tabs (Now positioned directly under the buy box to balance height) ── */}
-                        <div className="border border-slate-200 rounded-lg p-5 bg-white">
+                        <div className="rounded-2xl border border-[var(--color-border)] bg-white p-5 shadow-card">
                             {/* Plain text tab header */}
-                            <div className="flex gap-5 border-b border-slate-200" role="tablist">
+                            <div className="flex gap-5 border-b border-[var(--color-border)]" role="tablist">
                                 {[
                                     ['deskripsi', 'Deskripsi'],
                                     ['spesifikasi', 'Spesifikasi'],
@@ -414,7 +414,7 @@ export default function CatalogShow({ auth, product, isPreview = false }) {
                                         className={`pb-2.5 text-xs transition-colors relative ${
                                             tab === key
                                                 ? 'font-bold text-[var(--color-accent)]'
-                                                : 'font-medium text-slate-500 hover:text-slate-900'
+                                                : 'font-medium text-[var(--color-muted)] hover:text-[var(--color-ink)]'
                                         }`}
                                     >
                                         {label}
@@ -426,13 +426,13 @@ export default function CatalogShow({ auth, product, isPreview = false }) {
                             </div>
 
                             {/* Tab Content */}
-                            <div className="mt-4 text-xs text-slate-700 leading-relaxed">
+                            <div className="mt-4 text-xs text-[var(--color-ink)] leading-relaxed">
                                 {tab === 'deskripsi' && (
                                     <div className="space-y-3">
                                         <p>
                                             {product.description || product.short_description || 'Deskripsi lengkap belum diunggah.'}
                                         </p>
-                                        <p className="text-[11px] text-slate-500 border-t border-slate-100 pt-2.5">
+                                        <p className="text-[11px] text-[var(--color-muted)] border-t border-[var(--color-border)] pt-2.5">
                                             Untuk spesifikasi kebutuhan khusus atau Kerangka Acuan Kerja (KAK), Anda dapat melampirkan berkas pada saat pengajuan.
                                         </p>
                                     </div>
@@ -441,9 +441,9 @@ export default function CatalogShow({ auth, product, isPreview = false }) {
                                 {tab === 'spesifikasi' && (
                                     <dl className="space-y-2">
                                         {specList.map(([key, val]) => (
-                                            <div key={key} className="flex justify-between py-1 border-b border-slate-100">
-                                                <dt className="text-slate-500">{key}</dt>
-                                                <dd className="font-semibold text-slate-800 text-right">{val}</dd>
+                                            <div key={key} className="flex justify-between py-1 border-b border-[var(--color-border)]">
+                                                <dt className="text-[var(--color-muted)]">{key}</dt>
+                                                <dd className="font-semibold text-[var(--color-ink)] text-right">{val}</dd>
                                             </div>
                                         ))}
                                     </dl>
@@ -452,26 +452,26 @@ export default function CatalogShow({ auth, product, isPreview = false }) {
                                 {tab === 'prosedur' && (
                                     <div className="space-y-3.5">
                                         <div>
-                                            <h4 className="font-bold text-slate-900 mb-1.5">Rincian Biaya</h4>
-                                            <div className="space-y-1 text-slate-600">
-                                                <div className="flex justify-between py-0.5 border-b border-slate-100">
+                                            <h4 className="font-bold text-[var(--color-ink)] mb-1.5">Rincian Biaya</h4>
+                                            <div className="space-y-1 text-[var(--color-muted)]">
+                                                <div className="flex justify-between py-0.5 border-b border-[var(--color-border)]">
                                                     <span>Tarif Dasar</span>
-                                                    <span className="font-mono text-slate-800">{priceFormatted}</span>
+                                                    <span className="font-mono text-[var(--color-ink)]">{priceFormatted}</span>
                                                 </div>
-                                                <div className="flex justify-between py-0.5 border-b border-slate-100">
+                                                <div className="flex justify-between py-0.5 border-b border-[var(--color-border)]">
                                                     <span>PPN ({taxRate}%)</span>
-                                                    <span className="font-mono text-slate-800">Rp {taxAmount.toLocaleString('id-ID')}</span>
+                                                    <span className="font-mono text-[var(--color-ink)]">Rp {taxAmount.toLocaleString('id-ID')}</span>
                                                 </div>
-                                                <div className="flex justify-between py-1 font-bold text-slate-900">
+                                                <div className="flex justify-between py-1 font-bold text-[var(--color-ink)]">
                                                     <span>Total Pembayaran</span>
                                                     <span className="font-mono">Rp {totalAmount.toLocaleString('id-ID')}</span>
                                                 </div>
                                             </div>
                                         </div>
 
-                                        <div className="pt-1 border-t border-slate-100">
-                                            <h4 className="font-bold text-slate-900 mb-1">Alur Singkat</h4>
-                                            <ol className="list-decimal pl-3.5 space-y-1 text-slate-600">
+                                        <div className="pt-1 border-t border-[var(--color-border)]">
+                                            <h4 className="font-bold text-[var(--color-ink)] mb-1">Alur Singkat</h4>
+                                            <ol className="list-decimal pl-3.5 space-y-1 text-[var(--color-muted)]">
                                                 <li>Isi formulir pengajuan online.</li>
                                                 <li>Admin RTPU menerbitkan penawaran biaya.</li>
                                                 <li>Pembayaran via Virtual Account BLU PNJ.</li>
@@ -486,18 +486,18 @@ export default function CatalogShow({ auth, product, isPreview = false }) {
                 </div>
 
                 {/* Mobile Sticky Bottom Bar */}
-                <div className="fixed inset-x-0 bottom-0 z-40 block md:hidden border-t border-slate-200 bg-white p-3 shadow-md">
+                <div className="fixed inset-x-0 bottom-0 z-40 block md:hidden border-t border-[var(--color-border)] bg-white p-3 shadow-md">
                     <div className="flex items-center justify-between gap-3">
                         <div>
-                            <div className="text-[10px] text-slate-500">Tarif Layanan</div>
-                            <div className="font-display text-base font-bold text-slate-900">
+                            <div className="text-[10px] text-[var(--color-muted)]">Tarif Layanan</div>
+                            <div className="font-display text-base font-bold text-[var(--color-ink)]">
                                 {priceFormatted}
                             </div>
                         </div>
                         {user ? (
                             <a
                                 href={navHref('customer.pengajuan.create', { product_id: product.id, tipe: type }, user.role)}
-                                className="inline-flex items-center gap-1.5 rounded-[6px] px-4 py-2 text-xs font-semibold text-white bg-[var(--color-accent)]"
+                                className="inline-flex items-center gap-1.5 rounded-full bg-[var(--color-accent)] px-4 py-2.5 text-xs font-semibold text-[var(--color-bg)] transition hover:bg-[var(--color-accent-hover)]"
                             >
                                 <span>Ajukan</span>
                                 <ArrowRight className="h-3.5 w-3.5" />
@@ -505,7 +505,7 @@ export default function CatalogShow({ auth, product, isPreview = false }) {
                         ) : (
                             <Link
                                 href={route('login')}
-                                className="inline-flex items-center gap-1.5 rounded-[6px] px-4 py-2 text-xs font-semibold text-white bg-[var(--color-accent)]"
+                                className="inline-flex items-center gap-1.5 rounded-full bg-[var(--color-accent)] px-4 py-2.5 text-xs font-semibold text-[var(--color-bg)] transition hover:bg-[var(--color-accent-hover)]"
                             >
                                 <span>Masuk & Ajukan</span>
                                 <ArrowRight className="h-3.5 w-3.5" />
@@ -547,7 +547,7 @@ export default function CatalogShow({ auth, product, isPreview = false }) {
                                     type="button"
                                     aria-label="Foto Sebelumnya"
                                     onClick={() => setSelectedPhotoIndex((selectedPhotoIndex - 1 + galleryPhotos.length) % galleryPhotos.length)}
-                                    className="absolute -left-12 top-1/2 -translate-y-1/2 bg-white/90 hover:bg-white text-slate-900 rounded-full w-10 h-10 flex items-center justify-center font-bold shadow-lg transition"
+                                    className="absolute -left-12 top-1/2 -translate-y-1/2 bg-white/90 hover:bg-white text-[var(--color-ink)] rounded-full w-10 h-10 flex items-center justify-center font-bold shadow-lg transition"
                                 >
                                     <ChevronLeft className="w-6 h-6" />
                                 </button>
@@ -556,7 +556,7 @@ export default function CatalogShow({ auth, product, isPreview = false }) {
                                     type="button"
                                     aria-label="Foto Selanjutnya"
                                     onClick={() => setSelectedPhotoIndex((selectedPhotoIndex + 1) % galleryPhotos.length)}
-                                    className="absolute -right-12 top-1/2 -translate-y-1/2 bg-white/90 hover:bg-white text-slate-900 rounded-full w-10 h-10 flex items-center justify-center font-bold shadow-lg transition"
+                                    className="absolute -right-12 top-1/2 -translate-y-1/2 bg-white/90 hover:bg-white text-[var(--color-ink)] rounded-full w-10 h-10 flex items-center justify-center font-bold shadow-lg transition"
                                 >
                                     <ChevronRight className="w-6 h-6" />
                                 </button>
@@ -569,7 +569,7 @@ export default function CatalogShow({ auth, product, isPreview = false }) {
                             type="button"
                             aria-label="Tutup Lightbox"
                             onClick={() => setIsLightboxOpen(false)}
-                            className="absolute -top-4 -right-4 bg-white text-slate-900 rounded-full w-9 h-9 flex items-center justify-center font-bold shadow-lg hover:bg-slate-100 transition"
+                            className="absolute -top-4 -right-4 bg-white text-[var(--color-ink)] rounded-full w-9 h-9 flex items-center justify-center font-bold shadow-lg hover:bg-[var(--color-surface)] transition"
                         >
                             <X className="w-5 h-5" />
                         </button>

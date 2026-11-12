@@ -30,7 +30,10 @@ function FilterPanel({ filters, categories, draft, setDraft, onApply, onReset })
     return (
         <div className="space-y-6">
             <div>
-                <p className="mb-2 text-sm font-semibold" style={{ color: 'var(--color-ink)' }}>Kategori</p>
+                <p className="mb-2 flex items-center gap-2 text-sm font-semibold" style={{ color: 'var(--color-ink)' }}>
+                    <span className="h-1.5 w-1.5 rounded-full" style={{ background: 'var(--color-gold)' }} />
+                    Kategori
+                </p>
                 <ul className="space-y-1">
                     <li>
                         <button
@@ -39,7 +42,7 @@ function FilterPanel({ filters, categories, draft, setDraft, onApply, onReset })
                                 setDraft((d) => ({ ...d, category: '' }));
                                 onApply({ category: undefined });
                             }}
-                            className="w-full rounded-xl px-3 py-2 text-start text-sm transition"
+                            className="w-full rounded-xl px-3 py-2 text-start text-sm transition hover:bg-[var(--color-surface)]"
                             style={
                                 !draft.category
                                     ? { background: 'var(--color-accent-tint)', color: 'var(--color-accent-hover)', fontWeight: 600 }
@@ -60,7 +63,7 @@ function FilterPanel({ filters, categories, draft, setDraft, onApply, onReset })
                                         setDraft((d) => ({ ...d, category: newCat || '' }));
                                         onApply({ category: newCat });
                                     }}
-                                    className="w-full rounded-xl px-3 py-2 text-start text-sm transition"
+                                    className="w-full rounded-xl px-3 py-2 text-start text-sm transition hover:bg-[var(--color-surface)]"
                                     style={
                                         on
                                             ? { background: 'var(--color-accent-tint)', color: 'var(--color-accent-hover)', fontWeight: 600 }
@@ -75,7 +78,10 @@ function FilterPanel({ filters, categories, draft, setDraft, onApply, onReset })
                 </ul>
             </div>
             <div>
-                <p className="mb-2 text-sm font-semibold" style={{ color: 'var(--color-ink)' }}>Rentang harga</p>
+                <p className="mb-2 flex items-center gap-2 text-sm font-semibold" style={{ color: 'var(--color-ink)' }}>
+                    <span className="h-1.5 w-1.5 rounded-full" style={{ background: 'var(--color-gold)' }} />
+                    Rentang harga
+                </p>
                 <div className="grid grid-cols-2 gap-2">
                     <input
                         type="number" min="0" placeholder="Min Rp"
@@ -103,7 +109,7 @@ function FilterPanel({ filters, categories, draft, setDraft, onApply, onReset })
                 <div>
                     <button
                         type="button" onClick={onReset}
-                        className="w-full rounded-full border bg-white px-4 py-2 text-sm font-semibold transition hover:bg-slate-50"
+                        className="w-full rounded-full border border-[var(--color-border)] bg-white px-4 py-2.5 text-sm font-semibold text-[var(--color-ink)] shadow-sm transition hover:border-[var(--color-accent)] hover:bg-[var(--color-accent-tint)]"
                         style={{ borderColor: 'var(--color-border)', color: 'var(--color-ink)' }}
                     >
                         Reset filter
@@ -211,17 +217,21 @@ export default function CatalogBrowse({ auth, products, categories = [], filters
             <Head title="Katalog · PNJ Prime" />
 
             {/* Light page header band (not a dark hero) */}
-            <div className="border-b" style={{ borderColor: 'var(--color-border)', background: 'var(--color-surface)' }}>
-                <div className="mx-auto w-full max-w-[1240px] px-4 py-10 sm:px-6">
-                    <p className="mb-2 text-sm font-semibold" style={{ color: 'var(--color-accent)' }}>Katalog</p>
-                    <h1 className="font-display text-3xl font-bold sm:text-4xl" style={{ color: 'var(--color-ink)' }}>
+            <div className="relative border-b" style={{ borderColor: 'var(--color-border)', background: 'linear-gradient(180deg, var(--color-surface) 0%, var(--color-bg) 100%)' }}>
+                <div className="pointer-events-none absolute inset-x-0 top-0 h-[3px] bg-gradient-to-r from-[var(--color-gold)] via-[var(--color-accent)] to-[var(--color-gold)]" aria-hidden />
+                <div className="mx-auto w-full max-w-[1240px] px-4 py-12 sm:px-6">
+                    <p className="mb-3 inline-flex items-center gap-2 rounded-full border px-3 py-1 text-[11px] font-bold uppercase tracking-widest" style={{ borderColor: 'color-mix(in srgb, var(--color-accent) 25%, transparent)', color: 'var(--color-accent)', background: 'color-mix(in srgb, var(--color-accent-tint) 50%, transparent)' }}>
+                        <span className="h-1.5 w-1.5 rounded-full" style={{ background: 'var(--color-gold)' }} />
+                        Katalog
+                    </p>
+                    <h1 className="font-display text-3xl font-bold tracking-tight sm:text-4xl lg:text-[42px]" style={{ color: 'var(--color-ink)' }}>
                         Jelajahi seluruh katalog
                     </h1>
-                    <p className="mt-2 max-w-xl text-[15px]" style={{ color: 'var(--color-muted)' }}>
+                    <p className="mt-3 max-w-xl text-[15px] leading-relaxed" style={{ color: 'var(--color-muted)' }}>
                         Produk fisik, jasa pengujian, dan sewa fasilitas hasil riset PNJ, terkurasi Admin RTPU.
                     </p>
                     <form
-                        className="relative mt-6 max-w-xl"
+                        className="relative mt-7 max-w-xl"
                         onSubmit={(e) => {
                             e.preventDefault();
                             if (debounceTimerRef.current) clearTimeout(debounceTimerRef.current);
@@ -235,10 +245,7 @@ export default function CatalogBrowse({ auth, products, categories = [], filters
                             onChange={(e) => handleSearchChange(e.target.value)}
                             placeholder="Cari produk, jasa, atau fasilitas…"
                             aria-label="Cari katalog"
-                            className="w-full rounded-full border bg-white py-3 pl-11 pr-4 text-sm outline-none transition"
-                            style={{ borderColor: 'var(--color-border)', color: 'var(--color-ink)' }}
-                            onFocus={(e) => { e.currentTarget.style.borderColor = 'var(--color-accent)'; e.currentTarget.style.boxShadow = '0 0 0 3px var(--color-accent-tint)'; }}
-                            onBlur={(e) => { e.currentTarget.style.borderColor = 'var(--color-border)', e.currentTarget.style.boxShadow = 'none'; }}
+                            className="w-full rounded-full border border-[var(--color-border)] bg-white py-3.5 pl-11 pr-4 text-sm text-[var(--color-ink)] shadow-sm outline-none transition duration-150 focus:border-[var(--color-accent)] focus:ring-4 focus:ring-[var(--color-accent-tint)]"
                         />
                     </form>
                 </div>
@@ -248,7 +255,7 @@ export default function CatalogBrowse({ auth, products, categories = [], filters
                 <div className="grid gap-8 lg:grid-cols-[240px_1fr]">
                     {/* Sidebar (desktop) */}
                     <aside className="hidden lg:block">
-                        <div className="sticky top-24 rounded-[22px] border bg-white p-5" style={{ borderColor: 'var(--color-border)' }}>
+                        <div className="sticky top-24 rounded-2xl border border-[var(--color-border)] bg-white p-5 shadow-card">
                             <FilterPanel
                                 filters={filters}
                                 categories={categories}
@@ -268,7 +275,7 @@ export default function CatalogBrowse({ auth, products, categories = [], filters
                             </p>
                             <button
                                 type="button" onClick={() => setDrawer(true)}
-                                className="inline-flex items-center gap-2 rounded-full border bg-white px-4 py-2 text-sm font-semibold"
+                                className="inline-flex items-center gap-2 rounded-full border border-[var(--color-border)] bg-white px-4 py-2.5 text-sm font-semibold text-[var(--color-ink)] shadow-sm transition hover:border-[var(--color-accent)]"
                                 style={{ borderColor: 'var(--color-border)', color: 'var(--color-ink)' }}
                             >
                                 <SlidersHorizontal className="h-4 w-4" /> Filter

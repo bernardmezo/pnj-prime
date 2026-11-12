@@ -39,10 +39,10 @@ export default function CustomerHome({ auth, featured_products = [], categories 
                             <Sparkles className="h-3.5 w-3.5 text-[var(--color-gold)]" />
                             Halo, {auth?.user?.name?.split(' ')[0] ?? 'Pelanggan'}
                         </div>
-                        <h1 className="mt-2 font-display text-2xl font-bold sm:text-3xl" style={{ color: 'var(--color-ink)' }}>
+                        <h1 className="mt-2 font-display text-[28px] font-bold tracking-tight sm:text-4xl" style={{ color: 'var(--color-ink)' }}>
                             Mau pesan apa hari ini?
                         </h1>
-                        <p className="mt-1 text-xs sm:text-sm text-slate-500">
+                        <p className="mt-1 text-xs sm:text-sm text-[var(--color-muted)]">
                             Jelajahi inovasi riset, pengujian laboratorium, dan fasilitas resmi PNJ.
                         </p>
                     </div>
@@ -60,7 +60,7 @@ export default function CustomerHome({ auth, featured_products = [], categories 
                             onChange={(e) => setQ(e.target.value)}
                             placeholder="Cari produk, jasa laboratorium, atau fasilitas…"
                             aria-label="Cari katalog"
-                            className="w-full rounded-full border bg-white py-3 pl-11 pr-4 text-sm outline-none transition shadow-sm"
+                            className="w-full rounded-full border border-[var(--color-border)] bg-white py-3.5 pl-11 pr-4 text-sm text-[var(--color-ink)] shadow-sm outline-none transition duration-150 focus:border-[var(--color-accent)] focus:ring-4 focus:ring-[var(--color-accent-tint)]"
                             style={{ borderColor: 'var(--color-border)', color: 'var(--color-ink)' }}
                             onFocus={(e) => { e.currentTarget.style.borderColor = 'var(--color-accent)'; e.currentTarget.style.boxShadow = '0 0 0 3px var(--color-accent-tint)'; }}
                             onBlur={(e) => { e.currentTarget.style.borderColor = 'var(--color-border)'; e.currentTarget.style.boxShadow = 'none'; }}
@@ -80,7 +80,7 @@ export default function CustomerHome({ auth, featured_products = [], categories 
                             <a
                                 key={c.id ?? c.slug}
                                 href={c.slug ? `/katalog?category=${encodeURIComponent(c.slug)}` : '/katalog'}
-                                className="group inline-flex items-center gap-2 rounded-full border bg-white px-4 py-2 text-sm font-medium transition hover:-translate-y-0.5 hover:border-[var(--color-accent)] hover:text-[var(--color-accent)] shadow-sm"
+                                className="group inline-flex items-center gap-2 rounded-full border border-[var(--color-border)] bg-white px-4 py-2.5 text-sm font-medium text-[var(--color-ink)] shadow-sm transition duration-150 hover:-translate-y-0.5 hover:border-[var(--color-accent)] hover:bg-[var(--color-accent-tint)] hover:text-[var(--color-accent)]"
                                 style={{ borderColor: 'var(--color-border)', color: 'var(--color-ink)' }}
                             >
                                 <Icon className="h-4 w-4 text-[var(--color-accent)] opacity-75 group-hover:opacity-100 transition-opacity" />
@@ -93,10 +93,11 @@ export default function CustomerHome({ auth, featured_products = [], categories 
                 {/* Catalog grid */}
                 <div className="mt-10 flex items-end justify-between gap-4">
                     <div>
-                        <h2 className="font-display text-xl font-bold" style={{ color: 'var(--color-ink)' }}>
+                        <h2 className="flex items-center gap-2 font-display text-xl font-bold" style={{ color: 'var(--color-ink)' }}>
+                            <span className="h-1.5 w-1.5 rounded-full" style={{ background: 'var(--color-gold)' }} />
                             Pilihan Terkurasi untuk Anda
                         </h2>
-                        <p className="mt-0.5 text-xs text-slate-500">
+                        <p className="mt-0.5 text-xs text-[var(--color-muted)]">
                             Produk dan jasa unggulan yang telah diverifikasi oleh pimpinan &amp; pengelola.
                         </p>
                     </div>
@@ -150,20 +151,20 @@ export default function CustomerHome({ auth, featured_products = [], categories 
                         <a
                             key={label}
                             href={page === 'catalog' ? '/katalog' : navHref(page, {}, role)}
-                            className="group flex flex-col justify-between rounded-2xl border bg-white p-5 transition-all duration-300 hover:-translate-y-1 hover:shadow-card hover:border-[var(--color-accent)]"
+                            className="group flex flex-col justify-between rounded-2xl border border-[var(--color-border)] bg-white p-5 shadow-card transition-all duration-200 hover:-translate-y-1 hover:border-[var(--color-accent)] hover:shadow-card-hover"
                             style={{ borderColor: 'var(--color-border)' }}
                         >
                             <div className="flex items-start justify-between gap-3">
                                 <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-[var(--color-accent-tint)] text-[var(--color-accent)] transition-transform duration-300 group-hover:scale-105">
                                     <Icon className="h-5 w-5" />
                                 </div>
-                                <ArrowRight className="h-4 w-4 transition-transform duration-300 group-hover:translate-x-1 text-slate-400 group-hover:text-[var(--color-accent)]" />
+                                <ArrowRight className="h-4 w-4 transition-transform duration-300 group-hover:translate-x-1 text-[var(--color-muted)] group-hover:text-[var(--color-accent)]" />
                             </div>
                             <div className="mt-4">
-                                <span className="block font-display text-[15px] font-semibold text-slate-900 group-hover:text-[var(--color-accent)] transition-colors">
+                                <span className="block font-display text-[15px] font-semibold text-[var(--color-ink)] group-hover:text-[var(--color-accent)] transition-colors">
                                     {label}
                                 </span>
-                                <span className="mt-1 block text-xs text-slate-500 leading-normal">
+                                <span className="mt-1 block text-xs text-[var(--color-muted)] leading-normal">
                                     {desc}
                                 </span>
                             </div>

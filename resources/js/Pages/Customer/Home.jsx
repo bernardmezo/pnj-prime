@@ -1,26 +1,25 @@
 import { Head } from '@inertiajs/react';
 import { ArrowRight, Building2, Clock, FileText, FlaskConical, Package, Search, ShoppingBag, Sparkles } from 'lucide-react';
 import { useState } from 'react';
-import CatalogCard from '@/Components/Public/CatalogCard';
+import CatalogCard, { typeFromCategory } from '@/Components/Public/CatalogCard';
 import PublicLayout from '@/Layouts/PublicLayout';
 import { PrimaryButton } from '@/Components/ui';
 import { href as navHref } from '@/lib/nav';
 
 function toCard(p) {
-    const type = String(p.category?.slug ?? '').includes('jasa')
-        ? 'jasa'
-        : String(p.category?.slug ?? '').match(/sewa|fasilitas/)
-          ? 'sewa'
-          : 'produk';
     return {
         id: p.id,
-        type,
+        type: typeFromCategory(p.category?.slug),
         title: p.name,
         category_name: p.category?.name,
         target_audience: p.target_audience ?? 'publik',
         price: `Rp ${Number(p.final_price ?? 0).toLocaleString('id-ID')}`,
         image: p.thumbnail ?? null,
         slug: p.slug,
+        stock: p.stock ?? null,
+        availability_status: p.meta?.availability_status ?? 'tersedia',
+        preorder_duration: p.meta?.preorder_duration ?? null,
+        sold_count: p.sold_count ?? 0,
     };
 }
 

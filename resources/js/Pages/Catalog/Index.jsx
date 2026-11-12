@@ -13,7 +13,7 @@ import {
     Star,
 } from 'lucide-react';
 import { useEffect, useRef, useState } from 'react';
-import CatalogCard from '@/Components/Public/CatalogCard';
+import CatalogCard, { typeFromCategory } from '@/Components/Public/CatalogCard';
 import PublicFooter from '@/Components/Public/PublicFooter';
 import PublicHeader from '@/Components/Public/PublicHeader';
 import SpeedLines from '@/Components/SpeedLines';
@@ -23,10 +23,49 @@ import { EASE, Reveal, StatCounter, VisualPlaceholder } from '@/Components/Publi
 const heroImage = null;
 
 const LANDING_SAMPLES = [
-    { id: 's1', type: 'produk', title: 'Alat Uji Kualitas Air Portable', price: 'Rp 2.450.000' },
-    { id: 's2', type: 'produk', title: 'Modul Trainer IoT Berbasis ESP32', price: 'Rp 1.275.000' },
-    { id: 's3', type: 'jasa', title: 'Pengujian Kuat Tekan Beton', price: 'Mulai Rp 350.000' },
-    { id: 's4', type: 'sewa', title: 'Ruang Rapat Lantai 2', price: 'Rp 550.000 / hari' },
+    {
+        id: 's1',
+        type: 'produk',
+        title: 'Alat Uji Kualitas Air Portable',
+        price: 'Rp 2.450.000',
+        category_name: 'Peralatan',
+        target_audience: 'publik',
+        stock: 5,
+        availability_status: 'tersedia',
+        sold_count: 12,
+    },
+    {
+        id: 's2',
+        type: 'produk',
+        title: 'Modul Trainer IoT Berbasis ESP32',
+        price: 'Rp 1.275.000',
+        category_name: 'Elektronika',
+        target_audience: 'internal_pnj',
+        stock: 0,
+        availability_status: 'preorder',
+        preorder_duration: '7 hari',
+        sold_count: 8,
+    },
+    {
+        id: 's3',
+        type: 'jasa',
+        title: 'Pengujian Kuat Tekan Beton',
+        price: 'Mulai Rp 350.000',
+        category_name: 'Jasa Laboratorium',
+        target_audience: 'publik',
+        availability_status: 'tersedia',
+        sold_count: 21,
+    },
+    {
+        id: 's4',
+        type: 'sewa',
+        title: 'Ruang Rapat Lantai 2',
+        price: 'Rp 550.000 / hari',
+        category_name: 'Fasilitas',
+        target_audience: 'publik',
+        availability_status: 'tersedia',
+        sold_count: 34,
+    },
 ];
 
 const BENEFITS = [
@@ -133,13 +172,17 @@ export default function CatalogIndex({ auth, categories = [], featured_products 
 
     const backendItems = (featured_products ?? []).slice(0, 4).map((p) => ({
         id: `b-${p.id}`,
-        type: 'produk',
+        type: typeFromCategory(p.category?.slug),
         title: p.name,
         category_name: p.category?.name,
         target_audience: p.target_audience ?? 'publik',
         price: `Rp ${Number(p.final_price ?? 0).toLocaleString('id-ID')}`,
         slug: p.slug,
         image: p.thumbnail ?? null,
+        stock: p.stock ?? null,
+        availability_status: p.meta?.availability_status ?? 'tersedia',
+        preorder_duration: p.meta?.preorder_duration ?? null,
+        sold_count: p.sold_count ?? 0,
     }));
     const items = [...backendItems, ...LANDING_SAMPLES].slice(0, 4);
 
@@ -244,23 +287,27 @@ export default function CatalogIndex({ auth, categories = [], featured_products 
 
             <section id="katalog" className="landing-section scroll-mt-20 bg-white">
                 <div className="landing-container">
-                    <Reveal>
-                        <p className="mb-3 inline-flex items-center gap-2 text-sm font-semibold" style={{ color: 'var(--color-accent)' }}>
-                            <span className="h-1.5 w-1.5 rounded-full" style={{ background: 'var(--color-gold)' }} />
-                            Katalog Pilihan
-                        </p>
-                        <div className="max-w-2xl">
-                            <h2 className="font-display text-3xl font-bold sm:text-4xl lg:text-[42px] lg:leading-[1.1]" style={{ color: 'var(--color-ink)' }}>
+                    <Reveal className="relative">
+                        <div className="pointer-events-none absolute -right-8 top-0 hidden w-72 opacity-25 lg:block" aria-hidden>
+                            <SwooshLine size="md" opacity={0.5} color="var(--color-accent)" stroke={1.5} />
+                        </div>
+                        <div className="mx-auto max-w-2xl text-center">
+                            <p className="mb-4 inline-flex items-center gap-2 rounded-full border px-4 py-1.5 text-[11px] font-bold uppercase tracking-widest" style={{ borderColor: 'color-mix(in srgb, var(--color-accent) 25%, transparent)', color: 'var(--color-accent)', background: 'color-mix(in srgb, var(--color-accent-tint) 50%, transparent)' }}>
+                                <span className="h-1.5 w-1.5 rounded-full" style={{ background: 'var(--color-gold)' }} />
+                                Katalog Pilihan
+                            </p>
+                            <h2 className="font-display text-3xl font-bold sm:text-4xl lg:text-[44px] lg:leading-[1.08]" style={{ color: 'var(--color-ink)' }}>
                                 Produk, jasa, dan fasilitas unggulan
                             </h2>
-                            <p className="mt-3 text-[15px] leading-relaxed" style={{ color: 'var(--color-muted)' }}>
-                                Pilihan terkurasi dari riset dan fasilitas PNJ, klik
-                                kartu untuk detail dan pemesanan.
+                            <div className="mx-auto mt-4 h-1 w-16 rounded-full" style={{ background: 'var(--color-gold)' }} />
+                            <p className="mx-auto mt-5 max-w-xl text-[15px] leading-relaxed" style={{ color: 'var(--color-muted)' }}>
+                                Pilihan terkurasi dari riset dan fasilitas PNJ. Klik kartu untuk
+                                detail lengkap, ketersediaan, dan pemesanan.
                             </p>
                         </div>
                     </Reveal>
 
-                    <div className="no-scrollbar -mx-4 mt-10 flex snap-x snap-mandatory gap-6 overflow-x-auto px-4 pb-2 sm:-mx-6 sm:px-6 lg:mx-0 lg:grid lg:grid-cols-4 lg:overflow-visible lg:px-0">
+                    <div className="no-scrollbar -mx-4 mt-12 flex snap-x snap-mandatory gap-6 overflow-x-auto px-4 pb-2 sm:-mx-6 sm:px-6 lg:mx-0 lg:grid lg:grid-cols-4 lg:overflow-visible lg:px-0">
                         {items.map((item, i) => (
                             <MiniCatalogCard key={item.id} item={item} index={i} />
                         ))}

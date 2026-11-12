@@ -30,6 +30,9 @@ class CatalogController extends Controller
             'owner',
             'opsi' => fn ($q) => $q->where('aktif', true)->urut(),
         ])
+            ->withSum([
+                'orderItems as sold_count' => fn ($q) => $q->whereHas('order', fn ($oq) => $oq->where('status', 'selesai')),
+            ], 'quantity')
             ->where('curation_status', 'approved')
             ->where('is_active', true);
 
@@ -68,6 +71,9 @@ class CatalogController extends Controller
             'owner:id,name,jurusan',
             'opsi' => fn ($q) => $q->where('aktif', true)->urut(),
         ])
+            ->withSum([
+                'orderItems as sold_count' => fn ($q) => $q->whereHas('order', fn ($oq) => $oq->where('status', 'selesai')),
+            ], 'quantity')
             ->where('curation_status', 'approved')
             ->where('is_active', true);
 

@@ -17,6 +17,10 @@ function toCard(p) {
         price: formatRp(p.final_price),
         image: p.thumbnail ?? null,
         slug: p.slug,
+        stock: p.stock ?? null,
+        availability_status: p.meta?.availability_status ?? 'tersedia',
+        preorder_duration: p.meta?.preorder_duration ?? null,
+        sold_count: p.sold_count ?? 0,
     };
 }
 

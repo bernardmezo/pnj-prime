@@ -1,54 +1,69 @@
-import { usePage } from '@inertiajs/react';
-import { CheckCircle2, XCircle } from 'lucide-react';
 import { useEffect, useState } from 'react';
+import { CheckCircle2, XCircle, X, Loader2 } from 'lucide-react';
+import { usePage } from '@inertiajs/react';
 
+const TONE = {
+    success: {
+        icon: CheckCircle2,
+        border: 'var(--color-success)',
+        iconColor: 'var(--color-success)',
+    },
+    error: {
+        icon: XCircle,
+        border: 'var(--color-danger)',
+        iconColor: 'var(--color-danger)',
+    },
+};
+
+/**
+ * FlashToast — notifikasi premium dengan sudut membulat, bayangan berlapis,
+ * dan focus ring pada tombol tutup.
+ */
 export default function FlashToast() {
-    const { flash } = usePage().props;
-    const [visible, setVisible] = useState(null);
+    const { props } = usePage();
+    const [visible, setVisible] = useState(false);
+
+    const message = props.flash?.success || props.flash?.error;
+    const type = props.flash?.success ? 'success' : props.flash?.error ? 'error' : null;
 
     useEffect(() => {
-        if (flash?.success) {
-            setVisible({ type: 'success', message: flash.success });
-        } else if (flash?.error) {
-            setVisible({ type: 'error', message: flash.error });
+        if (message) {
+            setVisible(true);
+            const timer = setTimeout(() => setVisible(false), 5000);
+            return () => clearTimeout(timer);
         }
-    }, [flash?.success, flash?.error]);
+    }, [message]);
 
-    useEffect(() => {
-        if (!visible) return;
-        const timer = setTimeout(() => setVisible(null), 4000);
-        return () => clearTimeout(timer);
-    }, [visible]);
+    if (!visible || !type) return null;
 
-    if (!visible) return null;
-
-    const isSuccess = visible.type === 'success';
+    const Icon = TONE[type].icon;
 
     return (
-        <div
-            role="status"
-            aria-live="polite"
-            className="fixed bottom-6 right-6 z-[9999] flex max-w-sm items-start gap-3 rounded-xl border px-5 py-4 shadow-lg"
-            style={{
-                background: isSuccess ? 'var(--color-success-tint)' : 'var(--color-danger-tint)',
-                borderColor: isSuccess ? 'var(--color-success)' : 'var(--color-danger)',
-                color: isSuccess ? 'var(--color-success)' : 'var(--color-danger)',
-            }}
-        >
-            {isSuccess ? (
-                <CheckCircle2 className="mt-0.5 h-5 w-5 shrink-0" style={{ color: 'var(--color-success)' }} />
-            ) : (
-                <XCircle className="mt-0.5 h-5 w-5 shrink-0" style={{ color: 'var(--color-danger)' }} />
-            )}
-            <span className="text-sm font-medium leading-snug">{visible.message}</span>
-            <button
-                type="button"
-                onClick={() => setVisible(null)}
-                className="ml-auto -mr-1 -mt-1 rounded p-1 opacity-60 transition hover:opacity-100"
-                aria-label="Tutup"
+        <div className="fixed bottom-6 right-6 z-50 max-w-sm animate-in slide-in-from-bottom-4 fade-in duration-200">
+            <div
+                role="alert"
+                className="flex items-start gap-3 rounded-2xl border border-l-4 p-4 shadow-[var(--shadow-layered)]"
+                style={{
+                    borderColor: 'var(--color-border)',
+                    borderLeftColor: TONE[type].border,
+                    background: 'var(--color-bg)',
+                }}
             >
-                ×
-            </button>
+                <span className="mt-0.5 shrink-0" style={{ color: TONE[type].iconColor }}>
+                    <Icon className="h-5 w-5" />
+                </span>
+                <div className="flex-1 text-sm font-medium" style={{ color: 'var(--color-ink)' }}>
+                    {message}
+                </div>
+                <button
+                    type="button"
+                    onClick={() => setVisible(false)}
+                    className="rounded-full p-1 text-[var(--color-muted)] transition duration-150 hover:bg-[var(--color-surface)] hover:text-[var(--color-ink)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-accent)] focus-visible:ring-offset-2"
+                    aria-label="Tutup notifikasi"
+                >
+                    <X className="h-4 w-4" />
+                </button>
+            </div>
         </div>
     );
 }

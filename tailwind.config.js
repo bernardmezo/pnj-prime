@@ -37,6 +37,13 @@ export default {
                     DEFAULT: 'var(--color-success)',
                     tint: 'var(--color-success-tint)',
                 },
+                dark: {
+                    bg: 'var(--color-dark-bg)',
+                    text: 'var(--color-dark-text)',
+                    muted: 'var(--color-dark-muted)',
+                    border: 'var(--color-dark-border)',
+                    hover: 'var(--color-dark-hover)',
+                },
             },
 
             fontFamily: {

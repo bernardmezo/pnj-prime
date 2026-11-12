@@ -1,5 +1,27 @@
 import { useState } from 'react';
-import { FileText, Plus, Settings, Trash2, User } from 'lucide-react';
+import {
+    AlertCircle,
+    ArrowRight,
+    CheckCircle,
+    FileText,
+    Info,
+    Package,
+    Plus,
+    Search,
+    Settings,
+    ShoppingCart,
+    Trash2,
+    Truck,
+    User,
+    X,
+} from 'lucide-react';
+import PrimaryButton from '@/Components/PrimaryButton';
+import SecondaryButton from '@/Components/SecondaryButton';
+import DangerButton from '@/Components/DangerButton';
+import TextInput from '@/Components/TextInput';
+import SpeedLines from '@/Components/SpeedLines';
+import SwooshLine from '@/Components/SwooshLine';
+import FlashToast from '@/Components/FlashToast';
 import Field from '@/Components/ui/Field';
 import Select from '@/Components/ui/Select';
 import Combobox from '@/Components/ui/Combobox';
@@ -14,13 +36,26 @@ import Tabs from '@/Components/ui/Tabs';
 import Accordion from '@/Components/ui/Disclosure';
 import MoneyInput from '@/Components/ui/MoneyInput';
 import NumberStepper from '@/Components/ui/NumberStepper';
-import TextInput from '@/Components/ui/TextInput';
+import UiTextInput from '@/Components/ui/TextInput';
 import Textarea from '@/Components/ui/Textarea';
+import {
+    Card,
+    EmptyState,
+    FilterTabs,
+    PageHeader,
+    Pagination,
+    RoleBadge,
+    StatCard,
+    StatusBadge,
+    Stepper,
+    Table,
+    Td,
+} from '@/Components/ui';
 
 /**
- * DEV-ONLY playground. Renders every UI-kit component in every state so
- * regressions are visible at a glance. Reachable in `vite dev` at
- * /dev/ui-kit; excluded from production bundles (see resources/js/app.jsx).
+ * DEV-ONLY playground. Menampilkan fondasi desain sistem PRIME dan semua
+ * komponen UI dalam berbagai state: default, hover, focus, disabled,
+ * loading, error, dan empty; termasuk contoh di latar terang dan gelap.
  */
 const OPTIONS = [
     { value: 'flat', label: 'Flat' },
@@ -39,10 +74,13 @@ const MANY = ['a', 'b', 'c', 'd', 'e', 'f', 'g', 'h'].map((k) => ({
     label: `Tag ${k.toUpperCase()}`,
 }));
 
-function Section({ title, children }) {
+function Section({ title, children, dark = false }) {
     return (
-        <section className="mb-10">
-            <h2 className="mb-4 border-b pb-2 font-display text-xl font-bold" style={{ borderColor: 'var(--color-border)', color: 'var(--color-ink)' }}>
+        <section className={`mb-10 rounded-3xl p-6 ${dark ? 'bg-[var(--color-dark-bg)]' : ''}`}>
+            <h2
+                className="mb-4 border-b pb-2 font-display text-xl font-bold"
+                style={{ borderColor: dark ? 'var(--color-dark-border)' : 'var(--color-border)', color: dark ? 'var(--color-dark-text)' : 'var(--color-ink)' }}
+            >
                 {title}
             </h2>
             {children}
@@ -50,18 +88,47 @@ function Section({ title, children }) {
     );
 }
 
-function Grid({ children }) {
-    return <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">{children}</div>;
+function Grid({ children, cols = 3 }) {
+    return <div className={`grid gap-6 sm:grid-cols-2 lg:grid-cols-${cols}`}>{children}</div>;
 }
 
-function Cell({ label, children }) {
+function Cell({ label, children, dark = false }) {
     return (
-        <div className="rounded-2xl border bg-white p-4" style={{ borderColor: 'var(--color-border)' }}>
-            <p className="mb-3 text-[13px] font-semibold" style={{ color: 'var(--color-muted)' }}>{label}</p>
+        <div
+            className={`rounded-2xl border p-4 ${dark ? 'border-[var(--color-dark-border)] bg-[var(--color-deep)]' : 'bg-white'}`}
+            style={{ borderColor: dark ? 'var(--color-dark-border)' : 'var(--color-border)' }}
+        >
+            <p className="mb-3 text-[13px] font-semibold" style={{ color: dark ? 'var(--color-dark-muted)' : 'var(--color-muted)' }}>
+                {label}
+            </p>
             {children}
         </div>
     );
 }
+
+function DemoRow({ label, children }) {
+    return (
+        <div className="flex flex-wrap items-center gap-4">
+            <span className="w-28 shrink-0 text-[13px] font-medium" style={{ color: 'var(--color-muted)' }}>{label}</span>
+            {children}
+        </div>
+    );
+}
+
+const SAMPLE_LINKS = [
+    { label: '1', url: '#', active: false },
+    { label: '2', url: '#', active: true },
+    { label: '3', url: '#', active: false },
+    { label: '4', url: '#', active: false },
+    { label: '›', url: '#', active: false },
+];
+
+const FILTER_TABS = [
+    { value: 'semua', label: 'Semua' },
+    { value: 'aktif', label: 'Aktif' },
+    { value: 'pending', label: 'Pending' },
+    { value: 'arsip', label: 'Arsip' },
+];
 
 export default function UiKit() {
     const [select, setSelect] = useState(null);
@@ -75,37 +142,277 @@ export default function UiKit() {
     const [stepper, setStepper] = useState(3);
     const [text, setText] = useState('');
     const [note, setNote] = useState('');
-    const [tab, setTab] = useState('jasa');
+    const [tab, setTab] = useState(0);
     const [modal, setModal] = useState(false);
     const [modalSelect, setModalSelect] = useState(null);
     const [modalCombo, setModalCombo] = useState(null);
+    const [filter, setFilter] = useState('semua');
 
     return (
         <div className="mx-auto max-w-6xl px-5 py-10">
-            <h1 className="mb-2 font-display text-3xl font-bold" style={{ color: 'var(--color-ink)' }}>
-                UI Kit · Dev Playground
-            </h1>
-            <p className="mb-10 text-sm" style={{ color: 'var(--color-muted)' }}>
-                Setiap komponen dalam berbagai state. Halaman ini hanya tersedia di mode pengembangan.
-            </p>
+            <PageHeader
+                eyebrow="Fase 1 — Design System"
+                title="UI Kit PRIME"
+                desc="Galeri komponen dasar dan motif khas PRIME. Periksa tampilan default, hover, focus, disabled, loading, error, dan empty di latar terang maupun gelap."
+            />
 
+            {/* ---------- Motif khas ---------- */}
+            <Section title="Motif Khas: SpeedLines & SwooshLine">
+                <Grid cols={3}>
+                    <Cell label="SpeedLines sm horizontal">
+                        <SpeedLines size="sm" />
+                    </Cell>
+                    <Cell label="SpeedLines md horizontal">
+                        <SpeedLines size="md" />
+                    </Cell>
+                    <Cell label="SpeedLines lg horizontal">
+                        <SpeedLines size="lg" />
+                    </Cell>
+                    <Cell label="SpeedLines vertical">
+                        <SpeedLines size="md" direction="vertical" />
+                    </Cell>
+                    <Cell label="SwooshLine md (gold 15%)">
+                        <SwooshLine size="md" />
+                    </Cell>
+                    <Cell label="SwooshLine lg (teal 10%)">
+                        <SwooshLine size="lg" opacity={0.1} color="var(--color-accent)" />
+                    </Cell>
+                </Grid>
+            </Section>
+
+            {/* ---------- Buttons ---------- */}
+            <Section title="Tombol">
+                <div className="space-y-5">
+                    <DemoRow label="Primary">
+                        <PrimaryButton>Default</PrimaryButton>
+                        <PrimaryButton disabled>Disabled</PrimaryButton>
+                        <PrimaryButton className="ring-2 ring-[var(--color-accent)] ring-offset-2">Focus</PrimaryButton>
+                        <PrimaryButton arrow>With arrow</PrimaryButton>
+                    </DemoRow>
+                    <DemoRow label="Secondary">
+                        <SecondaryButton>Default</SecondaryButton>
+                        <SecondaryButton disabled>Disabled</SecondaryButton>
+                        <SecondaryButton className="ring-2 ring-[var(--color-accent)] ring-offset-2">Focus</SecondaryButton>
+                    </DemoRow>
+                    <DemoRow label="Danger">
+                        <DangerButton>Default</DangerButton>
+                        <DangerButton disabled>Disabled</DangerButton>
+                        <DangerButton className="ring-2 ring-[var(--color-danger)] ring-offset-2">Focus</DangerButton>
+                    </DemoRow>
+                </div>
+            </Section>
+
+            {/* ---------- Inputs ---------- */}
             <Section title="TextInput">
+                <Grid cols={3}>
+                    <Cell label="Default">
+                        <TextInput placeholder="Tulis sesuatu…" />
+                    </Cell>
+                    <Cell label="Disabled">
+                        <TextInput disabled value="Tidak dapat diubah" />
+                    </Cell>
+                    <Cell label="Focus (dengan ring)">
+                        <TextInput autoFocus className="border-[var(--color-accent)]" style={{ boxShadow: '0 0 0 3px var(--color-accent-tint)' }} />
+                    </Cell>
+                </Grid>
+            </Section>
+
+            {/* ---------- Badges ---------- */}
+            <Section title="StatusBadge">
+                <div className="flex flex-wrap gap-2">
+                    <StatusBadge label="Aktif" tone="teal" />
+                    <StatusBadge label="Pending" tone="gold" />
+                    <StatusBadge label="Ditolak" tone="danger" />
+                    <StatusBadge label="Netral" tone="neutral" />
+                    <RoleBadge role="admin_rtpu" />
+                    <RoleBadge role="customer" />
+                </div>
+            </Section>
+
+            {/* ---------- Cards ---------- */}
+            <Section title="Card & StatCard">
+                <Grid cols={3}>
+                    <Cell label="Card default">
+                        <Card className="p-5">
+                            <h3 className="font-display font-bold" style={{ color: 'var(--color-ink)' }}>Kartu standar</h3>
+                            <p className="mt-1 text-sm" style={{ color: 'var(--color-muted)' }}>Dengan bayangan berlapis saat hover.</p>
+                        </Card>
+                    </Cell>
+                    <Cell label="StatCard teal">
+                        <StatCard label="Total pesanan" value={1284} suffix="" icon={ShoppingCart} tone="teal" />
+                    </Cell>
+                    <Cell label="StatCard gold">
+                        <StatCard label="Pendapatan" value={42} suffix="jt" icon={Package} tone="gold" />
+                    </Cell>
+                </Grid>
+            </Section>
+
+            {/* ---------- Table ---------- */}
+            <Section title="Table">
+                <Table columns={['Produk', 'Kategori', 'Status', 'Harga']}>
+                    <tbody>
+                        <tr>
+                            <Td strong>Layanan Desain</Td>
+                            <Td>Jasa</Td>
+                            <Td><StatusBadge label="Aktif" tone="teal" /></Td>
+                            <Td strong>Rp1.500.000</Td>
+                        </tr>
+                        <tr>
+                            <Td strong>Studio Foto</Td>
+                            <Td>Ruangan</Td>
+                            <Td><StatusBadge label="Pending" tone="gold" /></Td>
+                            <Td strong>Rp750.000</Td>
+                        </tr>
+                    </tbody>
+                </Table>
+            </Section>
+
+            {/* ---------- Tabs with skew ---------- */}
+            <Section title="Tabs (skew aktif, teks tetap tegak)">
+                <Tabs
+                    tabs={[
+                        { label: 'Jasa' },
+                        { label: 'Produk' },
+                        { label: 'Ruangan' },
+                    ]}
+                    defaultIndex={tab}
+                    onChange={setTab}
+                >
+                    <div className="rounded-2xl border border-[var(--color-border)] bg-white p-4 text-sm" style={{ color: 'var(--color-ink)' }}>
+                        Panel Jasa — tab aktif menggunakan skew pada wadah, teks di dalamnya diberi skew kebalikan.
+                    </div>
+                    <div className="rounded-2xl border border-[var(--color-border)] bg-white p-4 text-sm" style={{ color: 'var(--color-ink)' }}>
+                        Panel Produk.
+                    </div>
+                    <div className="rounded-2xl border border-[var(--color-border)] bg-white p-4 text-sm" style={{ color: 'var(--color-ink)' }}>
+                        Panel Ruangan.
+                    </div>
+                </Tabs>
+            </Section>
+
+            {/* ---------- FilterTabs & Pagination ---------- */}
+            <Section title="FilterTabs & Pagination">
+                <Grid cols={2}>
+                    <Cell label="FilterTabs">
+                        <FilterTabs tabs={FILTER_TABS} active={filter} onChange={setFilter} />
+                    </Cell>
+                    <Cell label="Pagination">
+                        <Pagination links={SAMPLE_LINKS} />
+                    </Cell>
+                </Grid>
+            </Section>
+
+            {/* ---------- EmptyState & Stepper ---------- */}
+            <Section title="EmptyState & Stepper">
+                <Grid cols={2}>
+                    <Cell label="EmptyState">
+                        <EmptyState
+                            icon={Info}
+                            title="Belum ada data"
+                            desc="Data akan muncul setelah ada aktivitas pertama."
+                            action={<PrimaryButton>Tambah data</PrimaryButton>}
+                        />
+                    </Cell>
+                    <Cell label="Stepper">
+                        <Stepper steps={['Diajukan', 'Diverifikasi', 'Selesai']} current={1} />
+                    </Cell>
+                </Grid>
+            </Section>
+
+            {/* ---------- Modal ---------- */}
+            <Section title="Modal">
+                <PrimaryButton onClick={() => setModal(true)}>Buka Modal</PrimaryButton>
+                <Modal
+                    open={modal}
+                    onClose={() => setModal(false)}
+                    title="Konfirmasi premium"
+                    description="Modal dengan garis gradasi gold → teal di bagian atas, bayangan berlapis, dan focus ring."
+                    size="md"
+                    footer={
+                        <>
+                            <SecondaryButton onClick={() => setModal(false)}>Batal</SecondaryButton>
+                            <PrimaryButton onClick={() => setModal(false)}>Simpan</PrimaryButton>
+                        </>
+                    }
+                >
+                    <p className="text-sm" style={{ color: 'var(--color-muted)' }}>
+                        Isi modal. Perhatikan garis dekoratif di atas dan bayangan halus di sekeliling panel.
+                    </p>
+                </Modal>
+            </Section>
+
+            {/* ---------- FlashToast ---------- */}
+            <Section title="FlashToast (statis)">
+                <div className="space-y-3">
+                    <div
+                        role="alert"
+                        className="flex items-start gap-3 rounded-2xl border border-l-4 p-4 shadow-[var(--shadow-layered)]"
+                        style={{ borderColor: 'var(--color-border)', borderLeftColor: 'var(--color-success)', background: 'var(--color-bg)' }}
+                    >
+                        <CheckCircle className="mt-0.5 h-5 w-5 shrink-0" style={{ color: 'var(--color-success)' }} />
+                        <div className="flex-1 text-sm font-medium" style={{ color: 'var(--color-ink)' }}>Pesanan berhasil diverifikasi.</div>
+                        <button type="button" className="rounded-full p-1 text-[var(--color-muted)]"><X className="h-4 w-4" /></button>
+                    </div>
+                    <div
+                        role="alert"
+                        className="flex items-start gap-3 rounded-2xl border border-l-4 p-4 shadow-[var(--shadow-layered)]"
+                        style={{ borderColor: 'var(--color-border)', borderLeftColor: 'var(--color-danger)', background: 'var(--color-bg)' }}
+                    >
+                        <AlertCircle className="mt-0.5 h-5 w-5 shrink-0" style={{ color: 'var(--color-danger)' }} />
+                        <div className="flex-1 text-sm font-medium" style={{ color: 'var(--color-ink)' }}>Terjadi kesalahan saat menyimpan.</div>
+                        <button type="button" className="rounded-full p-1 text-[var(--color-muted)]"><X className="h-4 w-4" /></button>
+                    </div>
+                </div>
+            </Section>
+
+            {/* ---------- Dark panel examples ---------- */}
+            <Section title="Komponen di Latar Gelap (sidebar / auth panel)" dark>
+                <div className="space-y-6">
+                    <div className="flex flex-wrap items-center gap-3">
+                        <button className="rounded-full px-6 py-2.5 text-sm font-semibold transition duration-150 hover:bg-[var(--color-dark-hover)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-gold)] focus-visible:ring-offset-2" style={{ background: 'var(--color-gold)', color: 'var(--color-deep)' }}>
+                            Gold CTA
+                        </button>
+                        <button className="rounded-full border px-6 py-2.5 text-sm font-semibold transition duration-150 hover:bg-[var(--color-dark-hover)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-dark-text)]" style={{ borderColor: 'var(--color-dark-border)', color: 'var(--color-dark-text)' }}>
+                            Outline gelap
+                        </button>
+                        <button className="rounded-full px-6 py-2.5 text-sm font-semibold transition duration-150 hover:bg-[var(--color-accent-hover)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-accent)]" style={{ background: 'var(--color-accent)', color: 'var(--color-bg)' }}>
+                            Teal CTA
+                        </button>
+                    </div>
+                    <div className="flex flex-wrap gap-2">
+                        <span className="rounded-md px-2.5 py-1 text-[11px] font-semibold" style={{ background: 'color-mix(in srgb, var(--color-gold) 22%, transparent)', color: 'var(--color-gold)' }}>Gold badge</span>
+                        <span className="rounded-md px-2.5 py-1 text-[11px] font-semibold" style={{ background: 'var(--color-accent-tint)', color: 'var(--color-accent-hover)' }}>Teal badge</span>
+                    </div>
+                    <div className="rounded-[22px] border border-[var(--color-dark-border)] bg-[var(--color-deep)] p-5" style={{ boxShadow: 'var(--shadow-layered)' }}>
+                        <h3 className="font-display font-bold" style={{ color: 'var(--color-dark-text)' }}>Panel gelap</h3>
+                        <p className="mt-1 text-sm" style={{ color: 'var(--color-dark-muted)' }}>
+                            Latar teal gelap dengan teks putih dan muted kebiruan. Logo putih cocok di sini.
+                        </p>
+                        <div className="mt-4">
+                            <SwooshLine size="sm" opacity={0.2} color="var(--color-gold)" />
+                        </div>
+                    </div>
+                </div>
+            </Section>
+
+            {/* ---------- Existing form components (unchanged, regression check) ---------- */}
+            <Section title="TextInput (ui wrapper)">
                 <Grid>
                     <Cell label="Default">
-                        <TextInput value={text} onChange={(e) => setText(e.target.value)} placeholder="Tulis sesuatu…" />
+                        <UiTextInput value={text} onChange={(e) => setText(e.target.value)} placeholder="Tulis sesuatu…" />
                     </Cell>
                     <Cell label="With label + hint">
-                        <TextInput label="Nama" hint="Muncul di katalog" value={text} onChange={(e) => setText(e.target.value)} />
+                        <UiTextInput label="Nama" hint="Muncul di katalog" value={text} onChange={(e) => setText(e.target.value)} />
                     </Cell>
                     <Cell label="Error">
-                        <TextInput label="Email" error="Email tidak valid" value="salah" onChange={() => {}} />
+                        <UiTextInput label="Email" error="Email tidak valid" value="salah" onChange={() => {}} />
                     </Cell>
                     <Cell label="Required + disabled">
-                        <TextInput label="Kode" required disabled value="PNJ-001" onChange={() => {}} />
+                        <UiTextInput label="Kode" required disabled value="PNJ-001" onChange={() => {}} />
                     </Cell>
                     <Cell label="Inside Field (context error)">
                         <Field label="Nama layanan" required hint="Wajib diisi" error="Nama layanan wajib diisi">
-                            <TextInput />
+                            <UiTextInput />
                         </Field>
                     </Cell>
                 </Grid>
@@ -332,12 +639,11 @@ export default function UiKit() {
 
             <Section title="Tabs + Accordion">
                 <Tabs
-                    value={tab}
-                    onChange={setTab}
                     tabs={[
-                        { key: 'jasa', label: 'Jasa' },
-                        { key: 'produk', label: 'Produk' },
+                        { label: 'Jasa' },
+                        { label: 'Produk' },
                     ]}
+                    defaultIndex={0}
                 >
                     <div className="text-sm" style={{ color: 'var(--color-ink)' }}>Panel Jasa</div>
                     <div className="text-sm" style={{ color: 'var(--color-ink)' }}>Panel Produk</div>
@@ -391,14 +697,9 @@ export default function UiKit() {
             </Section>
 
             <Section title="Inside a Modal (layering check)">
-                <button
-                    type="button"
-                    onClick={() => setModal(true)}
-                    className="inline-flex items-center gap-2 rounded-full px-5 py-2.5 text-sm font-semibold text-white"
-                    style={{ background: 'var(--color-accent)' }}
-                >
+                <PrimaryButton onClick={() => setModal(true)}>
                     <Plus className="h-4 w-4" /> Buka modal
-                </button>
+                </PrimaryButton>
 
                 <Modal
                     open={modal}
@@ -408,12 +709,8 @@ export default function UiKit() {
                     size="lg"
                     footer={
                         <>
-                            <button type="button" onClick={() => setModal(false)} className="rounded-full border px-5 py-2 text-sm font-semibold" style={{ borderColor: 'var(--color-border)', color: 'var(--color-ink)' }}>
-                                Batal
-                            </button>
-                            <button type="button" onClick={() => setModal(false)} className="rounded-full px-5 py-2 text-sm font-semibold text-white" style={{ background: 'var(--color-accent)' }}>
-                                Simpan
-                            </button>
+                            <SecondaryButton onClick={() => setModal(false)}>Batal</SecondaryButton>
+                            <PrimaryButton onClick={() => setModal(false)}>Simpan</PrimaryButton>
                         </>
                     }
                 >

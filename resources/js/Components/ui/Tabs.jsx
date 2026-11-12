@@ -1,63 +1,54 @@
-import { Tab, TabGroup, TabList, TabPanel, TabPanels } from '@headlessui/react';
-import { useState } from 'react';
 import clsx from 'clsx';
+import { useState } from 'react';
 
 /**
- * Tabs — Headless UI Tab wrapper. Controlled with `value`/`onChange` or
- * uncontrolled from the first tab.
- *
- * @example
- * <Tabs value={tab} onChange={setTab} tabs={[{ key: 'jasa', label: 'Jasa' }, { key: 'produk', label: 'Produk' }]}>
- *   <div>Panel jasa</div>
- *   <div>Panel produk</div>
- * </Tabs>
+ * Tabs — pill tabs dengan tab aktif yang menggunakan skew tipis pada wadah,
+ * sedangkan teks di dalamnya diberi skew kebalikan agar tetap tegak dan terbaca.
  */
-export default function Tabs({ tabs = [], value, onChange, children, className, panelClassName }) {
-    const [internal, setInternal] = useState(tabs[0]?.key);
-    const current = value ?? internal;
-    const index = Math.max(0, tabs.findIndex((t) => t.key === current));
-    const panels = Array.isArray(children) ? children : [children];
+export default function Tabs({ tabs = [], defaultIndex = 0, onChange, children }) {
+    const [active, setActive] = useState(defaultIndex);
+    const current = onChange ? undefined : active;
+
+    const handle = (i) => {
+        if (onChange) onChange(i);
+        else setActive(i);
+    };
 
     return (
-        <TabGroup
-            selectedIndex={index}
-            onChange={(i) => {
-                setInternal(tabs[i]?.key);
-                onChange?.(tabs[i]?.key);
-            }}
-            className={className}
-        >
-            <TabList
-                className="flex flex-wrap gap-1 border-b"
-                style={{ borderColor: 'var(--color-border)' }}
+        <div className="w-full">
+            <div
+                className="flex gap-1 rounded-full border p-1"
+                style={{ borderColor: 'var(--color-border)', background: 'var(--color-surface)' }}
             >
-                {tabs.map((t) => {
-                    const Icon = t.icon;
+                {tabs.map((t, i) => {
+                    const isActive = current !== undefined ? i === current : i === active;
                     return (
-                        <Tab
-                            key={t.key}
-                            className={({ selected }) =>
-                                clsx(
-                                    '-mb-px flex items-center gap-2 border-b-2 px-4 py-2 text-sm font-medium outline-none transition',
-                                    selected
-                                        ? 'border-[var(--color-accent)] text-[var(--color-accent-hover)]'
-                                        : 'border-transparent text-[var(--color-muted)] hover:text-[var(--color-ink)]',
-                                )
-                            }
+                        <button
+                            key={i}
+                            type="button"
+                            onClick={() => handle(i)}
+                            className={clsx(
+                                'relative flex-1 px-4 py-2 text-sm font-medium transition duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-accent)] focus-visible:ring-offset-2',
+                                isActive
+                                    ? 'skew-x-[-6deg] rounded-xl text-white'
+                                    : 'rounded-full text-[var(--color-muted)] hover:text-[var(--color-ink)] hover:bg-[var(--color-surface-muted)]',
+                            )}
+                            style={isActive ? { background: 'var(--color-accent)' } : undefined}
                         >
-                            {Icon && <Icon className="h-4 w-4" />}
-                            {t.label}
-                        </Tab>
+                            <span className={clsx('block', isActive && 'skew-x-[6deg]')}>
+                                {t.label}
+                            </span>
+                        </button>
                     );
                 })}
-            </TabList>
-            <TabPanels className="pt-4">
-                {tabs.map((t, i) => (
-                    <TabPanel key={t.key} className={panelClassName}>
-                        {panels[i]}
-                    </TabPanel>
-                ))}
-            </TabPanels>
-        </TabGroup>
+            </div>
+            {children && (
+                <div className="mt-4">
+                    {typeof children === 'function'
+                        ? children(current !== undefined ? current : active)
+                        : children}
+                </div>
+            )}
+        </div>
     );
 }

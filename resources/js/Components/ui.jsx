@@ -38,8 +38,6 @@ const BADGE_STYLES = {
     neutral: { background: 'var(--color-surface)', color: 'var(--color-muted)' },
 };
 
-// Canonical status -> tone mapping (delegates to lib/statuses.js, plus
-// legacy backend keys still used by older kept pages).
 export function statusTone(status) {
     const s = String(status ?? '');
     if (['aktif', 'Aktif', 'approved', 'Approved', 'disetujui', 'Disetujui', 'selesai', 'Selesai', 'tersedia', 'Tersedia', 'verified', 'paid', 'lunas', 'Diverifikasi', 'Terverifikasi', 'Lunas'].includes(s)) return 'teal';
@@ -65,16 +63,14 @@ export function RoleBadge({ role }) {
     return <StatusBadge label={roleLabel(role)} tone={n === 'admin_rtpu' || n === 'super_admin' ? 'teal' : n === 'customer' ? 'neutral' : 'gold'} />;
 }
 
-/* ---------- Buttons ---------- */
+/* ---------- Buttons (pill, focus-visible, hover via CSS class, disabled) ---------- */
 export function PrimaryButton({ children, className = '', arrow = false, as: _as, ...props }) {
     const Tag = props.href ? Link : 'button';
     return (
         <Tag
             {...props}
-            className={`group inline-flex items-center justify-center gap-2 rounded-full px-6 py-2.5 text-sm font-semibold text-white transition hover:-translate-y-px active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-60 ${className}`}
+            className={`group inline-flex items-center justify-center gap-2 rounded-full px-6 py-2.5 text-sm font-semibold transition duration-150 hover:-translate-y-px hover:bg-[var(--color-accent-hover)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-accent)] focus-visible:ring-offset-2 active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-60 disabled:bg-[var(--color-muted)] disabled:hover:translate-y-0 ${className}`}
             style={{ background: 'var(--color-accent)', color: 'var(--color-bg)' }}
-            onMouseEnter={(e) => { e.currentTarget.style.background = 'var(--color-accent-hover)'; }}
-            onMouseLeave={(e) => { e.currentTarget.style.background = 'var(--color-accent)'; }}
         >
             {children}
             {arrow && <ArrowRight className="h-4 w-4 transition-transform duration-300 group-hover:translate-x-1" />}
@@ -87,7 +83,7 @@ export function SecondaryButton({ children, className = '', as: _as, ...props })
     return (
         <Tag
             {...props}
-            className={`inline-flex items-center justify-center gap-2 rounded-full border bg-white px-6 py-2.5 text-sm font-semibold transition hover:-translate-y-px active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-60 ${className}`}
+            className={`inline-flex items-center justify-center gap-2 rounded-full border px-6 py-2.5 text-sm font-semibold transition duration-150 hover:-translate-y-px hover:bg-[var(--color-accent-tint)] hover:border-[var(--color-accent)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-accent)] focus-visible:ring-offset-2 active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-60 disabled:hover:translate-y-0 ${className}`}
             style={{ borderColor: 'var(--color-border)', color: 'var(--color-ink)', background: 'var(--color-bg)' }}
         >
             {children}
@@ -99,7 +95,7 @@ export function DangerButton({ children, className = '', ...props }) {
     return (
         <button
             {...props}
-            className={`inline-flex items-center justify-center gap-2 rounded-full px-5 py-2 text-sm font-semibold text-white transition active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-60 ${className}`}
+            className={`inline-flex items-center justify-center gap-2 rounded-full px-6 py-2.5 text-sm font-semibold text-white transition duration-150 hover:-translate-y-px hover:bg-[var(--color-danger-hover)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-danger)] focus-visible:ring-offset-2 active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-60 disabled:hover:translate-y-0 ${className}`}
             style={{ background: 'var(--color-danger)' }}
         >
             {children}
@@ -111,7 +107,7 @@ export function DangerButton({ children, className = '', ...props }) {
 export function Card({ children, className = '', style = {} }) {
     return (
         <div
-            className={`rounded-[22px] border bg-white ${className}`}
+            className={`rounded-[22px] border bg-white transition duration-150 hover:shadow-[var(--shadow-layered)] ${className}`}
             style={{ borderColor: 'var(--color-border)', ...style }}
         >
             {children}
@@ -206,13 +202,13 @@ export function StatCard({ label, value, suffix = '', icon: Icon, tone = 'teal',
 export function Table({ columns, children }) {
     return (
         <Card className="overflow-x-auto">
-            <table className="w-full min-w-[640px] text-sm border border-[var(--color-border)]">
+            <table className="w-full min-w-[640px] text-sm">
                 <thead style={{ background: 'var(--color-surface)' }}>
                     <tr>
                         {columns.map((c) => (
                             <th
                                 key={c}
-                                className="px-6 py-3 text-left text-xs font-semibold uppercase tracking-wide border-b border-[var(--color-border)]"
+                                className="border-b border-[var(--color-border)] px-6 py-3 text-left text-xs font-semibold uppercase tracking-wide"
                                 style={{ color: 'var(--color-muted)' }}
                             >
                                 {c}
@@ -229,9 +225,8 @@ export function Table({ columns, children }) {
 export function Td({ children, className = '', strong = false }) {
     return (
         <td
-            className={`border-t px-6 py-4 ${className}`}
+            className={`border-t border-[var(--color-border)] px-6 py-4 ${className}`}
             style={{
-                borderColor: 'var(--color-border)',
                 color: strong ? 'var(--color-ink)' : undefined,
                 fontWeight: strong ? 600 : undefined,
             }}
@@ -292,7 +287,7 @@ export function EmptyState({ icon: Icon, title, desc, action }) {
     );
 }
 
-/* ---------- Filter tabs ---------- */
+/* ---------- Filter tabs (pill, focus-visible) ---------- */
 export function FilterTabs({ tabs, active, onChange }) {
     return (
         <div className="flex flex-wrap gap-2">
@@ -303,7 +298,7 @@ export function FilterTabs({ tabs, active, onChange }) {
                         key={t.value}
                         type="button"
                         onClick={() => onChange(t.value)}
-                        className="rounded-full border px-4 py-1.5 text-[13px] font-medium transition duration-150"
+                        className="rounded-full border px-4 py-1.5 text-[13px] font-medium transition duration-150 hover:-translate-y-px focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-accent)] focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-60"
                         style={
                             on
                                 ? { background: 'var(--color-accent)', borderColor: 'var(--color-accent)', color: 'var(--color-bg)' }
@@ -337,7 +332,7 @@ export function Pagination({ links = [], meta }) {
                         key={i}
                         href={l.url}
                         preserveScroll
-                        className="flex h-9 min-w-9 items-center justify-center rounded-full border px-2 text-sm font-medium transition duration-150"
+                        className="flex h-9 min-w-9 items-center justify-center rounded-full border px-2 text-sm font-medium transition duration-150 hover:-translate-y-px focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-accent)] focus-visible:ring-offset-2"
                         style={
                             active
                                 ? { background: 'var(--color-accent)', borderColor: 'var(--color-accent)', color: 'var(--color-bg)' }
@@ -349,7 +344,7 @@ export function Pagination({ links = [], meta }) {
                 ) : (
                     <span
                         key={i}
-                        className="flex h-9 min-w-9 items-center justify-center rounded-full border px-2 text-sm opacity-30"
+                        className="flex h-9 min-w-9 cursor-not-allowed items-center justify-center rounded-full border px-2 text-sm opacity-40"
                         style={{ borderColor: 'var(--color-border)', color: 'var(--color-muted)' }}
                     >
                         {isNav ? (label === '‹' ? <ChevronLeft className="h-4 w-4" /> : <ChevronRight className="h-4 w-4" />) : label}
@@ -426,7 +421,7 @@ export function Stepper({ steps, current }) {
     );
 }
 
-/* ---------- Dashboard content fade-in (calm 200ms, transform+opacity only) ---------- */
+/* ---------- Dashboard content fade-in ---------- */
 export function FadeIn({ children, className = '' }) {
     const reduce = useReducedMotion();
     return (

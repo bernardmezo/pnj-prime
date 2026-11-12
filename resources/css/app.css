@@ -23,6 +23,20 @@
     --color-success: #0e8a66;
     --color-success-tint: #e6f4f0;
     --ease-out-expo: cubic-bezier(0.22, 1, 0.36, 1);
+
+    /* Dark panel tokens (sidebar & auth panel) — teal gelap latar */
+    --color-dark-bg: #003d47;
+    --color-dark-text: #ffffff;
+    --color-dark-muted: #b8d4d9;
+    --color-dark-border: rgba(255,255,255,0.12);
+    --color-dark-hover: rgba(255,255,255,0.08);
+
+    /* Gradient: gold → teal-hijau (logo accent) */
+    --color-gradient-start: #ca9c34;
+    --color-gradient-end: #0e8a66;
+
+    /* Layered soft shadow for premium cards */
+    --shadow-layered: 0 1px 3px 0 rgba(0,95,110,0.06), 0 8px 24px -8px rgba(0,95,110,0.10), 0 20px 48px -16px rgba(0,95,110,0.08);
 }
 
 html {

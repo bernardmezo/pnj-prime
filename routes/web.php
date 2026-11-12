@@ -21,6 +21,7 @@ use App\Http\Controllers\Pengelola\DashboardController as PengelolaDashboardCont
 use App\Http\Controllers\Pengelola\ProductController as PengelolaProductController;
 use App\Http\Controllers\Pimpinan\DashboardController as PimpinanDashboardController;
 use App\Http\Controllers\Pimpinan\ProductCurationController as PimpinanProductCurationController;
+use App\Http\Controllers\Pimpinan\VerifikasiAkunController;
 use App\Http\Controllers\Pimpinan\VerifikasiController as PimpinanController;
 use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\ReportController;
@@ -48,6 +49,13 @@ Route::post('/api/shipping/calculate', [ShippingController::class, 'calculate'])
 Route::get('/', [CatalogController::class, 'index'])->name('home')->middleware('fitur:katalog');
 Route::get('/katalog', [CatalogController::class, 'browse'])->name('catalog.index')->middleware('fitur:katalog');
 Route::get('/catalog/{product:slug}', [CatalogController::class, 'show'])->name('catalog.show')->middleware('fitur:katalog');
+
+// DEV-ONLY: UI Kit playground for design system review.
+if (app()->environment('local')) {
+    Route::get('/dev/ui-kit', function () {
+        return Inertia::render('Dev/UiKit');
+    })->name('dev.uikit');
+}
 
 Route::middleware(['auth', 'verified'])->group(function () {
     Route::get('/dashboard', function () {
@@ -148,9 +156,9 @@ Route::middleware(['auth', 'verified'])->group(function () {
     // ---- Use-case model: Pimpinan RTPU ----
     Route::middleware('role:pimpinan_rtpu')->prefix('pimpinan')->name('pimpinan.')->group(function () {
         Route::get('/dashboard', PimpinanDashboardController::class)->name('dashboard')->middleware(['fitur:produk-unggulan', 'permission:produk-unggulan,Lihat']);
-        Route::get('/verifikasi-akun', [App\Http\Controllers\Pimpinan\VerifikasiAkunController::class, 'index'])->name('verify.akun')->middleware(['fitur:produk-unggulan', 'permission:produk-unggulan,Lihat']);
-        Route::patch('/verifikasi-akun/{user}/approve', [App\Http\Controllers\Pimpinan\VerifikasiAkunController::class, 'approve'])->name('verify.akun.approve')->middleware(['fitur:produk-unggulan', 'permission:produk-unggulan,Verifikasi']);
-        Route::patch('/verifikasi-akun/{user}/reject', [App\Http\Controllers\Pimpinan\VerifikasiAkunController::class, 'reject'])->name('verify.akun.reject')->middleware(['fitur:produk-unggulan', 'permission:produk-unggulan,Verifikasi']);
+        Route::get('/verifikasi-akun', [VerifikasiAkunController::class, 'index'])->name('verify.akun')->middleware(['fitur:produk-unggulan', 'permission:produk-unggulan,Lihat']);
+        Route::patch('/verifikasi-akun/{user}/approve', [VerifikasiAkunController::class, 'approve'])->name('verify.akun.approve')->middleware(['fitur:produk-unggulan', 'permission:produk-unggulan,Verifikasi']);
+        Route::patch('/verifikasi-akun/{user}/reject', [VerifikasiAkunController::class, 'reject'])->name('verify.akun.reject')->middleware(['fitur:produk-unggulan', 'permission:produk-unggulan,Verifikasi']);
         Route::get('/verifikasi-produk', [PimpinanProductCurationController::class, 'index'])->name('verify.produk')->middleware(['fitur:produk-unggulan', 'permission:produk-unggulan,Lihat']);
         Route::get('/verifikasi', [PimpinanController::class, 'index'])->name('verify')->middleware(['fitur:produk-unggulan', 'permission:produk-unggulan,Lihat']);
         Route::patch('/verifikasi-produk/{product}/approve', [PimpinanProductCurationController::class, 'approve'])->name('verify.produk.approve')->middleware(['fitur:produk-unggulan', 'permission:produk-unggulan,Verifikasi']);

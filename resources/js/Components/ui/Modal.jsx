@@ -1,117 +1,99 @@
-import { Dialog, DialogBackdrop, DialogPanel, DialogTitle } from '@headlessui/react';
+import { Dialog, Transition } from '@headlessui/react';
+import { Fragment } from 'react';
 import { X } from 'lucide-react';
-import { useReducedMotion } from 'framer-motion';
 import clsx from 'clsx';
 
 const SIZES = {
-    sm: 'sm:max-w-sm',
-    md: 'sm:max-w-md',
-    lg: 'sm:max-w-lg',
-    xl: 'sm:max-w-xl',
-    '2xl': 'sm:max-w-2xl',
+    sm: 'max-w-sm',
+    md: 'max-w-md',
+    lg: 'max-w-lg',
+    xl: 'max-w-xl',
+    '2xl': 'max-w-2xl',
+    full: 'max-w-full',
 };
 
 /**
- * Modal — dialog with focus trap, ESC, scroll lock and a mobile full-height
- * sheet. Popovers (Select/Combobox/Menu) layer above it automatically because
- * they render in portals with a higher z-index.
- *
- * @example
- * <Modal open={open} onClose={close} size="xl" title="Ajukan Layanan"
- *   description="…" footer={<><SecondaryButton onClick={close}>Batal</SecondaryButton><PrimaryButton>Kirim</PrimaryButton></>}
- *   dismissible={!processing}>
- *   {body}
- * </Modal>
+ * Modal premium dengan garis dekoratif gradasi gold → teal di bagian atas,
+ * bayangan berlapis, dan focus ring yang jelas pada tombol tutup.
  */
-export default function Modal({
-    open,
-    onClose,
-    size = 'md',
-    title,
-    description,
-    children,
-    footer,
-    dismissible = true,
-    showClose = true,
-    className,
-    panelClassName,
-}) {
-    const reduce = useReducedMotion();
-
+export default function Modal({ open, onClose, title, description, children, footer, size = 'md', dismissible = true }) {
     return (
-        <Dialog
-            open={open}
-            onClose={dismissible ? onClose : () => {}}
-            className="relative z-[80]"
-        >
-            <DialogBackdrop
-                transition={!reduce}
-                className={clsx(
-                    'fixed inset-0',
-                    !reduce && 'transition duration-150 ease-out data-[closed]:opacity-0',
-                )}
-                style={{ background: 'rgba(26,29,28,0.5)' }}
-            />
-            <div className="fixed inset-0 flex items-end justify-center sm:items-center sm:p-4">
-                <DialogPanel
-                    transition={!reduce}
-                    className={clsx(
-                        'relative flex h-full w-full flex-col bg-white sm:h-auto sm:max-h-[85vh] sm:rounded-[22px] sm:border',
-                        SIZES[size] ?? SIZES.md,
-                        !reduce &&
-                            'transition duration-150 ease-out data-[closed]:opacity-0 data-[closed]:translate-y-4 sm:data-[closed]:translate-y-0 sm:data-[closed]:scale-95',
-                        panelClassName,
-                    )}
-                    style={{ borderColor: 'var(--color-border)' }}
+        <Transition appear show={open} as={Fragment}>
+            <Dialog as="div" className="relative z-50" onClose={dismissible ? onClose : () => {}}>
+                <Transition.Child
+                    as={Fragment}
+                    enter="ease-out duration-200"
+                    enterFrom="opacity-0"
+                    enterTo="opacity-100"
+                    leave="ease-in duration-150"
+                    leaveFrom="opacity-100"
+                    leaveTo="opacity-0"
                 >
-                    {(title || showClose) && (
-                        <div
-                            className="flex flex-none items-start justify-between gap-4 border-b px-5 py-4 sm:px-6"
-                            style={{ borderColor: 'var(--color-border)' }}
-                        >
-                            <div className="min-w-0">
-                                {title && (
-                                    <DialogTitle
-                                        className="font-display text-lg font-bold"
-                                        style={{ color: 'var(--color-ink)' }}
-                                    >
-                                        {title}
-                                    </DialogTitle>
-                                )}
-                                {description && (
-                                    <p className="mt-1 text-sm" style={{ color: 'var(--color-muted)' }}>
-                                        {description}
-                                    </p>
-                                )}
-                            </div>
-                            {showClose && (
-                                <button
-                                    type="button"
-                                    onClick={onClose}
-                                    aria-label="Tutup"
-                                    className="shrink-0 rounded-lg p-1"
-                                    style={{ color: 'var(--color-muted)' }}
-                                >
-                                    <X className="h-5 w-5" />
-                                </button>
-                            )}
-                        </div>
-                    )}
+                    <div className="fixed inset-0 bg-black/40 backdrop-blur-sm" />
+                </Transition.Child>
 
-                    <div className={clsx('min-h-0 flex-1 overflow-y-auto px-5 py-5 sm:px-6', className)}>
-                        {children}
+                <div className="fixed inset-0 overflow-y-auto">
+                    <div className="flex min-h-full items-center justify-center p-4 text-center">
+                        <Transition.Child
+                            as={Fragment}
+                            enter="ease-out duration-200"
+                            enterFrom="opacity-0 scale-95"
+                            enterTo="opacity-100 scale-100"
+                            leave="ease-in duration-150"
+                            leaveFrom="opacity-100 scale-100"
+                            leaveTo="opacity-0 scale-95"
+                        >
+                            <Dialog.Panel
+                                className={clsx(
+                                    'relative w-full transform overflow-hidden rounded-2xl border bg-white text-left align-middle shadow-[var(--shadow-layered)] transition-all',
+                                    SIZES[size],
+                                )}
+                                style={{ borderColor: 'var(--color-border)' }}
+                            >
+                                <div
+                                    className="absolute left-0 right-0 top-0 h-1 w-full bg-gradient-to-r from-[var(--color-gradient-start)] to-[var(--color-gradient-end)]"
+                                    aria-hidden="true"
+                                />
+                                <div className="p-6 pt-7">
+                                    <div className="flex items-start justify-between gap-4">
+                                        <div className="text-left">
+                                            {title && (
+                                                <Dialog.Title
+                                                    className="font-display text-lg font-bold leading-6"
+                                                    style={{ color: 'var(--color-ink)' }}
+                                                >
+                                                    {title}
+                                                </Dialog.Title>
+                                            )}
+                                            {description && (
+                                                <p className="mt-1 text-sm leading-relaxed" style={{ color: 'var(--color-muted)' }}>
+                                                    {description}
+                                                </p>
+                                            )}
+                                        </div>
+                                        {dismissible && (
+                                            <button
+                                                type="button"
+                                                onClick={onClose}
+                                                className="rounded-full p-1.5 text-[var(--color-muted)] transition duration-150 hover:bg-[var(--color-surface)] hover:text-[var(--color-ink)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-accent)] focus-visible:ring-offset-2"
+                                                aria-label="Tutup"
+                                            >
+                                                <X className="h-5 w-5" />
+                                            </button>
+                                        )}
+                                    </div>
+                                    <div className="mt-4">{children}</div>
+                                    {footer && (
+                                        <div className="mt-6 flex flex-col-reverse gap-2 sm:flex-row sm:justify-end">
+                                            {footer}
+                                        </div>
+                                    )}
+                                </div>
+                            </Dialog.Panel>
+                        </Transition.Child>
                     </div>
-
-                    {footer && (
-                        <div
-                            className="flex flex-none flex-wrap justify-end gap-2 border-t px-5 py-4 sm:px-6"
-                            style={{ borderColor: 'var(--color-border)' }}
-                        >
-                            {footer}
-                        </div>
-                    )}
-                </DialogPanel>
-            </div>
-        </Dialog>
+                </div>
+            </Dialog>
+        </Transition>
     );
 }

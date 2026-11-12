@@ -128,16 +128,19 @@ function HeroVisual({ reduce, style }) {
                             style={{ background: 'radial-gradient(circle, color-mix(in srgb, var(--color-dark-text) 16%, transparent), transparent 70%)' }}
                         />
                         <div className="absolute inset-0" style={{ boxShadow: 'inset 0 0 80px color-mix(in srgb, var(--color-dark-text) 8%, transparent)' }} />
-                        <span
-                            className="relative flex h-20 w-20 items-center justify-center rounded-3xl"
+                        <motion.span
+                            className="relative flex items-center justify-center rounded-3xl p-6"
                             style={{
                                 background: 'color-mix(in srgb, var(--color-dark-text) 12%, transparent)',
                                 border: '1px solid var(--color-dark-border)',
                                 boxShadow: 'var(--shadow-hero)',
                             }}
+                            initial={{ opacity: 0, scale: reduce ? 1 : 0.9 }}
+                            animate={{ opacity: 1, scale: 1 }}
+                            transition={{ duration: reduce ? 0 : 0.7, delay: reduce ? 0 : 0.5, ease: EASE }}
                         >
-                            <ImageIcon className="h-9 w-9" style={{ color: 'var(--color-dark-text)' }} />
-                        </span>
+                            <LogoMotion onDark height={112} showText={false} asLink={false} />
+                        </motion.span>
                     </div>
                 )}
             </div>

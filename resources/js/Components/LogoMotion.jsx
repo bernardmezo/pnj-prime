@@ -6,7 +6,7 @@ import { LOGO_SRC, LOGO_SRC_WHITE } from '@/Components/Logo';
  * Logo dengan motion reveal + shine, memakai logo PNG yang sudah ada.
  * Bisa dipakai sebagai pengganti <Logo />; struktur dan ukuran sama.
  */
-export default function LogoMotion({ onDark = false, height = 34, showText = true }) {
+export default function LogoMotion({ onDark = false, height = 34, showText = true, asLink = true, className = '' }) {
     const reduce = useReducedMotion();
     const src = onDark ? LOGO_SRC_WHITE : LOGO_SRC;
 
@@ -36,8 +36,8 @@ export default function LogoMotion({ onDark = false, height = 34, showText = tru
         </span>
     );
 
-    return (
-        <Link href={route('home')} className="group flex shrink-0 items-center gap-2.5" aria-label="PNJ Prime, Beranda">
+    const content = (
+        <>
             {img}
             {showText && (
                 <div
@@ -58,6 +58,22 @@ export default function LogoMotion({ onDark = false, height = 34, showText = tru
                     </span>
                 </div>
             )}
-        </Link>
+        </>
+    );
+
+    const wrapperClass = `group flex shrink-0 items-center gap-2.5 ${className}`;
+
+    if (asLink) {
+        return (
+            <Link href={route('home')} className={wrapperClass} aria-label="PNJ Prime, Beranda">
+                {content}
+            </Link>
+        );
+    }
+
+    return (
+        <span className={wrapperClass} aria-label="PNJ Prime">
+            {content}
+        </span>
     );
 }

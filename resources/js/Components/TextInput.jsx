@@ -30,7 +30,9 @@ export default forwardRef(function TextInput(
                 e.currentTarget.style.boxShadow = 'none';
             }}
             className={
-                'rounded-xl border px-4 py-2.5 text-sm shadow-none outline-none transition ' +
+                'rounded-xl border px-4 py-2.5 text-sm shadow-none outline-none transition duration-150 ' +
+                'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-accent)] focus-visible:ring-offset-2 ' +
+                'disabled:cursor-not-allowed disabled:bg-[var(--color-surface)] disabled:text-[var(--color-muted)] disabled:border-[var(--color-border)] ' +
                 className
             }
             ref={localRef}

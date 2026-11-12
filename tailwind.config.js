@@ -30,7 +30,12 @@ export default {
                 },
                 danger: {
                     DEFAULT: 'var(--color-danger)',
+                    hover: 'var(--color-danger-hover)',
                     tint: 'var(--color-danger-tint)',
+                },
+                success: {
+                    DEFAULT: 'var(--color-success)',
+                    tint: 'var(--color-success-tint)',
                 },
             },
 

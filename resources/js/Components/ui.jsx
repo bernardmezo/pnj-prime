@@ -52,7 +52,7 @@ export function StatusBadge({ status, label, tone }) {
     const t = tone ?? statusTone(status);
     return (
         <span
-            className="inline-block rounded-md px-2 py-1 text-[11px] font-semibold"
+            className="inline-block rounded-md px-2.5 py-1 text-[11px] font-semibold"
             style={BADGE_STYLES[t]}
         >
             {label ?? status}
@@ -206,13 +206,13 @@ export function StatCard({ label, value, suffix = '', icon: Icon, tone = 'teal',
 export function Table({ columns, children }) {
     return (
         <Card className="overflow-x-auto">
-            <table className="w-full min-w-[640px] text-sm">
+            <table className="w-full min-w-[640px] text-sm border border-[var(--color-border)]">
                 <thead style={{ background: 'var(--color-surface)' }}>
                     <tr>
                         {columns.map((c) => (
                             <th
                                 key={c}
-                                className="px-6 py-3 text-left text-xs font-semibold uppercase tracking-wide"
+                                className="px-6 py-3 text-left text-xs font-semibold uppercase tracking-wide border-b border-[var(--color-border)]"
                                 style={{ color: 'var(--color-muted)' }}
                             >
                                 {c}
@@ -276,10 +276,10 @@ export function inputStyleProps() {
 /* ---------- Empty state ---------- */
 export function EmptyState({ icon: Icon, title, desc, action }) {
     return (
-        <Card className="p-12 text-center">
+        <Card className="p-8 text-center">
             {Icon && (
                 <span
-                    className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-2xl"
+                    className="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-xl"
                     style={{ background: 'var(--color-accent-tint)', color: 'var(--color-accent-hover)' }}
                 >
                     <Icon className="h-7 w-7" />
@@ -303,7 +303,7 @@ export function FilterTabs({ tabs, active, onChange }) {
                         key={t.value}
                         type="button"
                         onClick={() => onChange(t.value)}
-                        className="rounded-full border px-4 py-1.5 text-[13px] font-medium transition"
+                        className="rounded-full border px-4 py-1.5 text-[13px] font-medium transition duration-150"
                         style={
                             on
                                 ? { background: 'var(--color-accent)', borderColor: 'var(--color-accent)', color: 'var(--color-bg)' }
@@ -337,7 +337,7 @@ export function Pagination({ links = [], meta }) {
                         key={i}
                         href={l.url}
                         preserveScroll
-                        className="flex h-9 min-w-9 items-center justify-center rounded-full border px-2 text-sm font-medium transition"
+                        className="flex h-9 min-w-9 items-center justify-center rounded-full border px-2 text-sm font-medium transition duration-150"
                         style={
                             active
                                 ? { background: 'var(--color-accent)', borderColor: 'var(--color-accent)', color: 'var(--color-bg)' }

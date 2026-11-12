@@ -30,15 +30,15 @@ export default function FlashToast() {
             aria-live="polite"
             className="fixed bottom-6 right-6 z-[9999] flex max-w-sm items-start gap-3 rounded-xl border px-5 py-4 shadow-lg"
             style={{
-                background: isSuccess ? 'var(--color-surface, #f0fdf4)' : '#fef2f2',
-                borderColor: isSuccess ? '#bbf7d0' : '#fecaca',
-                color: isSuccess ? '#166534' : '#991b1b',
+                background: isSuccess ? 'var(--color-success-tint)' : 'var(--color-danger-tint)',
+                borderColor: isSuccess ? 'var(--color-success)' : 'var(--color-danger)',
+                color: isSuccess ? 'var(--color-success)' : 'var(--color-danger)',
             }}
         >
             {isSuccess ? (
-                <CheckCircle2 className="mt-0.5 h-5 w-5 shrink-0" style={{ color: '#16a34a' }} />
+                <CheckCircle2 className="mt-0.5 h-5 w-5 shrink-0" style={{ color: 'var(--color-success)' }} />
             ) : (
-                <XCircle className="mt-0.5 h-5 w-5 shrink-0" style={{ color: '#dc2626' }} />
+                <XCircle className="mt-0.5 h-5 w-5 shrink-0" style={{ color: 'var(--color-danger)' }} />
             )}
             <span className="text-sm font-medium leading-snug">{visible.message}</span>
             <button

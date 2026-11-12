@@ -18,7 +18,10 @@
     --color-gold: #ca9c34;
     --color-gold-deep: #a87d20;
     --color-danger: #d64545;
+    --color-danger-hover: #b33636;
     --color-danger-tint: #fdecec;
+    --color-success: #0e8a66;
+    --color-success-tint: #e6f4f0;
     --ease-out-expo: cubic-bezier(0.22, 1, 0.36, 1);
 }
 

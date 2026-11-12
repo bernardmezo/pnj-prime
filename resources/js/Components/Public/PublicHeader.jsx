@@ -119,7 +119,7 @@ export default function PublicHeader({ auth }) {
                             )}
 
                             <Menu
-                                buttonClassName="rounded-full border py-1.5 pl-1.5 pr-4 text-sm transition duration-150 hover:border-[var(--color-accent)] focus-visible:ring-2 focus-visible:ring-[var(--color-accent)] focus-visible:ring-offset-2"
+                                buttonClassName="rounded-full border border-[var(--color-border)] bg-[var(--color-bg)] py-1.5 pl-1.5 pr-4 text-sm transition duration-150 hover:border-[var(--color-accent)] focus-visible:ring-2 focus-visible:ring-[var(--color-accent)] focus-visible:ring-offset-2"
                                 menuClassName="w-56"
                                 button={
                                     <>

@@ -4,14 +4,25 @@ import { useState } from 'react';
 /**
  * Tabs — pill tabs dengan tab aktif yang menggunakan skew tipis pada wadah,
  * sedangkan teks di dalamnya diberi skew kebalikan agar tetap tegak dan terbaca.
+ *
+ * Props:
+ *   tabs         Array of { label, content } atau array label sederhana.
+ *   defaultIndex Indeks tab awal.
+ *   onChange     Callback saat tab berubah (index).
+ *   children     Opsional. Bisa array node per tab atau function(index) => node.
  */
 export default function Tabs({ tabs = [], defaultIndex = 0, onChange, children }) {
     const [active, setActive] = useState(defaultIndex);
-    const current = onChange ? undefined : active;
 
     const handle = (i) => {
+        setActive(i);
         if (onChange) onChange(i);
-        else setActive(i);
+    };
+
+    const renderPanel = () => {
+        if (typeof children === 'function') return children(active);
+        if (Array.isArray(children)) return children[active] ?? null;
+        return children ?? tabs[active]?.content ?? null;
     };
 
     return (
@@ -21,7 +32,8 @@ export default function Tabs({ tabs = [], defaultIndex = 0, onChange, children }
                 style={{ borderColor: 'var(--color-border)', background: 'var(--color-surface)' }}
             >
                 {tabs.map((t, i) => {
-                    const isActive = current !== undefined ? i === current : i === active;
+                    const isActive = i === active;
+                    const label = typeof t === 'string' ? t : t.label;
                     return (
                         <button
                             key={i}
@@ -36,18 +48,14 @@ export default function Tabs({ tabs = [], defaultIndex = 0, onChange, children }
                             style={isActive ? { background: 'var(--color-accent)' } : undefined}
                         >
                             <span className={clsx('block', isActive && 'skew-x-[6deg]')}>
-                                {t.label}
+                                {label}
                             </span>
                         </button>
                     );
                 })}
             </div>
-            {children && (
-                <div className="mt-4">
-                    {typeof children === 'function'
-                        ? children(current !== undefined ? current : active)
-                        : children}
-                </div>
+            {renderPanel() && (
+                <div className="mt-4">{renderPanel()}</div>
             )}
         </div>
     );

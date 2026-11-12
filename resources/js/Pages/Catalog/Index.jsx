@@ -5,15 +5,10 @@ import {
     useScroll,
     useTransform,
 } from 'framer-motion';
-import {
-    ArrowRight,
-    Building2,
-    Check,
-    Image as ImageIcon,
-    Star,
-} from 'lucide-react';
+import { ArrowRight, Building2, Check, Star } from 'lucide-react';
 import { useEffect, useRef, useState } from 'react';
 import CatalogCard, { typeFromCategory } from '@/Components/Public/CatalogCard';
+import LogoMotion from '@/Components/LogoMotion';
 import PublicFooter from '@/Components/Public/PublicFooter';
 import PublicHeader from '@/Components/Public/PublicHeader';
 import SpeedLines from '@/Components/SpeedLines';

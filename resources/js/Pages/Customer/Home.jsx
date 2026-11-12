@@ -151,7 +151,7 @@ export default function CustomerHome({ auth, featured_products = [], categories 
                         <a
                             key={label}
                             href={page === 'catalog' ? '/katalog' : navHref(page, {}, role)}
-                            className="group flex flex-col justify-between rounded-2xl border border-[var(--color-border)] bg-white p-5 shadow-card transition-all duration-200 hover:-translate-y-1 hover:border-[var(--color-accent)] hover:shadow-card-hover"
+                            className="group flex flex-col justify-between rounded-2xl border border-[var(--color-border)] bg-white shadow-card p-5 transition-all duration-200 hover:-translate-y-1 hover:border-[var(--color-accent)] hover:shadow-card-hover"
                             style={{ borderColor: 'var(--color-border)' }}
                         >
                             <div className="flex items-start justify-between gap-3">

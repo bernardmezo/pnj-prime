@@ -255,7 +255,7 @@ export default function CatalogBrowse({ auth, products, categories = [], filters
                 <div className="grid gap-8 lg:grid-cols-[240px_1fr]">
                     {/* Sidebar (desktop) */}
                     <aside className="hidden lg:block">
-                        <div className="sticky top-24 rounded-2xl border border-[var(--color-border)] bg-white p-5 shadow-card">
+                        <div className="sticky top-24 rounded-2xl border border-[var(--color-border)] bg-white shadow-card p-5">
                             <FilterPanel
                                 filters={filters}
                                 categories={categories}

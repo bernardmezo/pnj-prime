@@ -278,13 +278,13 @@ export default function UiKit() {
                     defaultIndex={tab}
                     onChange={setTab}
                 >
-                    <div className="rounded-2xl border border-[var(--color-border)] bg-white p-4 text-sm" style={{ color: 'var(--color-ink)' }}>
+                    <div className="rounded-2xl border border-[var(--color-border)] bg-white shadow-card p-4 text-sm" style={{ color: 'var(--color-ink)' }}>
                         Panel Jasa — tab aktif menggunakan skew pada wadah, teks di dalamnya diberi skew kebalikan.
                     </div>
-                    <div className="rounded-2xl border border-[var(--color-border)] bg-white p-4 text-sm" style={{ color: 'var(--color-ink)' }}>
+                    <div className="rounded-2xl border border-[var(--color-border)] bg-white shadow-card p-4 text-sm" style={{ color: 'var(--color-ink)' }}>
                         Panel Produk.
                     </div>
-                    <div className="rounded-2xl border border-[var(--color-border)] bg-white p-4 text-sm" style={{ color: 'var(--color-ink)' }}>
+                    <div className="rounded-2xl border border-[var(--color-border)] bg-white shadow-card p-4 text-sm" style={{ color: 'var(--color-ink)' }}>
                         Panel Ruangan.
                     </div>
                 </Tabs>

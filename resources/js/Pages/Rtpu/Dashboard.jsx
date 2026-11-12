@@ -137,7 +137,7 @@ export default function RtpuDashboard({
 
 
                 {/* 3. Queue: Dedicated white panel (12px radius, 1px border) */}
-                <div className="rounded-2xl border border-[var(--color-border)] bg-white p-6 sm:p-8 space-y-5">
+                <div className="rounded-2xl border border-[var(--color-border)] bg-white shadow-card p-6 sm:p-8 space-y-5">
                     {/* Heading & Search row */}
                     <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
                         <div className="flex items-center gap-2">
@@ -157,7 +157,7 @@ export default function RtpuDashboard({
                                 value={searchQuery}
                                 onChange={(e) => setSearchQuery(e.target.value)}
                                 placeholder="Cari pemohon, kode, layanan…"
-                                className="w-full rounded-xl border border-[var(--color-border)] bg-white py-1.5 pl-8 pr-3 text-xs text-[var(--color-ink)] placeholder:text-[var(--color-muted)] outline-none transition focus:border-[var(--color-accent)] focus:ring-1 focus:ring-[var(--color-accent)]"
+                                className="w-full rounded-xl border border-[var(--color-border)] bg-white py-2 pl-9 pr-3 text-xs text-[var(--color-ink)] placeholder:text-[var(--color-muted)] outline-none transition duration-150 focus:border-[var(--color-accent)] focus:ring-4 focus:ring-[var(--color-accent-tint)]"
                             />
                         </div>
                     </div>
@@ -184,7 +184,7 @@ export default function RtpuDashboard({
                                 >
                                     <span>{t.label}</span>
                                     {isTabActive && (
-                                        <span className="absolute bottom-0 left-0 right-0 h-[2px] bg-[var(--color-accent)]" />
+                                        <span className="absolute bottom-0 left-0 right-0 h-[2px] rounded-full bg-gradient-to-r from-[var(--color-gold)] to-[var(--color-accent)]" />
                                     )}
                                 </button>
                             );
@@ -193,11 +193,13 @@ export default function RtpuDashboard({
 
                     {/* Table inside panel: 72px row height, 14px main text, 12px muted, 3px amber left accent on action rows */}
                     {filteredPengajuan.length === 0 ? (
-                        <div className="py-16 text-center text-sm text-[var(--color-muted)]">
-                            {activeTab === 'perlu_tindakan' && !searchQuery
-                                ? 'Tidak ada pengajuan yang perlu ditindaklanjuti.'
-                                : 'Tidak ada pengajuan ditemukan.'}
-                        </div>
+                        <EmptyState
+                            message={
+                                activeTab === 'perlu_tindakan' && !searchQuery
+                                    ? 'Tidak ada pengajuan yang perlu ditindaklanjuti.'
+                                    : 'Tidak ada pengajuan ditemukan.'
+                            }
+                        />
                     ) : (
                         <div className="overflow-x-auto">
                             <table className="w-full text-left text-sm">
@@ -308,7 +310,7 @@ export default function RtpuDashboard({
 
                 {/* 4. Quiet second block: "Aktivitas terbaru" (plain list of last 5 events) */}
                 {recentActivities.length > 0 && (
-                    <div className="rounded-2xl border border-[var(--color-border)] bg-white p-6 sm:p-8">
+                    <div className="rounded-2xl border border-[var(--color-border)] bg-white shadow-card p-6 sm:p-8">
                         <h3 className="text-sm font-semibold text-[var(--color-ink)] mb-4">
                             Aktivitas terbaru
                         </h3>

@@ -1,6 +1,8 @@
 import React from 'react';
 import { Link } from '@inertiajs/react';
-import { Search } from 'lucide-react';
+import { Inbox, Search } from 'lucide-react';
+import SpeedLines from '@/Components/SpeedLines';
+import SwooshLine from '@/Components/SwooshLine';
 
 /**
  * Shared Design System Tokens
@@ -56,17 +58,28 @@ export function PageHeader({ title = 'Dashboard', subtitle }) {
     })();
 
     return (
-        <div className="mb-7">
-            <p className="mb-2 inline-flex items-center gap-2 rounded-full border px-3 py-1 text-[11px] font-bold uppercase tracking-widest" style={{ borderColor: 'color-mix(in srgb, var(--color-accent) 22%, transparent)', color: 'var(--color-accent)', background: 'color-mix(in srgb, var(--color-accent-tint) 50%, transparent)' }}>
-                <span className="h-1.5 w-1.5 rounded-full" style={{ background: 'var(--color-gold)' }} />
-                Dashboard
-            </p>
-            <h1 className="font-display text-[28px] font-bold tracking-tight text-[var(--color-ink)] sm:text-3xl">
-                {title}
-            </h1>
-            <p className="mt-1.5 text-sm text-[var(--color-muted)]">
-                {subtitle ?? today}
-            </p>
+        <div className="relative mb-8 overflow-hidden rounded-2xl border border-[var(--color-border)] bg-white shadow-card p-6 sm:p-7">
+            <div className="pointer-events-none absolute inset-x-0 top-0 h-[2px] bg-gradient-to-r from-[var(--color-gold)] via-[var(--color-accent)] to-[var(--color-gold)]" aria-hidden />
+            <div className="pointer-events-none absolute -right-10 -top-8 w-40 opacity-[0.06]" aria-hidden>
+                <SwooshLine size="md" opacity={1} color="var(--color-accent)" stroke={2} />
+            </div>
+            <div className="relative flex items-start justify-between gap-4">
+                <div>
+                    <p className="mb-2 inline-flex items-center gap-2 rounded-full border px-3 py-1 text-[11px] font-bold uppercase tracking-widest" style={{ borderColor: 'color-mix(in srgb, var(--color-accent) 22%, transparent)', color: 'var(--color-accent)', background: 'color-mix(in srgb, var(--color-accent-tint) 50%, transparent)' }}>
+                        <span className="h-1.5 w-1.5 rounded-full" style={{ background: 'var(--color-gold)' }} />
+                        Dashboard
+                    </p>
+                    <h1 className="font-display text-[28px] font-bold tracking-tight text-[var(--color-ink)] sm:text-3xl">
+                        {title}
+                    </h1>
+                    <p className="mt-1.5 max-w-xl text-sm text-[var(--color-muted)]">
+                        {subtitle ?? today}
+                    </p>
+                </div>
+                <div className="hidden sm:block" aria-hidden>
+                    <SpeedLines size="sm" />
+                </div>
+            </div>
         </div>
     );
 }
@@ -78,11 +91,12 @@ export function PageHeader({ title = 'Dashboard', subtitle }) {
 export function Panel({ children, className = '', noPadding = false }) {
     return (
         <div
-            className={`rounded-2xl border border-[var(--color-border)] bg-white shadow-card ${
+            className={`relative overflow-hidden rounded-2xl border border-[var(--color-border)] bg-white shadow-card ${
                 noPadding ? '' : 'p-6 sm:p-8'
             } ${className}`}
         >
-            {children}
+            <div className="pointer-events-none absolute inset-x-0 top-0 h-[2px] bg-gradient-to-r from-transparent via-[var(--color-gold)] to-transparent opacity-60" aria-hidden />
+            <div className="relative">{children}</div>
         </div>
     );
 }
@@ -294,24 +308,26 @@ export function Tabs({ tabs = [], activeTab, onChange }) {
  */
 export function DataTable({ headers = [], children, emptyMessage = 'Tidak ada data ditemukan.' }) {
     return (
-        <div className="overflow-x-auto">
-            <table className="w-full text-left text-sm">
-                <thead>
-                    <tr className="bg-[var(--color-surface)] border-b border-[var(--color-border)] text-[11px] font-semibold uppercase tracking-wider text-[var(--color-muted)]">
-                        {headers.map((h, i) => (
-                            <th
-                                key={i}
-                                className={`py-3 px-6 ${h.align === 'right' ? 'text-right' : ''} ${h.className || ''}`}
-                            >
-                                {h.label}
-                            </th>
-                        ))}
-                    </tr>
-                </thead>
-                <tbody className="divide-y divide-[var(--color-border)]">
-                    {children}
-                </tbody>
-            </table>
+        <div className="overflow-hidden rounded-2xl border border-[var(--color-border)] bg-white shadow-card">
+            <div className="overflow-x-auto">
+                <table className="w-full text-left text-sm">
+                    <thead>
+                        <tr className="bg-[var(--color-surface)] border-b border-[var(--color-border)] text-[11px] font-semibold uppercase tracking-wider text-[var(--color-muted)]">
+                            {headers.map((h, i) => (
+                                <th
+                                    key={i}
+                                    className={`py-3.5 px-6 ${h.align === 'right' ? 'text-right' : ''} ${h.className || ''}`}
+                                >
+                                    {h.label}
+                                </th>
+                            ))}
+                        </tr>
+                    </thead>
+                    <tbody className="divide-y divide-[var(--color-border)]">
+                        {children}
+                    </tbody>
+                </table>
+            </div>
         </div>
     );
 }
@@ -331,8 +347,11 @@ export function Skeleton({ className = 'h-6 w-full' }) {
  */
 export function EmptyState({ message = 'Tidak ada data ditemukan.' }) {
     return (
-        <div className="rounded-2xl border border-dashed border-[var(--color-border)] bg-[var(--color-surface)] py-16 text-center text-sm text-[var(--color-muted)]">
-            {message}
+        <div className="rounded-2xl border border-dashed border-[var(--color-border)] bg-[var(--color-surface)] py-16 text-center">
+            <div className="mx-auto mb-3 flex h-12 w-12 items-center justify-center rounded-full border border-[var(--color-border)] bg-white shadow-sm">
+                <Inbox className="h-5 w-5 text-[var(--color-muted)]" />
+            </div>
+            <p className="text-sm font-medium text-[var(--color-muted)]">{message}</p>
         </div>
     );
 }

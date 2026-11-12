@@ -1,5 +1,5 @@
 import { Head, Link, router } from '@inertiajs/react';
-import { ArrowLeft, CheckCircle2 } from 'lucide-react';
+import { ArrowLeft, CheckCircle2, FileText } from 'lucide-react';
 import { useEffect, useRef, useState } from 'react';
 import PublicLayout from '@/Layouts/PublicLayout';
 import { href as navHref } from '@/lib/nav';
@@ -186,8 +186,13 @@ export default function Pembayaran({
         return (
             <PublicLayout auth={auth}>
                 <Head title="Pembayaran · PNJ Prime" />
-                <div className="mx-auto w-full max-w-[560px] px-4 py-16 text-center">
-                    <p className="text-sm text-[var(--color-muted)]">Data tagihan tidak ditemukan.</p>
+                <div className="mx-auto w-full max-w-[640px] px-4 py-16 text-center sm:px-6">
+                    <div className="rounded-2xl border border-dashed border-[var(--color-border)] bg-[var(--color-surface)] py-16 text-center">
+                        <div className="mx-auto mb-3 flex h-12 w-12 items-center justify-center rounded-full border border-[var(--color-border)] bg-white shadow-sm">
+                            <FileText className="h-5 w-5 text-[var(--color-muted)]" />
+                        </div>
+                        <p className="text-sm font-medium text-[var(--color-muted)]">Data tagihan tidak ditemukan.</p>
+                    </div>
                 </div>
             </PublicLayout>
         );
@@ -202,7 +207,7 @@ export default function Pembayaran({
                 <div>
                     <a
                         href={navHref('customer.pengajuan.show', { id: p.id }, role)}
-                        className="inline-flex items-center gap-1.5 text-xs text-[var(--color-muted)] hover:text-[var(--color-ink)] transition"
+                        className="inline-flex items-center gap-1.5 rounded-full border border-transparent px-3 py-1.5 text-xs font-semibold text-[var(--color-muted)] transition hover:border-[var(--color-border)] hover:bg-[var(--color-surface)] hover:text-[var(--color-ink)]"
                     >
                         <ArrowLeft className="h-3.5 w-3.5" />
                         <span>Kembali ke Detail</span>
@@ -219,7 +224,8 @@ export default function Pembayaran({
                 </div>
 
                 {/* 2. Amount (the hero of the page) */}
-                <div className="mt-6 rounded-2xl border border-[var(--color-border)] bg-white p-6 shadow-card sm:p-7">
+                <div className="relative mt-6 overflow-hidden rounded-2xl border border-[var(--color-border)] bg-white p-6 shadow-card sm:p-7">
+                    <div className="pointer-events-none absolute inset-x-0 top-0 h-[2px] bg-gradient-to-r from-[var(--color-gold)] via-[var(--color-accent)] to-[var(--color-gold)]" aria-hidden />
                     <span className="block text-xs text-[var(--color-muted)]">
                         Total tagihan
                     </span>

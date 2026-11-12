@@ -291,7 +291,7 @@ export default function CatalogShow({ auth, product, isPreview = false }) {
                     {/* Right Column (5 cols): Sticky Buy Box + In-depth Information Tabs */}
                     <div className="lg:col-span-5 flex flex-col space-y-6 lg:sticky lg:top-24">
                         {/* ── Main Purchasing Block ── */}
-                        <div className="rounded-2xl border border-[var(--color-border)] bg-white p-5 shadow-card sm:p-6">
+                        <div className="rounded-2xl border border-[var(--color-border)] bg-white shadow-card p-5 sm:p-6">
                             {/* Category & Code */}
                             <div className="text-xs text-[var(--color-muted)]">
                                 <span>{categoryText}</span>
@@ -397,7 +397,7 @@ export default function CatalogShow({ auth, product, isPreview = false }) {
                         </div>
 
                         {/* ── Tabs (Now positioned directly under the buy box to balance height) ── */}
-                        <div className="rounded-2xl border border-[var(--color-border)] bg-white p-5 shadow-card">
+                        <div className="rounded-2xl border border-[var(--color-border)] bg-white shadow-card p-5">
                             {/* Plain text tab header */}
                             <div className="flex gap-5 border-b border-[var(--color-border)]" role="tablist">
                                 {[

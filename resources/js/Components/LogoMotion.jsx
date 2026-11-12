@@ -26,7 +26,13 @@ export default function LogoMotion({ onDark = false, height = 34, showText = tru
                     className="pointer-events-none absolute inset-0"
                     initial={{ x: '-130%' }}
                     animate={{ x: '130%' }}
-                    transition={{ duration: 0.9, delay: 0.8, ease: 'easeInOut' }}
+                    transition={{
+                        duration: 0.9,
+                        delay: 0.8,
+                        ease: 'easeInOut',
+                        repeat: Infinity,
+                        repeatDelay: 4.1,
+                    }}
                     style={{
                         background: 'linear-gradient(105deg, transparent 35%, rgba(255,255,255,0.4) 50%, transparent 65%)',
                         mixBlendMode: 'screen',

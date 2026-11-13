@@ -260,7 +260,14 @@ class PengajuanController extends Controller
     {
         return [
             'tipe' => 'required|in:jasa,ruangan,produk',
-            'product_id' => ['nullable', $this->activeCatalogRule()],
+            'product_id' => ['bail', 'required', 'integer', $this->activeCatalogRule(), function ($attribute, $value, $fail) {
+                $product = Product::with('category')->find($value);
+                if ($product && $product->layananTipe() === 'produk'
+                    && ($product->meta['availability_status'] ?? 'tersedia') === 'tersedia'
+                    && ($product->stock ?? 0) < 1) {
+                    $fail('Produk ini tidak memiliki stok ready stock. Silakan pilih produk lain.');
+                }
+            }],
             'keperluan' => 'nullable|string|max:2000',
             'jumlah' => 'nullable|string|max:100',
             'tanggal' => 'nullable|date|after_or_equal:today',

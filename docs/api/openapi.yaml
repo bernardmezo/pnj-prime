@@ -1,0 +1,526 @@
+openapi: 3.0.3
+info:
+  title: PNJ PRIME REST API v1
+  description: REST API v1 endpoints implemented by bernardmezo for catalog browsing, pricing calculation, auth, and pengajuan submissions.
+  version: 1.0.0
+servers:
+  - url: http://localhost:8000/api/v1
+    description: Local Development Server
+
+paths:
+  /health:
+    get:
+      summary: System health probe
+      description: Returns health status of API, database connectivity, and environment.
+      operationId: getHealthStatus
+      responses:
+        '200':
+          description: System is healthy
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    example: healthy
+                  api_version:
+                    type: string
+                    example: v1.0.0
+                  timestamp:
+                    type: string
+                    example: '2026-10-26T12:00:00Z'
+                  database:
+                    type: string
+                    example: connected
+                  environment:
+                    type: string
+                    example: local
+
+  /catalog:
+    get:
+      summary: Browse public catalog
+      description: Returns paginated list of approved and active catalog products/services.
+      operationId: getCatalogList
+      parameters:
+        - name: category
+          in: query
+          schema:
+            type: string
+          description: Category slug to filter
+        - name: tipe
+          in: query
+          schema:
+            type: string
+          description: Service type
+        - name: search
+          in: query
+          schema:
+            type: string
+          description: Keyword search for name or description
+        - name: per_page
+          in: query
+          schema:
+            type: integer
+            default: 12
+          description: Items per page (max 50)
+        - name: page
+          in: query
+          schema:
+            type: integer
+            default: 1
+          description: Page number
+      responses:
+        '200':
+          description: Success list
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  data:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/Product'
+                  meta:
+                    type: object
+                    properties:
+                      current_page:
+                        type: integer
+                      last_page:
+                        type: integer
+                      per_page:
+                        type: integer
+                      total:
+                        type: integer
+
+  /catalog/{slug}:
+    get:
+      summary: Get catalog item details
+      description: Returns full specifications, options, and category for a single product slug.
+      operationId: getCatalogDetail
+      parameters:
+        - name: slug
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Product detail found
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  data:
+                    $ref: '#/components/schemas/Product'
+        '404':
+          description: Not found or not approved
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /pengajuan/quote:
+    post:
+      summary: Calculate server-side quote and tax
+      description: Calculates subtotal and applicable PPN tax breakdown based on product and selection.
+      operationId: calculateQuote
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - product_id
+              properties:
+                product_id:
+                  type: integer
+                  example: 1
+                jumlah_peserta:
+                  type: integer
+                  example: 5
+                opsi_ids:
+                  type: array
+                  items:
+                    type: integer
+                  example: [1, 2]
+      responses:
+        '200':
+          description: Quote calculation success
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  data:
+                    type: object
+                    properties:
+                      quote:
+                        type: object
+                        properties:
+                          subtotal:
+                            type: integer
+                            example: 500000
+                      tax:
+                        type: object
+                        properties:
+                          subtotal:
+                            type: integer
+                          rate_percent:
+                            type: number
+                          tax_amount:
+                            type: integer
+                          total:
+                            type: integer
+        '422':
+          description: Validation error
+
+  /auth/login:
+    post:
+      summary: Authenticate and issue Sanctum token
+      description: Verifies user email and password; generates a personal access token for Bearer authentication.
+      operationId: login
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - email
+                - password
+              properties:
+                email:
+                  type: string
+                  format: email
+                  example: customer@pnjprime.test
+                password:
+                  type: string
+                  format: password
+                  example: password123
+                device_name:
+                  type: string
+                  example: postman-client
+      responses:
+        '200':
+          description: Login successful
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  message:
+                    type: string
+                  token:
+                    type: string
+                  token_type:
+                    type: string
+                    example: Bearer
+                  user:
+                    $ref: '#/components/schemas/User'
+        '401':
+          description: Invalid credentials
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '403':
+          description: Account inactive
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '422':
+          description: Validation failed
+
+  /auth/me:
+    get:
+      summary: Get authenticated user profile
+      operationId: getMe
+      security:
+        - BearerAuth: []
+      responses:
+        '200':
+          description: User profile
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  user:
+                    $ref: '#/components/schemas/User'
+        '401':
+          description: Unauthenticated
+
+  /auth/logout:
+    post:
+      summary: Revoke current access token
+      operationId: logout
+      security:
+        - BearerAuth: []
+      responses:
+        '200':
+          description: Token revoked
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  message:
+                    type: string
+                    example: Token berhasil dicabut.
+        '401':
+          description: Unauthenticated
+
+  /pengajuan:
+    get:
+      summary: List authenticated user's pengajuan
+      operationId: listPengajuan
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: per_page
+          in: query
+          schema:
+            type: integer
+            default: 10
+      responses:
+        '200':
+          description: User pengajuan list
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  data:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/Pengajuan'
+                  meta:
+                    type: object
+                    properties:
+                      current_page:
+                        type: integer
+                      last_page:
+                        type: integer
+                      total:
+                        type: integer
+        '401':
+          description: Unauthenticated
+
+    post:
+      summary: Create new pengajuan
+      operationId: storePengajuan
+      security:
+        - BearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - tipe
+              properties:
+                tipe:
+                  type: string
+                  enum: [produk, ruangan, sewa_alat, pengujian, pelatihan, konsultasi]
+                product_id:
+                  type: integer
+                keperluan:
+                  type: string
+                jumlah:
+                  type: string
+                peserta:
+                  type: integer
+                tgl_mulai:
+                  type: string
+                  format: date
+                tgl_selesai:
+                  type: string
+                  format: date
+                jam_mulai:
+                  type: string
+                  example: '08:00'
+                jam_selesai:
+                  type: string
+                  example: '16:00'
+                opsi:
+                  type: array
+                  items:
+                    type: object
+                    properties:
+                      id:
+                        type: integer
+                      qty:
+                        type: integer
+      responses:
+        '201':
+          description: Created
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  message:
+                    type: string
+                  data:
+                    $ref: '#/components/schemas/Pengajuan'
+        '401':
+          description: Unauthenticated
+        '422':
+          description: Validation error
+
+  /pengajuan/{id}:
+    get:
+      summary: View pengajuan details
+      operationId: showPengajuan
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: Pengajuan details
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  data:
+                    $ref: '#/components/schemas/Pengajuan'
+        '401':
+          description: Unauthenticated
+        '403':
+          description: Forbidden (not owner or authorized staff)
+        '404':
+          description: Pengajuan not found
+
+components:
+  securitySchemes:
+    BearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: Sanctum
+
+  schemas:
+    ErrorResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+          example: false
+        message:
+          type: string
+          example: Pesan kesalahan deskriptif
+
+    User:
+      type: object
+      properties:
+        id:
+          type: integer
+        name:
+          type: string
+        email:
+          type: string
+        role:
+          type: string
+        is_active:
+          type: boolean
+        user_type:
+          type: string
+          nullable: true
+        phone:
+          type: string
+          nullable: true
+        institution:
+          type: string
+          nullable: true
+
+    Product:
+      type: object
+      properties:
+        id:
+          type: integer
+        name:
+          type: string
+        slug:
+          type: string
+        category:
+          type: object
+          properties:
+            id:
+              type: integer
+            name:
+              type: string
+            slug:
+              type: string
+        tipe:
+          type: string
+        description:
+          type: string
+        base_price:
+          type: integer
+        curation_status:
+          type: string
+          example: approved
+        is_active:
+          type: boolean
+
+    Pengajuan:
+      type: object
+      properties:
+        id:
+          type: integer
+        code:
+          type: string
+          example: PNJ-20261026-0001
+        tipe:
+          type: string
+        status:
+          type: string
+          example: Menunggu Review
+        total:
+          type: integer
+        keperluan:
+          type: string
+        buyer:
+          $ref: '#/components/schemas/User'
+        product:
+          $ref: '#/components/schemas/Product'
+        order:
+          type: object
+          nullable: true

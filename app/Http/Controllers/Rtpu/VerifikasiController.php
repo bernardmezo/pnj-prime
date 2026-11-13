@@ -115,6 +115,10 @@ class VerifikasiController extends Controller
 
         $workflow->transition($pengajuan, $targetStatus, $note, Auth::user()->name);
 
+        if (($pengajuan->product?->meta['availability_status'] ?? null) === 'preorder' && $targetStatus === 'Menunggu Pembayaran') {
+            app(\App\Services\InvoiceService::class)->issueForPengajuan($pengajuan->fresh(), $request->user(), notes: 'Pre-order: pelunasan penuh di awal sebelum pesanan disiapkan.');
+        }
+
         $msg = $needsPimpinanApproval
             ? 'Pengajuan sewa diteruskan ke Pimpinan RTPU.'
             : 'Pengajuan diverifikasi, menunggu pembayaran Customer.';

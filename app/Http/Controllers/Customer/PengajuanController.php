@@ -58,6 +58,7 @@ class PengajuanController extends Controller
             'total' => $p->total,
             'note' => $p->catatan_peninjau,
             'history' => $p->history ?? [],
+            'invoice' => $p->latestInvoice?->only(['invoice_number', 'total', 'status', 'due_at']),
             'payment_method' => $p->payments?->where('status', 'paid')->first()?->payment_type ?? $p->order?->paymentProofs?->where('verification_status', 'verified')->first()?->notes,
             'paid_at' => optional($p->payments?->where('status', 'paid')->first()?->paid_at ?? $p->order?->confirmed_at)->format('Y-m-d H:i'),
             'opsi' => collect($p->opsi)->map(fn ($o) => [

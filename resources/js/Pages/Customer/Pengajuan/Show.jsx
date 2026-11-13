@@ -178,6 +178,17 @@ export default function PengajuanShow({ auth, item }) {
                         </div>
                     )}
 
+                    {p.invoice && <section className="rounded-2xl border border-[var(--color-border)] bg-[var(--color-surface)] p-5">
+                        <h2 className="font-display text-lg font-bold">Invoice pembayaran penuh</h2>
+                        <p className="mt-2 text-sm text-[var(--color-muted)]">{p.invoice.invoice_number} · {p.invoice.status}</p>
+                        <p className="mt-2 text-xl font-bold text-[var(--color-accent)]">Rp {Number(p.invoice.total).toLocaleString('id-ID')}</p>
+                        <p className="mt-2 text-sm text-[var(--color-muted)]">Pelunasan 100% di awal sebelum pesanan disiapkan. Tidak menggunakan DP.</p>
+                        <div className="mt-4 flex flex-wrap gap-3">
+                            <a href={route('customer.pengajuan.invoice', p.id)} target="_blank" rel="noopener noreferrer" className="rounded-full bg-[var(--color-accent)] px-5 py-2 text-sm font-semibold text-white">Lihat Invoice</a>
+                            <a href={route('customer.pengajuan.invoice.print', p.id)} target="_blank" rel="noopener noreferrer" className="rounded-full border border-[var(--color-border)] px-5 py-2 text-sm font-semibold">Cetak Invoice</a>
+                        </div>
+                    </section>}
+
                     {/* 2) Rincian: Simple definition list with thin dividers */}
                     <div>
                         <h2 className="text-sm font-semibold text-[var(--color-ink)]">Rincian</h2>

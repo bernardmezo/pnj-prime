@@ -43,7 +43,10 @@ export default function Pembayaran({
             if (existingScript) {
                 if (window.snap) return resolve(window.snap);
                 existingScript.addEventListener('load', () => resolve(window.snap));
-                existingScript.addEventListener('error', (e) => reject(e));
+                existingScript.addEventListener('error', () => {
+                    existingScript.remove();
+                    reject(new Error('Gagal memuat Midtrans Sandbox. Periksa koneksi internet atau pemblokir iklan, lalu coba kembali.'));
+                }, { once: true });
                 return;
             }
             const script = document.createElement('script');
@@ -52,7 +55,10 @@ export default function Pembayaran({
             script.setAttribute('data-client-key', clientKey);
             script.async = true;
             script.onload = () => resolve(window.snap);
-            script.onerror = (e) => reject(new Error('Gagal memuat sistem pembayaran Midtrans.'));
+            script.onerror = () => {
+                script.remove();
+                reject(new Error('Gagal memuat Midtrans Sandbox. Periksa koneksi internet atau pemblokir iklan, lalu coba kembali.'));
+            };
             document.body.appendChild(script);
         });
     };

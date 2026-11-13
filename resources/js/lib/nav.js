@@ -41,6 +41,7 @@ export const DESTINATIONS = {
     'direktur.dashboard': { route: 'direktur.dashboard' },
     'pengelola.dashboard': { route: 'pengelola.dashboard' },
     'pengelola.produk.index': { route: 'pengelola.produk.index' },
+    'pengelola.pesanan.index': { route: 'pengelola.pesanan.index' },
     'superadmin.dashboard': { route: 'superadmin.dashboard' },
     'superadmin.users':    { route: 'superadmin.users' },
     'superadmin.hakakses': { route: 'superadmin.hakakses' },

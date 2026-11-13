@@ -17,7 +17,7 @@ class ProductCurationController extends Controller
      */
     public function index(): Response
     {
-        $products = Product::with(['category', 'owner:id,name,institution,unit_name', 'approver:id,name'])
+        $products = Product::with(['category', 'owner:id,name,phone,nip,jurusan,institution,unit_name', 'approver:id,name'])
             ->whereIn('curation_status', ['pending', 'verified'])
             ->latest()
             ->get()
@@ -28,6 +28,10 @@ class ProductCurationController extends Controller
                 'category' => $p->category?->name,
                 'target_audience' => $p->target_audience ?? 'publik',
                 'owner' => $p->owner?->name,
+                'phone' => $p->owner?->phone,
+                'nip' => $p->owner?->nip,
+                'jurusan' => $p->owner?->jurusan,
+                'product_detail' => $p->only(['thumbnail', 'images', 'description', 'short_description', 'base_price', 'stock', 'meta']),
                 'unit' => $p->owner?->unit_name ?? $p->owner?->institution,
                 'base_price' => $p->base_price,
                 'final_price' => $p->final_price,
@@ -50,24 +54,9 @@ class ProductCurationController extends Controller
      */
     public function approve(Request $request, Product $product): RedirectResponse
     {
-        if (! in_array($product->curation_status, ['pending', 'verified'], true)) {
-            abort(422, 'Hanya produk berstatus pending atau verified yang dapat disetujui Pimpinan.');
-        }
+        app(\App\Services\ApproveCatalogProduct::class)->handle($product, $request->user());
 
-        $meta = $product->meta ?? [];
-        $meta['pimpinan_approved_at'] = now()->toIso8601String();
-        $meta['pimpinan_approver_id'] = Auth::id();
-        $meta['pimpinan_approver_name'] = Auth::user()->name;
-
-        $product->curation_status = 'approved';
-        $product->is_active = true;
-        $product->approved_at = now();
-        $product->approved_by = Auth::id();
-        $product->rejection_reason = null;
-        $product->meta = $meta;
-        $product->save();
-
-        return back()->with('success', 'Produk disetujui dan resmi aktif di katalog PNJ PRIME.');
+        return back()->with('success', 'Produk disetujui dan langsung aktif di katalog PNJ PRIME.');
     }
 
     /**

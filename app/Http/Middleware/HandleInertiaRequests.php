@@ -5,6 +5,7 @@ namespace App\Http\Middleware;
 use App\Models\ExternalLink;
 use App\Models\Fitur;
 use App\Models\Pengajuan;
+use App\Models\Product;
 use App\Models\ProdukUnggulan;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Schema;
@@ -60,7 +61,8 @@ class HandleInertiaRequests extends Middleware
             // Pending counts for staff badges (only computed when staff is authenticated)
             'pending_counts' => fn () => ($request->user() && $request->user()->isStaff() && Schema::hasTable('pengajuan'))
                 ? [
-                    'menunggu_verifikasi' => Pengajuan::where('status', 'Diajukan')->count(),
+                    'menunggu_verifikasi' => Pengajuan::where('status', 'Diajukan')->count()
+                        + (Schema::hasTable('products') ? Product::whereIn('curation_status', ['pending', 'verified'])->count() : 0),
                     'verifikasi_bayar' => Pengajuan::where('status', 'Menunggu Verifikasi Pembayaran')->count(),
                     'menunggu_pimpinan' => Schema::hasTable('produk_unggulan') ? ProdukUnggulan::where('status', 'Diajukan')->count() : 0,
                 ]

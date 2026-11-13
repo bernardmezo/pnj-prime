@@ -1,6 +1,7 @@
 import { Head, Link, router } from '@inertiajs/react';
 import { CreditCard, ExternalLink } from 'lucide-react';
 import { useState } from 'react';
+import Modal from '@/Components/ui/Modal';
 import ReviewPanel from '@/Components/ReviewPanel';
 import DashboardLayout from '@/Layouts/DashboardLayout';
 import { Card, EmptyState, FadeIn, PageHeader, StatusBadge } from '@/Components/ui';
@@ -14,8 +15,8 @@ const CHECKLIST = [
 
 export default function VerifikasiPembayaran({ auth, antrean = [], selected = null }) {
     const rows = antrean;
-    const [selId, setSelId] = useState(selected?.id ?? rows[0]?.id ?? null);
-    const sel = rows.find((r) => r.id === selId) ?? rows[0] ?? null;
+    const [selId, setSelId] = useState(null);
+    const sel = rows.find((r) => r.id === selId) ?? null;
 
     return (
         <DashboardLayout title="Verifikasi Pembayaran" breadcrumb="Admin RTPU / Verifikasi Pembayaran" activeKey="verify-bayar">
@@ -34,13 +35,13 @@ export default function VerifikasiPembayaran({ auth, antrean = [], selected = nu
                         desc="Belum ada transaksi pembayaran online atau bukti transfer yang masuk."
                     />
                 ) : (
-                    <div className="grid gap-6 lg:grid-cols-[1fr_1.3fr] items-start">
+                    <div className="space-y-6">
                         {/* Transaction List */}
                         <div>
                             <h2 className="mb-3 text-sm font-semibold text-[var(--color-muted)]">
                                 Semua Transaksi Pembayaran ({rows.length})
                             </h2>
-                            <div className="space-y-2.5">
+                            <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
                                 {rows.map((p) => {
                                     const isSelected = sel?.id === p.id;
                                     const dotColor =
@@ -55,7 +56,7 @@ export default function VerifikasiPembayaran({ auth, antrean = [], selected = nu
                                             key={p.id}
                                             type="button"
                                             onClick={() => setSelId(p.id)}
-                                            aria-pressed={isSelected}
+                                            aria-haspopup="dialog"
                                             className="block w-full rounded-xl border p-4 text-left transition"
                                             style={
                                                 isSelected
@@ -85,23 +86,16 @@ export default function VerifikasiPembayaran({ auth, antrean = [], selected = nu
                                             <span className="block text-[11px] mt-0.5 text-[var(--color-muted)]">
                                                 {p.at}
                                             </span>
+                                            <span className="mt-4 inline-flex rounded-full bg-[var(--color-accent)] px-4 py-2 text-xs font-semibold text-white">Lihat Detail &amp; Verifikasi</span>
                                         </button>
                                     );
                                 })}
                             </div>
                         </div>
 
-                        {/* Transaction Detail Panel */}
-                        <div>
-                            <h2 className="mb-3 text-sm font-semibold text-[var(--color-muted)]">
-                                Rincian Pembayaran
-                            </h2>
-                            {!sel ? (
-                                <Card className="flex flex-col items-center justify-center p-12 text-center text-sm text-[var(--color-muted)]">
-                                    Pilih salah satu transaksi dari daftar untuk meninjau.
-                                </Card>
-                            ) : (
-                                <Card className="p-6">
+                        <Modal open={Boolean(sel)} onClose={() => setSelId(null)} title="Detail & Verifikasi Pembayaran" size="2xl">
+                            {sel && (
+                                <div>
                                     <div className="flex items-start justify-between gap-4">
                                         <div>
                                             <span className="text-xs font-medium text-[var(--color-muted)] uppercase tracking-wider">
@@ -154,13 +148,32 @@ export default function VerifikasiPembayaran({ auth, antrean = [], selected = nu
                                         </div>
                                     </dl>
 
+                                    <div className="mt-5 grid gap-4 sm:grid-cols-2">
+                                        {[
+                                            ['Data customer', sel.customer_detail, [['name', 'Nama'], ['email', 'Email'], ['phone', 'Telepon'], ['institution', 'Institusi']]],
+                                            ['Pemilik produk', sel.owner_detail, [['name', 'Nama'], ['email', 'Email'], ['phone', 'Telepon'], ['nip', 'NIP'], ['jurusan', 'Jurusan'], ['unit_name', 'Unit'], ['institution', 'Institusi']]],
+                                        ].map(([title, person, fields]) => (
+                                            <section key={title} className="min-w-0 rounded-2xl border border-[var(--color-border)] bg-[var(--color-surface)] p-4">
+                                                <h3 className="font-display text-sm font-bold text-[var(--color-accent)]">{title}</h3>
+                                                <dl className="mt-3 space-y-3">
+                                                    {fields.map(([key, label]) => (
+                                                        <div key={key}>
+                                                            <dt className="text-xs text-[var(--color-muted)]">{label}</dt>
+                                                            <dd className="mt-0.5 break-words text-sm font-medium text-[var(--color-ink)]">{person?.[key] || 'Belum diisi'}</dd>
+                                                        </div>
+                                                    ))}
+                                                </dl>
+                                            </section>
+                                        ))}
+                                    </div>
+
                                     {/* Action depending on type */}
                                     {sel.is_midtrans ? (
                                         <div className="mt-5 rounded-xl bg-[var(--color-surface)] border border-[var(--color-border)] p-4 text-xs text-[var(--color-muted)]">
-                                            <p className="font-semibold text-[var(--color-ink)]">Verifikasi Otomatis</p>
-                                            <p className="mt-1">
-                                                Status pembayaran ini dikonfirmasi dan diverifikasi secara langsung oleh webhook Midtrans. Tidak diperlukan verifikasi manual.
-                                            </p>
+                                            <p className="font-semibold text-[var(--color-ink)]">Konfirmasi Midtrans & Verifikasi RTPU</p>
+                                            <p className="mt-2">Status pengajuan: {sel.request_status || 'Belum tersedia'}</p>
+                                            <p className="mt-2">Pengiriman / pengambilan: {sel.fulfillment || 'Belum diisi'}</p>
+                                            <p className="mt-2">{sel.raw_status === 'paid' ? 'Pembayaran telah dikonfirmasi Midtrans. Pesanan diteruskan ke pemilik produk sesuai pilihan pengiriman / pengambilan customer.' : 'Menunggu konfirmasi pembayaran dari Midtrans.'}</p>
                                         </div>
                                     ) : (sel.can_verify !== false && (sel.can_verify || sel.status === 'Menunggu Verifikasi Pembayaran')) ? (
                                         <div className="mt-5 border-t pt-5" style={{ borderColor: 'var(--color-border)' }}>
@@ -202,9 +215,9 @@ export default function VerifikasiPembayaran({ auth, antrean = [], selected = nu
                                             </p>
                                         </div>
                                     )}
-                                </Card>
+                                </div>
                             )}
-                        </div>
+                        </Modal>
                     </div>
                 )}
             </FadeIn>

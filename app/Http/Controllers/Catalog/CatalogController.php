@@ -66,6 +66,17 @@ class CatalogController extends Controller
 
         $canSeeInternal = $user && $user->isCivitasPnj();
 
+        if ($user && in_array($user->role, ['admin_pengelola', 'admin_jurusan'], true)) {
+            $products = Product::where('owner_id', $user->id)
+                ->with('category:id,name')
+                ->addSelect(['sold_count' => \App\Models\Pengajuan::selectRaw('COALESCE(SUM(CAST(jumlah AS INTEGER)), 0)')
+                    ->whereColumn('product_id', 'products.id')
+                    ->whereIn('status', ['Lunas', 'Diproses', 'Selesai'])])
+                ->latest()->get();
+
+            return Inertia::render('Pengelola/Katalog', ['products' => $products]);
+        }
+
         $query = Product::with([
             'category',
             'owner:id,name,jurusan',
@@ -121,7 +132,11 @@ class CatalogController extends Controller
     public function show(Product $product): Response
     {
         $user = auth()->user();
-        $canPreview = $user && $user->role === 'admin_rtpu';
+        $isOwnerCatalog = $user && in_array($user->role, ['admin_pengelola', 'admin_jurusan'], true);
+        if ($isOwnerCatalog) {
+            abort_unless($product->owner_id === $user->id, 404);
+        }
+        $canPreview = $user && ($user->role === 'admin_rtpu' || $isOwnerCatalog);
 
         $isPubliclyAvailable = $product->curation_status === 'approved' && $product->is_active;
 

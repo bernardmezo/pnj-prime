@@ -67,11 +67,13 @@ export const MENUS = {
         { key: 'dashboard', label: 'Dashboard', page: 'pengelola.dashboard', icon: 'home', fitur: 'katalog', section: 1 },
         { key: 'catalog', label: 'Katalog', page: 'catalog', icon: 'store', fitur: 'katalog', section: 1 },
         { key: 'produk', label: 'Kelola Produk', page: 'pengelola.produk.index', icon: 'sliders', fitur: 'katalog', section: 2 },
+        { key: 'pesanan', label: 'Pesanan Produk', page: 'pengelola.pesanan.index', icon: 'pay', fitur: 'katalog', section: 2 },
     ],
     admin_pengelola: [
         { key: 'dashboard', label: 'Dashboard', page: 'pengelola.dashboard', icon: 'home', fitur: 'katalog', section: 1 },
         { key: 'catalog', label: 'Katalog', page: 'catalog', icon: 'store', fitur: 'katalog', section: 1 },
         { key: 'produk', label: 'Kelola Produk', page: 'pengelola.produk.index', icon: 'sliders', fitur: 'katalog', section: 2 },
+        { key: 'pesanan', label: 'Pesanan Produk', page: 'pengelola.pesanan.index', icon: 'pay', fitur: 'katalog', section: 2 },
     ],
     pimpinan_rtpu: [
         { key: 'dashboard', label: 'Dashboard', page: 'pimpinan.dashboard', icon: 'home', fitur: 'produk-unggulan', section: 1 },

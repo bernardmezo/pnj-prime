@@ -210,6 +210,8 @@ Route::middleware(['auth', 'verified'])->group(function () {
     // ---- Use-case model: Admin Pengelola Unit ----
     Route::middleware('role:admin_pengelola,admin_jurusan')->prefix('pengelola')->name('pengelola.')->group(function () {
         Route::get('/dashboard', PengelolaDashboardController::class)->name('dashboard')->middleware(['fitur:katalog', 'permission:katalog,Lihat']);
+        Route::get('/pesanan', [\App\Http\Controllers\Pengelola\PesananController::class, 'index'])->name('pesanan.index')->middleware(['fitur:katalog', 'permission:katalog,Lihat']);
+        Route::patch('/pesanan/{pengajuan}', [\App\Http\Controllers\Pengelola\PesananController::class, 'update'])->name('pesanan.update')->middleware(['fitur:katalog', 'permission:katalog,Ubah']);
         Route::get('/produk', [PengelolaProductController::class, 'index'])->name('produk.index')->middleware(['fitur:katalog', 'permission:katalog,Lihat']);
         Route::get('/produk/create', [PengelolaProductController::class, 'create'])->name('produk.create')->middleware(['fitur:katalog', 'permission:katalog,Tambah']);
         Route::post('/produk', [PengelolaProductController::class, 'store'])->name('produk.store')->middleware(['fitur:katalog', 'permission:katalog,Tambah']);

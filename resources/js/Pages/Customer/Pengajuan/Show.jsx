@@ -10,7 +10,8 @@ const STATUS_HINT = {
     Diajukan: 'Menunggu peninjauan dan konfirmasi dari Admin RTPU.',
     'Menunggu Pembayaran': 'Menunggu Anda melakukan pembayaran tagihan.',
     'Menunggu Verifikasi Pembayaran': 'Pembayaran sedang diverifikasi oleh staf keuangan.',
-    Diproses: 'Layanan sedang dikerjakan atau disiapkan oleh tim terkait.',
+    Lunas: 'Pembayaran telah diterima. Menunggu pemilik produk menyiapkan pesanan.',
+    Diproses: 'Pesanan sedang ditindaklanjuti pemilik produk. Periksa informasi pengiriman atau pengambilan.',
     Selesai: 'Layanan telah selesai dan dapat dimanfaatkan sepenuhnya.',
     Ditolak: 'Permohonan ditolak oleh RTPU. Periksa catatan alasan.',
     Dibatalkan: 'Pengajuan telah dibatalkan.',
@@ -43,12 +44,17 @@ export default function PengajuanShow({ auth, item }) {
     }
 
     const typeLabel = p.type === 'jasa' ? 'Jasa' : p.type === 'ruangan' ? 'Ruangan' : 'Produk';
-    const flowIdx = LAYANAN_FLOW.indexOf(p.status);
+    const isPickup = /ambil/i.test(p.metode_pengambilan || '');
+    const flow = ['Diajukan', 'Menunggu Pembayaran', ...(p.status === 'Menunggu Verifikasi Pembayaran' || (p.history ?? []).some((h) => h.status === 'Menunggu Verifikasi Pembayaran') ? ['Menunggu Verifikasi Pembayaran'] : []), 'Lunas', 'Diproses', 'Selesai'];
+    const flowIdx = flow.indexOf(p.status);
+    const stepLabel = (status) => status === 'Lunas' ? 'Pembayaran lunas' : status === 'Diproses' ? (isPickup ? 'Penyiapan / pengambilan di PNJ' : 'Penyiapan / pengiriman') : status === 'Selesai' ? 'Selesai — barang diterima' : status;
+
     const historyList = p.history ?? [];
 
     // Filter definition list rows to hide empty values
     const detailRows = [
         ['Tipe', typeLabel],
+        ['Pengiriman / pengambilan', p.metode_pengambilan || 'Belum diisi'],
         ...(p.qty ? [['Jumlah', p.qty]] : []),
         ...(p.need ? [['Keperluan', p.need]] : []),
         ...(p.date ? [['Tanggal Diharapkan', p.date]] : []),
@@ -96,10 +102,16 @@ export default function PengajuanShow({ auth, item }) {
                 {/* Single Column Content */}
                 <div className="mt-8 space-y-8">
                     {/* 1) Status Timeline: vertical rail with thin line and small dots */}
-                    <div>
-                        <h2 className="text-sm font-semibold text-[var(--color-ink)]">Status</h2>
+                    <div className="rounded-2xl border border-[var(--color-border)] bg-[var(--color-bg)] p-5 shadow-[var(--shadow-card)] sm:p-6">
+                        <div className="mb-5 rounded-2xl bg-[var(--color-accent-tint)] p-4" role="status">
+                            <p className="text-xs font-semibold uppercase tracking-wide text-[var(--color-accent)]">Posisi pesanan saat ini</p>
+                            <h2 className="mt-1 font-display text-lg font-bold text-[var(--color-ink)]">{stepLabel(p.status)}</h2>
+                            <p className="mt-2 text-sm leading-relaxed text-[var(--color-muted)]">{STATUS_HINT[p.status]}</p>
+                            {isPickup && <p className="mt-2 text-sm font-semibold text-[var(--color-accent)]">Jam pengambilan PNJ: 08.00–16.00 WIB. Tunggu pemberitahuan barang siap sebelum datang.</p>}
+                        </div>
+                        <h2 className="text-sm font-semibold text-[var(--color-ink)]">Tahapan pesanan</h2>
                         <ol className="relative ml-2 mt-4 border-l border-[var(--color-border)] pl-5">
-                            {LAYANAN_FLOW.map((s, i) => {
+                            {flow.map((s, i) => {
                                 const isCurrent = s === p.status;
                                 const isDone = flowIdx >= 0 ? i <= flowIdx : false;
                                 const isFuture = flowIdx >= 0 ? i > flowIdx : true;
@@ -128,9 +140,10 @@ export default function PengajuanShow({ auth, item }) {
                                                           : 'text-[var(--color-muted)]'
                                                 }`}
                                             >
-                                                {s}
+                                                {stepLabel(s)}
                                             </p>
 
+                                            <p className="mt-1 text-[11px] font-semibold text-[var(--color-accent)]">{isCurrent ? 'Tahap saat ini' : isDone ? 'Sudah dilalui' : 'Belum dimulai'}</p>
                                             {/* Date/time of step */}
                                             {h?.at && (
                                                 <p className="mt-0.5 text-xs text-[var(--color-muted)]">
@@ -159,7 +172,7 @@ export default function PengajuanShow({ auth, item }) {
                     </div>
 
                     {/* RTPU Note banner if rejected or special note outside history */}
-                    {p.note && (
+                    {p.note && ['Ditolak', 'Dibatalkan'].includes(p.status) && (
                         <div className="rounded-xl border border-red-200 bg-red-50/60 p-3.5 text-xs text-red-900">
                             <span className="font-semibold">Catatan RTPU: </span>{p.note}
                         </div>

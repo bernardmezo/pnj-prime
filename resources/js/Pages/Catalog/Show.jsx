@@ -360,7 +360,7 @@ export default function CatalogShow({ auth, product, isPreview = false }) {
                             {/* Action Buttons */}
                             <div className="mt-5 space-y-2.5">
                                 {isStaff ? (
-                                    <Link
+                                    user.role === 'pimpinan_rtpu' ? null : <Link
                                         href={route('rtpu.layanan')}
                                         className="inline-flex w-full items-center justify-center gap-1.5 rounded-full border border-[var(--color-border)] bg-white px-4 py-2.5 text-xs font-semibold text-[var(--color-ink)] transition hover:border-[var(--color-accent)] hover:bg-[var(--color-accent-tint)]"
                                     >

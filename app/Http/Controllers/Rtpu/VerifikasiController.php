@@ -27,6 +27,9 @@ class VerifikasiController extends Controller
             'type' => $p->tipe,
             'layanan' => $p->product?->name ?? ucfirst($p->tipe),
             'customer' => $p->buyer?->name,
+            'phone' => $p->buyer?->phone,
+            'nip' => $p->buyer?->nip,
+            'jurusan' => $p->buyer?->jurusan,
             'date' => optional($p->created_at)->format('Y-m-d H:i'),
             'status' => $p->status,
             'qty' => $p->jumlah,
@@ -34,6 +37,10 @@ class VerifikasiController extends Controller
             'total' => $p->total,
             'note' => $p->catatan_peninjau,
             'history' => $p->history ?? [],
+            'product_detail' => $p->product?->only([
+                'thumbnail', 'images', 'short_description', 'description',
+                'base_price', 'stock', 'meta',
+            ]),
         ];
     }
 
@@ -41,14 +48,14 @@ class VerifikasiController extends Controller
 
     public function layanan(): Response
     {
-        $pengajuanRows = Pengajuan::with(['product', 'buyer:id,name'])
+        $pengajuanRows = Pengajuan::with(['product', 'buyer:id,name,phone,nip,jurusan'])
             ->where('status', 'Diajukan')
             ->latest()
             ->get()
             ->map(fn ($p) => $this->serializePengajuan($p));
 
-        $produkRows = \App\Models\Product::with(['category', 'owner:id,name,institution,unit_name'])
-            ->where('curation_status', 'pending')
+        $produkRows = \App\Models\Product::with(['category', 'owner:id,name,phone,nip,jurusan,institution,unit_name'])
+            ->whereIn('curation_status', ['pending', 'verified'])
             ->latest()
             ->get()
             ->map(fn ($p) => [
@@ -59,6 +66,9 @@ class VerifikasiController extends Controller
                 'type' => 'produk',
                 'layanan' => $p->name,
                 'customer' => $p->owner?->name ?? 'Admin Pengelola',
+                'phone' => $p->owner?->phone,
+                'nip' => $p->owner?->nip,
+                'jurusan' => $p->owner?->jurusan,
                 'date' => optional($p->created_at)->format('Y-m-d H:i'),
                 'status' => 'Diajukan',
                 'qty' => 1,
@@ -66,6 +76,12 @@ class VerifikasiController extends Controller
                 'total' => $p->base_price,
                 'note' => $p->rejection_reason,
                 'history' => [],
+                'category' => $p->category?->name,
+                'unit' => $p->owner?->unit_name ?? $p->owner?->institution,
+                'product_detail' => $p->only([
+                    'thumbnail', 'images', 'short_description', 'description',
+                    'base_price', 'stock', 'meta',
+                ]),
             ]);
 
         $rows = $pengajuanRows->concat($produkRows)->sortByDesc('date')->values();
@@ -81,20 +97,9 @@ class VerifikasiController extends Controller
         if (str_starts_with((string)$id, 'prod-')) {
             $productId = str_replace('prod-', '', $id);
             $product = \App\Models\Product::findOrFail($productId);
-            if ($product->curation_status !== 'pending') {
-                abort(422, 'Hanya produk berstatus pending yang dapat diverifikasi RTPU.');
-            }
-            $meta = $product->meta ?? [];
-            $meta['rtpu_verified_at'] = now()->toIso8601String();
-            $meta['rtpu_verifier_id'] = Auth::id();
-            $meta['rtpu_verifier_name'] = Auth::user()->name;
+            app(\App\Services\ApproveCatalogProduct::class)->handle($product, $request->user());
 
-            $product->curation_status = 'verified';
-            $product->meta = $meta;
-            $product->rejection_reason = null;
-            $product->save();
-
-            return back()->with('success', 'Produk/Layanan/Jasa berhasil diverifikasi dan diteruskan ke Pimpinan RTPU.');
+            return back()->with('success', 'Produk disetujui dan langsung aktif di katalog PNJ PRIME.');
         }
 
         $pengajuan = Pengajuan::findOrFail($id);
@@ -152,7 +157,7 @@ class VerifikasiController extends Controller
     public function pembayaran(): Response
     {
         // 1. Online Midtrans Payments
-        $payments = Payment::with(['request.buyer:id,name', 'request.product:id,name'])
+        $payments = Payment::with(['request.buyer:id,name,email,phone,institution', 'request.product:id,name,owner_id', 'request.product.owner:id,name,email,phone,nip,jurusan,institution,unit_name'])
             ->latest()
             ->get()
             ->map(fn ($p) => [
@@ -163,18 +168,23 @@ class VerifikasiController extends Controller
                 'code' => $p->request?->code ?? $p->order_id,
                 'request_id' => $p->request_id,
                 'customer' => $p->request?->buyer?->name ?? 'Customer',
+                'customer_detail' => $p->request?->buyer?->only(['name', 'email', 'phone', 'institution']),
+                'owner_detail' => $p->request?->product?->owner?->only(['name', 'email', 'phone', 'nip', 'jurusan', 'institution', 'unit_name']),
                 'layanan' => $p->request?->product?->name ?? 'Layanan Pengajuan',
                 'amount' => $p->gross_amount,
                 'method' => $p->payment_type ? strtoupper(str_replace('_', ' ', $p->payment_type)) : 'Midtrans',
                 'status' => $p->status === 'paid' ? 'Lunas' : ($p->status === 'pending' ? 'Menunggu Pembayaran' : ucfirst($p->status)),
                 'raw_status' => $p->status,
+                'can_verify' => $p->status === 'paid' && $p->request?->status === 'Menunggu Verifikasi Pembayaran',
+                'fulfillment' => $p->request?->metode_pengambilan,
+                'request_status' => $p->request?->status,
                 'paid_at' => optional($p->paid_at)->format('Y-m-d H:i') ?? '-',
                 'at' => optional($p->created_at)->format('Y-m-d H:i'),
                 'request_url' => $p->request_id ? route('customer.pengajuan.show', $p->request_id) : null,
             ]);
 
         // 2. Legacy Manual Proofs (for compatibility and audit)
-        $proofs = PaymentProof::with(['order.buyer:id,name'])
+        $proofs = PaymentProof::with(['order.buyer:id,name,email,phone,institution', 'order.pengajuan.product.owner:id,name,email,phone,nip,jurusan,institution,unit_name'])
             ->latest()
             ->get()
             ->map(fn ($pf) => [
@@ -185,6 +195,8 @@ class VerifikasiController extends Controller
                 'code' => $pf->order?->order_number,
                 'request_id' => $pf->order?->pengajuan_id,
                 'customer' => $pf->order?->buyer?->name,
+                'customer_detail' => $pf->order?->buyer?->only(['name', 'email', 'phone', 'institution']),
+                'owner_detail' => $pf->order?->pengajuan?->product?->owner?->only(['name', 'email', 'phone', 'nip', 'jurusan', 'institution', 'unit_name']),
                 'layanan' => 'Tagihan '.$pf->order?->order_number,
                 'amount' => $pf->order?->total,
                 'method' => $pf->notes ?? 'Manual Transfer',

@@ -31,7 +31,14 @@ export default function PengelolaProdukForm({ auth, categories = [], item = null
         video_file: null,
         existing_video_path: item?.video_path || '',
     });
-    const formErrors = { ...errors, ...pageErrors };
+    const [uploadErrors, setUploadErrors] = useState({});
+    const maxImageBytes = 2 * 1024 * 1024;
+    const validateImage = (file) => {
+        if (!file.type.startsWith('image/')) return `File "${file.name}" harus berupa gambar.`;
+        if (file.size > maxImageBytes) return `Foto "${file.name}" melebihi batas 2 MB per gambar. Ukuran file: ${(file.size / 1024 / 1024).toFixed(2)} MB. Silakan kompres atau pilih foto lain.`;
+        return null;
+    };
+    const formErrors = { ...errors, ...pageErrors, ...uploadErrors };
 
     const allGalleryUrls = [];
     if (data.thumbnail_file) {
@@ -314,7 +321,7 @@ export default function PengelolaProdukForm({ auth, categories = [], item = null
                             <label className="block text-xs font-bold uppercase tracking-wider text-[var(--color-muted)]">
                                 Foto Utama / Thumbnail <span className="text-red-500">*</span>
                             </label>
-                            <p className="text-[11px] text-[var(--color-muted)]">Digunakan sebagai gambar utama pada katalog e-commerce dan kartu produk.</p>
+                            <p className="text-[11px] text-[var(--color-muted)]">Digunakan sebagai gambar utama pada katalog e-commerce dan kartu produk. Maksimal 2 MB per gambar.</p>
                             <div className="flex items-center gap-4">
                                 <label className="flex-1 cursor-pointer flex flex-col items-center justify-center border-2 border-dashed border-[var(--color-border)] hover:border-teal-500 rounded-2xl p-4 bg-[var(--color-surface)]/50 hover:bg-teal-50/30 transition group">
                                     <div className="flex items-center gap-2 text-xs font-semibold text-[var(--color-muted)] group-hover:text-teal-700">
@@ -326,9 +333,11 @@ export default function PengelolaProdukForm({ auth, categories = [], item = null
                                         accept="image/*"
                                         onChange={(e) => {
                                             const file = e.target.files[0];
-                                            if (file) {
-                                                setData('thumbnail_file', file);
-                                            }
+                                            if (!file) return;
+                                            const message = validateImage(file);
+                                            setUploadErrors((previous) => ({ ...previous, thumbnail: message }));
+                                            if (!message) setData('thumbnail_file', file);
+                                            e.target.value = '';
                                         }}
                                         className="hidden"
                                     />
@@ -385,7 +394,7 @@ export default function PengelolaProdukForm({ auth, categories = [], item = null
                             <label className="block text-xs font-bold uppercase tracking-wider text-[var(--color-muted)]">
                                 Galeri Foto Tambahan <span className="text-[var(--color-muted)] font-normal">(Opsional: Variasi Warna/Tipe)</span>
                             </label>
-                            <p className="text-[11px] text-[var(--color-muted)]">Pilih foto satu per satu atau sekaligus banyak. Klik pada foto untuk memperbesar.</p>
+                            <p className="text-[11px] text-[var(--color-muted)]">Pilih foto satu per satu atau sekaligus banyak. Maksimal 2 MB per gambar. Klik pada foto untuk memperbesar.</p>
                             
                             <label className="cursor-pointer flex flex-col items-center justify-center border-2 border-dashed border-[var(--color-border)] hover:border-teal-500 rounded-2xl p-5 bg-[var(--color-surface)]/50 hover:bg-teal-50/30 transition group">
                                 <div className="flex items-center gap-2 text-xs font-semibold text-[var(--color-muted)] group-hover:text-teal-700">
@@ -398,7 +407,11 @@ export default function PengelolaProdukForm({ auth, categories = [], item = null
                                     multiple
                                     onChange={(e) => {
                                         const newFiles = Array.from(e.target.files);
-                                        setData('images', [...data.images, ...newFiles]);
+                                        const messages = newFiles.map(validateImage).filter(Boolean);
+                                        setUploadErrors((previous) => ({ ...previous, images: messages.join(' ') || null }));
+                                        const acceptedFiles = newFiles.filter((file) => !validateImage(file));
+                                        setData('images', [...data.images, ...acceptedFiles]);
+                                        e.target.value = '';
                                     }}
                                     className="hidden"
                                 />

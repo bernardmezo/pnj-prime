@@ -18,7 +18,7 @@ class ProductCurationController extends Controller
     public function index(): Response
     {
         $products = Product::with(['category', 'owner:id,name,institution,unit_name'])
-            ->where('curation_status', 'pending')
+            ->whereIn('curation_status', ['pending', 'verified'])
             ->latest()
             ->get()
             ->map(fn (Product $p) => [
@@ -47,21 +47,9 @@ class ProductCurationController extends Controller
      */
     public function verify(Request $request, Product $product): RedirectResponse
     {
-        if ($product->curation_status !== 'pending') {
-            abort(422, 'Hanya produk berstatus pending yang dapat diverifikasi RTPU.');
-        }
+        app(\App\Services\ApproveCatalogProduct::class)->handle($product, $request->user());
 
-        $meta = $product->meta ?? [];
-        $meta['rtpu_verified_at'] = now()->toIso8601String();
-        $meta['rtpu_verifier_id'] = Auth::id();
-        $meta['rtpu_verifier_name'] = Auth::user()->name;
-
-        $product->curation_status = 'verified';
-        $product->meta = $meta;
-        $product->rejection_reason = null;
-        $product->save();
-
-        return back()->with('success', 'Produk berhasil diverifikasi dan diteruskan ke Pimpinan RTPU.');
+        return back()->with('success', 'Produk disetujui dan langsung aktif di katalog PNJ PRIME.');
     }
 
     /**

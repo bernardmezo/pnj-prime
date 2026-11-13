@@ -86,6 +86,13 @@ class LayananController extends Controller
         $tipe = $request->string('tipe')->toString();
         $data = $request->validate($this->layananRules() + $this->opsiRules($tipe));
 
+        // Rule 10: Tarif dan satuan wajib untuk Sewa (ruangan/alat)
+        if (in_array($tipe, ['ruangan', 'alat'], true) && (! $data['satuan'] ?? null)) {
+            $request->validate([
+                'satuan' => 'required|in:hari,jam',
+            ]);
+        }
+
         $category = ProductCategory::where('slug', self::TIPE_CATEGORY[$data['tipe']])->firstOrFail();
 
         DB::transaction(function () use ($data, $category, $request) {

@@ -51,7 +51,7 @@ class ProductController extends Controller
             'target_audience' => 'nullable|string|in:publik,internal_pnj',
             'availability_status' => 'nullable|string|in:tersedia,preorder',
             'preorder_duration' => 'nullable|string|max:100',
-            'weight' => 'nullable|integer|min:1',
+            'weight' => 'required|integer|min:1',
             'length' => 'nullable|integer|min:1',
             'width' => 'nullable|integer|min:1',
             'height' => 'nullable|integer|min:1',
@@ -66,6 +66,11 @@ class ProductController extends Controller
             'video_file' => 'nullable|mimes:mp4,mov,avi,wmv|max:20480',
             'existing_video_path' => 'nullable|string',
         ]);
+
+        // Rule 10: Berat wajib untuk produk yang dapat dikirim
+        if ($data['availability_status'] === 'tersedia') {
+            // Validasi sudah dilakukan aturan di atas (weight required)
+        }
 
         $thumbnailPath = null;
         if ($request->hasFile('thumbnail')) {
@@ -152,7 +157,7 @@ class ProductController extends Controller
             'target_audience' => 'nullable|string|in:publik,internal_pnj',
             'availability_status' => 'nullable|string|in:tersedia,preorder',
             'preorder_duration' => 'nullable|string|max:100',
-            'weight' => 'nullable|integer|min:1',
+            'weight' => 'required|integer|min:1',
             'length' => 'nullable|integer|min:1',
             'width' => 'nullable|integer|min:1',
             'height' => 'nullable|integer|min:1',

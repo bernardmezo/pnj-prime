@@ -8,7 +8,6 @@ enum Role: string
     case AdminRtpu = 'admin_rtpu';
     case AdminP3m = 'admin_p3m';
     case AdminPengelola = 'admin_pengelola';
-    case AdminJurusan = 'admin_jurusan';
     case PimpinanRtpu = 'pimpinan_rtpu';
     case Direktur = 'direktur';
     case SuperAdmin = 'super_admin';

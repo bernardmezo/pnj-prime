@@ -2,6 +2,7 @@
 
 namespace App\Providers;
 
+use App\Models\User;
 use App\Services\Auth\AuthServiceInterface;
 use App\Services\Auth\LocalAuthService;
 use App\Services\SettingService;

@@ -260,7 +260,23 @@ class PengajuanController extends Controller
     {
         return [
             'tipe' => 'required|in:jasa,ruangan,produk',
-            'product_id' => ['nullable', $this->activeCatalogRule()],
+            'product_id' => ['required', 'string', function ($attribute, $value, $fail) {
+                $product = Product::with('category')->find($value);
+                if (! $product) {
+                    $fail('Produk tidak ditemukan.');
+                    return;
+                }
+                $tipe = $product->layananTipe();
+                $availability = $product->availability_status ?? 'tersedia';
+                // Rule 10: Stok wajib untuk Produk + Beli
+                if ($tipe === 'produk' && $availability === 'tersedia') {
+                    if (! $product->stock || $product->stock < 1) {
+                        $fail('Produk ini tidak memiliki stok Ready Stock. Pilih produk lain atau status Pre-order.');
+                    }
+                }
+                // Rule 10: Ketersediaan kosong untuk Jasa/Layanan
+                // (tidak ada validasi stok, boleh kosong)
+            }, ],
             'keperluan' => 'nullable|string|max:2000',
             'jumlah' => 'nullable|string|max:100',
             'tanggal' => 'nullable|date|after_or_equal:today',

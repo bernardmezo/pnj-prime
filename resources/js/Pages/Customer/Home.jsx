@@ -35,10 +35,6 @@ export default function CustomerHome({ auth, featured_products = [], categories 
                 {/* Greeting + search */}
                 <div className="flex flex-wrap items-end justify-between gap-4">
                     <div>
-                        <div className="inline-flex items-center gap-1.5 rounded-full bg-[var(--color-accent-tint)] px-3 py-1 text-xs font-semibold text-[var(--color-accent)]">
-                            <Sparkles className="h-3.5 w-3.5 text-[var(--color-gold)]" />
-                            Halo, {auth?.user?.name?.split(' ')[0] ?? 'Pelanggan'}
-                        </div>
                         <h1 className="mt-2 font-display text-[28px] font-bold tracking-tight sm:text-4xl" style={{ color: 'var(--color-ink)' }}>
                             Mau pesan apa hari ini?
                         </h1>
@@ -135,9 +131,6 @@ export default function CustomerHome({ auth, featured_products = [], categories 
                         </p>
                     </div>
                     <div className="relative z-10">
-                        <PrimaryButton href={navHref('customer.pengajuan.create', {}, role)} className="shadow-md">
-                            Ajukan Layanan <ArrowRight className="h-4 w-4 ml-1" />
-                        </PrimaryButton>
                     </div>
                 </div>
 

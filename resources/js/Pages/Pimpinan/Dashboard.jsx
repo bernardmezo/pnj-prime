@@ -148,7 +148,7 @@ export default function PimpinanDashboard({
                                 </p>
                             </div>
                             <Link
-                                href={navHref('pimpinan.verify', {}, role)}
+                                href={navHref('pimpinan.verify.produk', {}, role)}
                                 className="text-xs font-semibold text-[var(--color-accent)] hover:underline"
                             >
                                 Buka Semua Antrean →

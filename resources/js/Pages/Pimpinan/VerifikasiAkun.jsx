@@ -1,21 +1,32 @@
 import DashboardLayout from '@/Layouts/DashboardLayout';
 import { Head, router } from '@inertiajs/react';
 import { Check, X, ShieldAlert, Building2, Mail, Phone, UserCheck } from 'lucide-react';
+import { useConfirm } from '@/Components/ConfirmDialog';
 
 export default function VerifikasiAkun({ auth, pendingUsers = [] }) {
-    const handleApprove = (id) => {
-        if (confirm('Setujui akun pengelola ini?')) {
-            router.patch(route('pimpinan.verify.akun.approve', id));
-        }
+    const { confirm, ConfirmUI } = useConfirm();
+
+    const handleApprove = async (id) => {
+        const ok = await confirm({
+            title: 'Setujui akun pengelola?',
+            message: 'Akun akan diaktifkan dan pengelola dapat mulai mengajukan produk.',
+            confirmLabel: 'Ya, Setujui',
+        });
+        if (ok) router.patch(route('pimpinan.verify.akun.approve', id));
     };
 
-    const handleReject = (id) => {
-        if (confirm('Tolak akun pengelola ini?')) {
-            router.patch(route('pimpinan.verify.akun.reject', id));
-        }
+    const handleReject = async (id) => {
+        const ok = await confirm({
+            title: 'Tolak akun pengelola ini?',
+            message: 'Akun tidak akan diaktifkan. Tindakan ini tidak bisa dibatalkan.',
+            danger: true,
+            confirmLabel: 'Ya, Tolak',
+        });
+        if (ok) router.patch(route('pimpinan.verify.akun.reject', id));
     };
 
     return (
+        <>
         <DashboardLayout title="Verifikasi Akun Pengelola" activeKey="verify-akun">
             <Head title="Verifikasi Akun Pengelola · PNJ Prime" />
 
@@ -89,5 +100,7 @@ export default function VerifikasiAkun({ auth, pendingUsers = [] }) {
                 )}
             </div>
         </DashboardLayout>
+        {ConfirmUI}
+        </>
     );
 }

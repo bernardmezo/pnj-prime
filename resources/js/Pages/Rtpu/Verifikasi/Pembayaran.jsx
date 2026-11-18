@@ -105,15 +105,6 @@ export default function VerifikasiPembayaran({ auth, antrean = [], selected = nu
                                                 Rp {Number(sel.amount ?? 0).toLocaleString('id-ID')}
                                             </h2>
                                         </div>
-                                        {sel.request_url && (
-                                            <Link
-                                                href={sel.request_url}
-                                                className="inline-flex items-center gap-1 text-xs font-semibold text-[var(--color-accent)] hover:underline"
-                                            >
-                                                <span>Lihat Pengajuan</span>
-                                                <ExternalLink className="h-3 w-3" />
-                                            </Link>
-                                        )}
                                     </div>
 
                                     {/* Definition list */}

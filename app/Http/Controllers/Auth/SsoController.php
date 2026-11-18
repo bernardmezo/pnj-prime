@@ -44,6 +44,15 @@ class SsoController extends Controller
         Auth::login($user, true);
         $request->session()->regenerate();
 
+        // Kembali ke halaman checkout yang tersimpan sebelum login, bila ada dan internal.
+        $intendedUrl = $request->session()->pull('_intended_url');
+        if ($intendedUrl) {
+            $host = parse_url($intendedUrl, PHP_URL_HOST);
+            if (! $host || $host === $request->getHost()) {
+                return redirect($intendedUrl);
+            }
+        }
+
         return redirect()->intended(route('dashboard'));
     }
 }

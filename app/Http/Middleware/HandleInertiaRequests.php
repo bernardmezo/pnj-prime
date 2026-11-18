@@ -65,6 +65,9 @@ class HandleInertiaRequests extends Middleware
                         + (Schema::hasTable('products') ? Product::whereIn('curation_status', ['pending', 'verified'])->count() : 0),
                     'verifikasi_bayar' => Pengajuan::where('status', 'Menunggu Verifikasi Pembayaran')->count(),
                     'menunggu_pimpinan' => Schema::hasTable('produk_unggulan') ? ProdukUnggulan::where('status', 'Diajukan')->count() : 0,
+                    'persetujuan_final_produk' => Schema::hasTable('products')
+                        ? Product::whereIn('curation_status', ['pending', 'verified'])->count()
+                        : 0,
                 ]
                 : null,
             // SSO is off unless explicitly enabled; the login button reads this.

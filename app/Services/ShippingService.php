@@ -72,44 +72,78 @@ class ShippingService
     }
 
     /**
+     * Hitung biaya ongkir berdasarkan kode pos asal/tujuan (requires RajaOngkir Pro).
+     * 
+     * @param string $originPostalCode Kode pos asal (5 digit)
+     * @param string $destinationPostalCode Kode pos tujuan (5 digit)
+     * @param int $weight Berat dalam gram
+     * @param string $courier Kurir (jne, jnt, sicepat, dll)
+     * @return array Hasil perhitungan ongkir dari RajaOngkir
+     * @throws \Illuminate\Validation\ValidationException
+     */
+    public function calculateCostByPostalCode(string $originPostalCode, string $destinationPostalCode, int $weight = 1000, string $courier = 'jne')
+    {
+        $type = config('services.rajaongkir.type', 'starter');
+        
+        // Kode pos hanya tersedia di RajaOngkir Pro
+        if ($type !== 'pro') {
+            // Fallback: gunakan city_id untuk starter/basic
+            // (Fitur ini hanya warning, bukan error — admin bisa upgrade nanti)
+            throw \Illuminate\Validation\ValidationException::withMessages([
+                'shipping_service' => 'Perhitungan ongkir berdasarkan kode pos memerlukan RajaOngkir Pro. Saat ini sistem menggunakan akun ' . ucfirst($type) . '.'
+            ]);
+        }
+
+        if (! in_array($courier, $this->supportedCouriers(), true)) {
+            throw \Illuminate\Validation\ValidationException::withMessages(['shipping_service' => 'Kurir tidak didukung tipe akun RajaOngkir ini.']);
+        }
+
+        if (empty($this->apiKey)) {
+            throw \Illuminate\Validation\ValidationException::withMessages(['shipping_service' => 'Tarif live belum tersedia: API key RajaOngkir belum dikonfigurasi.']);
+        }
+
+        // Validasi format kode pos (5 digit)
+        if (!preg_match('/^\d{5}$/', $originPostalCode) || !preg_match('/^\d{5}$/', $destinationPostalCode)) {
+            throw \Illuminate\Validation\ValidationException::withMessages(['postal_code' => 'Kode pos harus 5 digit angka.']);
+        }
+
+        try {
+            $response = Http::asForm()->connectTimeout(3)->timeout(12)->withHeaders([
+                'key' => $this->apiKey,
+            ])->post("{$this->baseUrl}/cost", [
+                'originType' => 'subdistrict',
+                'destinationType' => 'subdistrict',
+                'origin' => $originPostalCode,
+                'destination' => $destinationPostalCode,
+                'weight' => max(100, $weight),
+                'courier' => $courier,
+            ]);
+
+            if ($response->successful()) {
+                return $response->json('rajaongkir.results') ?? [];
+            }
+        } catch (\Exception $e) {
+            Log::warning('RajaOngkir postal code cost request failed', ['exception' => $e::class, 'message' => $e->getMessage()]);
+        }
+
+        throw \Illuminate\Validation\ValidationException::withMessages(['shipping_service' => 'Tarif live RajaOngkir gagal dimuat. Coba kembali; ongkir tidak boleh diperkirakan.']);
+    }
+
+    /**
      * Hitung biaya ongkir berdasarkan kota tujuan, berat (gram), dan kurir (jne, jnt, sicepat)
      */
     public function calculateCost(string $destinationCityId, int $weight = 1000, string $courier = 'jne')
     {
+        if (! in_array($courier, $this->supportedCouriers(), true)) {
+            throw \Illuminate\Validation\ValidationException::withMessages(['shipping_service' => 'Kurir tidak didukung tipe akun RajaOngkir ini.']);
+        }
         if (empty($this->apiKey)) {
-            // Mock cost calculation jika API key belum diisi
-            $baseCost = match ($courier) {
-                'jnt' => 12000,
-                'sicepat' => 11000,
-                default => 10000,
-            };
-            $weightKg = max(1, ceil($weight / 1000));
-            $cost = $baseCost * $weightKg;
-
-            return [
-                [
-                    'code' => strtoupper($courier),
-                    'name' => strtoupper($courier) . ' Express',
-                    'costs' => [
-                        [
-                            'service' => 'REG',
-                            'description' => 'Layanan Reguler (Mock)',
-                            'cost' => [['value' => $cost, 'etd' => '2-3 hari', 'note' => '']]
-                        ],
-                        [
-                            'service' => 'YES',
-                            'description' => 'Yakin Esok Sampai (Mock)',
-                            'cost' => [['value' => $cost + 10000, 'etd' => '1 hari', 'note' => '']]
-                        ]
-                    ]
-                ]
-            ];
+            throw \Illuminate\Validation\ValidationException::withMessages(['shipping_service' => 'Tarif live belum tersedia: API key RajaOngkir belum dikonfigurasi.']);
         }
 
         try {
-            $response = Http::withHeaders([
+            $response = Http::asForm()->connectTimeout(3)->timeout(12)->withHeaders([
                 'key' => $this->apiKey,
-                'content-type' => 'application/x-www-form-urlencoded',
             ])->post("{$this->baseUrl}/cost", [
                 'origin' => $this->originCity,
                 'destination' => $destinationCityId,
@@ -121,9 +155,45 @@ class ShippingService
                 return $response->json('rajaongkir.results') ?? [];
             }
         } catch (\Exception $e) {
-            Log::error('RajaOngkir calculateCost error: ' . $e->getMessage());
+            Log::warning('RajaOngkir cost request failed', ['exception' => $e::class]);
         }
 
-        return [];
+        throw \Illuminate\Validation\ValidationException::withMessages(['shipping_service' => 'Tarif live RajaOngkir gagal dimuat. Coba kembali; ongkir tidak boleh diperkirakan.']);
+    }
+
+    public function supportedCouriers(): array
+    {
+        return match (config('services.rajaongkir.type', 'starter')) {
+            'basic' => ['jne', 'pos', 'tiki', 'rpx', 'esl', 'pcp'],
+            'pro' => ['jne', 'pos', 'tiki', 'rpx', 'esl', 'pcp', 'jnt', 'sicepat'],
+            default => ['jne', 'pos', 'tiki'],
+        };
+    }
+
+    public function preorderRates(\App\Models\Pengajuan $request, string $courier): array
+    {
+        if (! preg_match('/(?:^|\|)\s*Kota:\s*(\d+)\b/', $request->catatan ?? '', $match)) {
+            throw \Illuminate\Validation\ValidationException::withMessages(['shipping_service' => 'Kota tujuan RajaOngkir belum tersimpan pada pengajuan pelanggan. Lengkapi tujuan sebelum menyusun invoice.']);
+        }
+        $weight = (int) ($request->product?->meta['weight'] ?? 0);
+        if ($weight < 1) {
+            throw \Illuminate\Validation\ValidationException::withMessages(['shipping_service' => 'Berat produk dalam gram belum diisi oleh pemilik.']);
+        }
+        $rates = [];
+        foreach ($this->calculateCost($match[1], $weight * max(1, (int) $request->jumlah), $courier) as $result) {
+            if (strtolower($result['code'] ?? '') !== $courier) {
+                continue;
+            }
+            foreach ($result['costs'] ?? [] as $service) {
+                $amount = $service['cost'][0]['value'] ?? null;
+                if (is_numeric($amount) && (int) $amount > 0) {
+                    $rates[] = ['service' => $service['service'], 'amount' => (int) $amount, 'etd' => $service['cost'][0]['etd'] ?? ''];
+                }
+            }
+        }
+        if (! $rates) {
+            throw \Illuminate\Validation\ValidationException::withMessages(['shipping_service' => 'Tidak ada layanan live untuk kurir dan tujuan ini. Pilih kurir lain.']);
+        }
+        return $rates;
     }
 }

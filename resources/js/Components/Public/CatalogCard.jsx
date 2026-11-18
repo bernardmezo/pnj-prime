@@ -21,8 +21,8 @@ export const TYPE_META = {
 
 export function typeFromCategory(slug) {
     const s = String(slug ?? '');
-    if (s.includes('jasa')) return 'jasa';
-    if (s.includes('sewa') || s.includes('fasilitas')) return 'sewa';
+    if (s.includes('jasa') || s.includes('konsultasi') || s.includes('pelatihan') || s.includes('pengujian')) return 'jasa';
+    if (s.includes('sewa') || s.includes('fasilitas') || s.includes('ruangan')) return 'sewa';
     return 'produk';
 }
 
@@ -188,6 +188,16 @@ export default function CatalogCard({ item, index = 0, className = '' }) {
                         <span className="mx-1.5 opacity-40">·</span>
                         {soldLabel}
                     </p>
+
+                    <div className="mb-3 flex items-center gap-2">
+                        <span 
+                            className={`inline-flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-[10px] font-semibold ${audience.className}`}
+                            style={audience.style}
+                        >
+                            <AudienceIcon className="h-3 w-3" />
+                            {audience.label}
+                        </span>
+                    </div>
 
                     <div className="mt-auto flex flex-wrap items-center justify-between gap-3 border-t pt-3.5" style={{ borderColor: 'var(--color-border)' }}>
                         <p className="font-display text-[16px] font-bold" style={{ color: 'var(--color-ink)' }}>

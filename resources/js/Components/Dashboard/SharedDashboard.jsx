@@ -65,10 +65,6 @@ export function PageHeader({ title = 'Dashboard', subtitle }) {
             </div>
             <div className="relative flex items-start justify-between gap-4">
                 <div>
-                    <p className="mb-2 inline-flex items-center gap-2 rounded-full border px-3 py-1 text-[11px] font-bold uppercase tracking-widest" style={{ borderColor: 'color-mix(in srgb, var(--color-accent) 22%, transparent)', color: 'var(--color-accent)', background: 'color-mix(in srgb, var(--color-accent-tint) 50%, transparent)' }}>
-                        <span className="h-1.5 w-1.5 rounded-full" style={{ background: 'var(--color-gold)' }} />
-                        Dashboard
-                    </p>
                     <h1 className="font-display text-[28px] font-bold tracking-tight text-[var(--color-ink)] sm:text-3xl">
                         {title}
                     </h1>

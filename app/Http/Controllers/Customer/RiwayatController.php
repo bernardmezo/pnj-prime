@@ -12,7 +12,7 @@ class RiwayatController extends Controller
 {
     public function index(): Response
     {
-        $rows = Pengajuan::with('product')->where('buyer_id', Auth::id())
+        $rows = Pengajuan::with(['product', 'latestInvoice'])->where('buyer_id', Auth::id())
             ->whereIn('status', Pengajuan::CLOSED)
             ->latest()
             ->get()
@@ -24,6 +24,9 @@ class RiwayatController extends Controller
                 'date' => optional($p->created_at)->format('Y-m-d'),
                 'status' => $p->status,
                 'history' => $p->history ?? [],
+                'pickup' => $p->pickupDetails(),
+                'invoice_url' => in_array($p->latestInvoice?->status, ['issued', 'paid'], true) ? route('customer.pengajuan.invoice', $p) : null,
+                'detail_url' => route('customer.pengajuan.show', $p),
             ]);
 
         return Inertia::render('Customer/Riwayat', ['riwayat' => $rows]);

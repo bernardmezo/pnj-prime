@@ -6,11 +6,12 @@ import Select from '@/Components/ui/Select';
 import { Card, ConfirmModal, EmptyState, FadeIn, Field, PageHeader, PrimaryButton, StatusBadge, Table, Td, inputClass, inputStyleProps } from '@/Components/ui';
 
 export default function MetodeIndex({ auth, metode = [] }) {
+    const addBlu = new URLSearchParams(window.location.search).get('tambah') === 'blu';
     const rows = metode;
-    const [editing, setEditing] = useState(null);
+    const [editing, setEditing] = useState(addBlu ? 'new' : null);
     const [del, setDel] = useState(null);
     const { data, setData, post, patch, processing, errors, reset } = useForm({
-        name: '', type: 'Transfer Bank', account: '', holder: '', instructions: '', active: true,
+        name: '', type: addBlu ? 'BLU' : 'Transfer Bank', account: '', holder: '', instructions: '', active: true,
     });
 
     const openAdd = () => {
@@ -37,7 +38,7 @@ export default function MetodeIndex({ auth, metode = [] }) {
                 <PageHeader
                     eyebrow="Admin RTPU"
                     title="Kelola Metode Pembayaran"
-                    desc="Daftar metode yang bisa dipilih Customer saat membayar."
+                    desc="Untuk pre-order, tambahkan rekening resmi institusi dengan tipe BLU. Isi nama bank, nomor rekening dan pemilik resmi; jangan gunakan data contoh."
                     actions={<PrimaryButton onClick={openAdd}>+ Tambah Metode</PrimaryButton>}
                 />
                 {rows.length === 0 ? (
@@ -80,10 +81,10 @@ export default function MetodeIndex({ auth, metode = [] }) {
                             <input value={data.name} onChange={(e) => setData('name', e.target.value)} placeholder="mis. Transfer Bank BNI" className={inputClass} {...inputStyleProps()} />
                         </Field>
                         <Select
-                            label="Tipe"
+                            label="Tipe (pilih BLU untuk rekening resmi pre-order)"
                             value={data.type}
                             onChange={(v) => setData('type', v)}
-                            options={['Transfer Bank', 'Virtual Account', 'Tunai', 'Lainnya'].map((t) => ({ value: t, label: t }))}
+                            options={['BLU', 'Transfer Bank', 'Virtual Account', 'Tunai', 'Lainnya'].map((t) => ({ value: t, label: t }))}
                             error={errors.type}
                         />
                         <Field label="Nomor rekening / VA" error={errors.account}>

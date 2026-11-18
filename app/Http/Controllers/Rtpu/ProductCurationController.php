@@ -43,6 +43,46 @@ class ProductCurationController extends Controller
     }
 
     /**
+     * Show detailed product view for Admin RTPU verification (dedicated page).
+     */
+    public function show(Product $product): Response
+    {
+        // Load owner full data for verification
+        $product->load(['category', 'owner:id,name,email,phone,institution,unit_name,nip,jurusan']);
+
+        $data = [
+            'id' => $product->id,
+            'name' => $product->name,
+            'slug' => $product->slug,
+            'description' => $product->description,
+            'category' => $product->category?->name,
+            'category_slug' => $product->category?->slug,
+            'target_audience' => $product->target_audience ?? 'publik',
+            'base_price' => $product->base_price,
+            'final_price' => $product->final_price,
+            'curation_status' => $product->curation_status,
+            'rejection_reason' => $product->rejection_reason,
+            'photos' => $product->photos ?? [],
+            'documents' => $product->documents ?? [],
+            'meta' => $product->meta ?? [],
+            'created_at' => optional($product->created_at)->format('d M Y, H:i'),
+            'owner_detail' => [
+                'name' => $product->owner?->name,
+                'email' => $product->owner?->email,
+                'phone' => $product->owner?->phone,
+                'institution' => $product->owner?->institution,
+                'unit_name' => $product->owner?->unit_name,
+                'nip' => $product->owner?->nip,
+                'jurusan' => $product->owner?->jurusan,
+            ],
+        ];
+
+        return Inertia::render('Rtpu/Verifikasi/ProdukDetail', [
+            'product' => $data,
+        ]);
+    }
+
+    /**
      * Step 1: Admin RTPU verifies product catalog from unit/P3M.
      */
     public function verify(Request $request, Product $product): RedirectResponse
@@ -71,14 +111,9 @@ class ProductCurationController extends Controller
             abort(422, 'Produk ini tidak dalam status yang dapat ditolak oleh RTPU.');
         }
 
-        $meta = $product->meta ?? [];
-        $meta['rtpu_rejected_at'] = now()->toIso8601String();
-        $meta['rtpu_rejecter_name'] = Auth::user()->name;
-
-        $product->curation_status = 'rejected';
+        // Use transitionTo() for audit trail
         $product->rejection_reason = $catatan;
-        $product->meta = $meta;
-        $product->save();
+        $product->transitionTo('rejected', Auth::user(), $catatan);
 
         return back()->with('success', 'Produk ditolak dengan catatan.');
     }

@@ -78,6 +78,14 @@ export default function Register({ internalRoles = [] }) {
         password_confirmation: '',
         nik_npwp: '',
         terms: false,
+        // Field khusus Industri/Perusahaan
+        npwp_perusahaan: '',
+        penanggung_jawab: '',
+        bidang_usaha: '',
+        // Field khusus Mitra kerja sama
+        nomor_mou_pks: '',
+        contact_person: '',
+        periode_kerja_sama: '',
     });
 
     const intForm = useForm({
@@ -142,7 +150,7 @@ export default function Register({ internalRoles = [] }) {
                 <form onSubmit={submitInternal} noValidate>
                     <div className="mb-4 rounded-2xl p-4" style={{ background: 'var(--color-accent-tint)' }}>
                         <p className="text-[13px] leading-relaxed" style={{ color: 'var(--color-muted)' }}>
-                            Pendaftaran khusus Pengelola Jurusan / P3M. Masukkan NIP Anda (tarik data otomatis dari sistem PNJ), lengkapi data jurusan, prodi, dan nomor telepon. Akun memerlukan persetujuan Pimpinan RTPU sebelum aktif.
+                            Khusus pengelola jurusan dan P3M. Akun perlu disetujui Pimpinan RTPU sebelum aktif.
                         </p>
                     </div>
 
@@ -157,7 +165,7 @@ export default function Register({ internalRoles = [] }) {
                                 { value: 'admin_jurusan', label: 'Admin Jurusan (Pengelola Jurusan)' },
                                 { value: 'admin_p3m', label: 'Admin P3M' }
                             ]}
-                            placeholder="Pilih role…"
+                            placeholder="Pilih peran"
                             error={intForm.errors.role}
                             required
                         />
@@ -165,7 +173,7 @@ export default function Register({ internalRoles = [] }) {
                     <div className="mt-4">
                         <InputLabel htmlFor="int_nip" value="NIP (Nomor Induk Pegawai)" />
                         <div className="flex gap-2 mt-1">
-                            <TextInput id="int_nip" name="nip" value={intForm.data.nip} className="block w-full" onChange={(e) => intForm.setData('nip', e.target.value)} required placeholder="Masukkan NIP untuk verifikasi" />
+                            <TextInput id="int_nip" name="nip" value={intForm.data.nip} className="block w-full" onChange={(e) => intForm.setData('nip', e.target.value)} required placeholder="NIP Anda" />
                             <button
                                 type="button"
                                 onClick={() => {
@@ -173,9 +181,11 @@ export default function Register({ internalRoles = [] }) {
                                         alert('Masukkan NIP terlebih dahulu.');
                                         return;
                                     }
-                                    alert('NIP ' + intForm.data.nip + ' berhasil ditarik dari direktori PNJ.');
+                                    // Auto-isi email berdasarkan NIP
                                     if(!intForm.data.email) intForm.setData('email', intForm.data.nip.toLowerCase() + '@pnj.ac.id');
-                                    if(!intForm.data.name) intForm.setData('name', 'Pegawai PNJ ' + intForm.data.nip);
+                                    
+                                    // Tidak auto-isi nama (user harus isi manual dengan nama asli)
+                                    alert('NIP ' + intForm.data.nip + ' terdaftar. Silakan lengkapi nama lengkap Anda dan data lainnya.');
                                 }}
                                 className="rounded-xl px-4 py-2 text-xs font-semibold text-white whitespace-nowrap transition"
                                 style={{ background: 'var(--color-accent)' }}
@@ -187,7 +197,7 @@ export default function Register({ internalRoles = [] }) {
                     </div>
                     <div className="mt-4">
                         <InputLabel htmlFor="int_name" value="Nama lengkap" />
-                        <TextInput id="int_name" name="name" value={intForm.data.name} className="mt-1 block w-full" autoComplete="name" onChange={(e) => intForm.setData('name', e.target.value)} required placeholder="Nama sesuai identitas" />
+                        <TextInput id="int_name" name="name" value={intForm.data.name} className="mt-1 block w-full" autoComplete="name" onChange={(e) => intForm.setData('name', e.target.value)} required placeholder="" />
                         <InputError message={intForm.errors.name} className="mt-2" />
                     </div>
                     <div className="mt-4">
@@ -203,14 +213,14 @@ export default function Register({ internalRoles = [] }) {
                             value={intForm.data.jurusan}
                             options={JURUSAN_LIST.map(j => ({ value: j, label: j }))}
                             onChange={(v) => intForm.setData('jurusan', v)}
-                            placeholder="Pilih Jurusan…"
+                            placeholder="Pilih jurusan"
                             error={intForm.errors.jurusan}
                             required
                         />
                     </div>
                     <div className="mt-4">
                         <InputLabel htmlFor="int_prodi" value="Program Studi" />
-                        <TextInput id="int_prodi" name="prodi" value={intForm.data.prodi} className="mt-1 block w-full" onChange={(e) => intForm.setData('prodi', e.target.value)} required placeholder="Contoh: D4 Teknik Informatika / Manajemen Bisnis" />
+                        <TextInput id="int_prodi" name="prodi" value={intForm.data.prodi} className="mt-1 block w-full" onChange={(e) => intForm.setData('prodi', e.target.value)} required placeholder="D4 Teknik Informatika" />
                         <InputError message={intForm.errors.prodi} className="mt-2" />
                     </div>
                     <div className="mt-4">
@@ -253,7 +263,7 @@ export default function Register({ internalRoles = [] }) {
                         {intForm.processing ? 'Memproses…' : 'Daftar Sebagai Pengelola Jurusan'}
                     </PrimaryButton>
                     <p className="mt-3 text-center text-xs" style={{ color: 'var(--color-muted)' }}>
-                        Membutuhkan acc/persetujuan Pimpinan RTPU sebelum akun aktif.
+                        Akun perlu disetujui sebelum aktif
                     </p>
                 </form>
             )}
@@ -283,35 +293,120 @@ export default function Register({ internalRoles = [] }) {
                 <form onSubmit={submitExternal} noValidate>
                     <div className="mb-4 rounded-2xl p-4" style={{ background: 'var(--color-accent-tint)' }}>
                         <p className="text-[13px] leading-relaxed" style={{ color: 'var(--color-muted)' }}>
-                            Pendaftaran Akun Eksternal. Langsung aktif tanpa persetujuan, dapat langsung memesan produk dari katalog eksternal.
+                            Akun langsung aktif setelah mendaftar.
                         </p>
                     </div>
                     <div>
                         <InputLabel htmlFor="name" value="Nama lengkap" />
-                        <TextInput id="name" name="name" value={extForm.data.name} className="mt-1 block w-full" autoComplete="name" onChange={(e) => extForm.setData('name', e.target.value)} required placeholder="Nama sesuai identitas" />
+                        <TextInput id="name" name="name" value={extForm.data.name} className="mt-1 block w-full" autoComplete="name" onChange={(e) => extForm.setData('name', e.target.value)} required placeholder="" />
                         <InputError message={extForm.errors.name} className="mt-2" />
                     </div>
                     <div className="mt-4">
                         <InputLabel htmlFor="email" value="Alamat email" />
-                        <TextInput id="email" type="email" name="email" value={extForm.data.email} className="mt-1 block w-full" autoComplete="email" onChange={(e) => extForm.setData('email', e.target.value)} required placeholder="nama@email.com" />
+                        <TextInput id="email" type="email" name="email" value={extForm.data.email} className="mt-1 block w-full" autoComplete="email" onChange={(e) => extForm.setData('email', e.target.value)} required placeholder="email@perusahaan.com" />
                         <InputError message={extForm.errors.email} className="mt-2" />
                     </div>
                     <div className="mt-4">
                         <Select
                             id="user_type"
                             name="user_type"
-                            label="Jenis pengguna"
+                            label="Anda adalah"
                             value={extForm.data.user_type}
                             onChange={(v) => extForm.setData('user_type', v)}
                             options={USER_TYPES.map((t) => ({ value: t, label: t }))}
-                            placeholder="Pilih jenis pengguna…"
+                            placeholder="Pilih kategori"
                             error={extForm.errors.user_type}
                             required
                         />
                     </div>
+
+                    {/* Field dinamis khusus Industri/Perusahaan */}
+                    {extForm.data.user_type === 'Industri/Perusahaan' && (
+                        <>
+                            <div className="mt-4">
+                                <InputLabel htmlFor="npwp_perusahaan" value="NPWP Perusahaan" />
+                                <TextInput
+                                    id="npwp_perusahaan"
+                                    name="npwp_perusahaan"
+                                    value={extForm.data.npwp_perusahaan}
+                                    className="mt-1 block w-full"
+                                    onChange={(e) => extForm.setData('npwp_perusahaan', e.target.value)}
+                                    placeholder="12.345.678.9-012.000"
+                                />
+                                <InputError message={extForm.errors.npwp_perusahaan} className="mt-2" />
+                            </div>
+                            <div className="mt-4">
+                                <InputLabel htmlFor="penanggung_jawab" value="Nama Penanggung Jawab" />
+                                <TextInput
+                                    id="penanggung_jawab"
+                                    name="penanggung_jawab"
+                                    value={extForm.data.penanggung_jawab}
+                                    className="mt-1 block w-full"
+                                    onChange={(e) => extForm.setData('penanggung_jawab', e.target.value)}
+                                    placeholder="Penanggung jawab"
+                                />
+                                <InputError message={extForm.errors.penanggung_jawab} className="mt-2" />
+                            </div>
+                            <div className="mt-4">
+                                <InputLabel htmlFor="bidang_usaha" value="Bidang Usaha" />
+                                <TextInput
+                                    id="bidang_usaha"
+                                    name="bidang_usaha"
+                                    value={extForm.data.bidang_usaha}
+                                    className="mt-1 block w-full"
+                                    onChange={(e) => extForm.setData('bidang_usaha', e.target.value)}
+                                    placeholder="Manufaktur, Teknologi, Jasa"
+                                />
+                                <InputError message={extForm.errors.bidang_usaha} className="mt-2" />
+                            </div>
+                        </>
+                    )}
+
+                    {/* Field dinamis khusus Mitra kerja sama */}
+                    {extForm.data.user_type === 'Mitra kerja sama' && (
+                        <>
+                            <div className="mt-4">
+                                <InputLabel htmlFor="nomor_mou_pks" value="Nomor MoU/PKS" />
+                                <TextInput
+                                    id="nomor_mou_pks"
+                                    name="nomor_mou_pks"
+                                    value={extForm.data.nomor_mou_pks}
+                                    className="mt-1 block w-full"
+                                    onChange={(e) => extForm.setData('nomor_mou_pks', e.target.value)}
+                                    placeholder="Nomor dokumen"
+                                />
+                                <InputError message={extForm.errors.nomor_mou_pks} className="mt-2" />
+                            </div>
+                            <div className="mt-4">
+                                <InputLabel htmlFor="contact_person" value="Nama Contact Person" />
+                                <TextInput
+                                    id="contact_person"
+                                    name="contact_person"
+                                    value={extForm.data.contact_person}
+                                    className="mt-1 block w-full"
+                                    onChange={(e) => extForm.setData('contact_person', e.target.value)}
+                                    placeholder="PIC mitra"
+                                />
+                                <InputError message={extForm.errors.contact_person} className="mt-2" />
+                            </div>
+                            <div className="mt-4">
+                                <InputLabel htmlFor="periode_kerja_sama" value="Periode Kerja Sama" />
+                                <TextInput
+                                    id="periode_kerja_sama"
+                                    name="periode_kerja_sama"
+                                    value={extForm.data.periode_kerja_sama}
+                                    className="mt-1 block w-full"
+                                    onChange={(e) => extForm.setData('periode_kerja_sama', e.target.value)}
+                                    placeholder="2024-2026"
+                                />
+                                <InputError message={extForm.errors.periode_kerja_sama} className="mt-2" />
+                            </div>
+                        </>
+                    )}
+
                     <div className="mt-4">
                         <InputLabel htmlFor="institution" value="Instansi/organisasi" />
-                        <TextInput id="institution" name="institution" value={extForm.data.institution} className="mt-1 block w-full" autoComplete="organization" onChange={(e) => extForm.setData('institution', e.target.value)} placeholder="Nama perusahaan, komunitas, atau kampus" />
+                        <TextInput id="institution" name="institution" value={extForm.data.institution} className="mt-1 block w-full" autoComplete="organization" onChange={(e) => extForm.setData('institution', e.target.value)} placeholder="Nama instansi" />
                         <InputError message={extForm.errors.institution} className="mt-2" />
                     </div>
                     <div className="mt-4">
@@ -342,13 +437,13 @@ export default function Register({ internalRoles = [] }) {
 
                     <div className="mt-4 rounded-2xl border" style={{ borderColor: 'var(--color-border)' }}>
                         <button type="button" onClick={() => setExtraOpen((v) => !v)} aria-expanded={extraOpen} className="flex w-full items-center justify-between px-4 py-3 text-sm font-semibold" style={{ color: 'var(--color-ink)' }}>
-                            Data tambahan (opsional)
+                            Informasi tambahan (opsional)
                             <ChevronDown className={`h-4 w-4 transition-transform ${extraOpen ? 'rotate-180' : ''}`} style={{ color: 'var(--color-muted)' }} />
                         </button>
                         {extraOpen && (
                             <div className="px-4 pb-4">
                                 <InputLabel htmlFor="nik_npwp" value="NIK/NPWP (opsional)" />
-                                <TextInput id="nik_npwp" name="nik_npwp" value={extForm.data.nik_npwp} className="mt-1 block w-full" onChange={(e) => extForm.setData('nik_npwp', e.target.value)} placeholder="Belum wajib diisi" />
+                                <TextInput id="nik_npwp" name="nik_npwp" value={extForm.data.nik_npwp} className="mt-1 block w-full" onChange={(e) => extForm.setData('nik_npwp', e.target.value)} placeholder="" />
                                 <InputError message={extForm.errors.nik_npwp} className="mt-2" />
                             </div>
                         )}
@@ -365,10 +460,10 @@ export default function Register({ internalRoles = [] }) {
                     <InputError message={extForm.errors.terms} className="mt-2" />
 
                     <PrimaryButton className="mt-6 w-full" disabled={extForm.processing}>
-                        {extForm.processing ? 'Memproses…' : 'Daftar Akun Eksternal'}
+                        {extForm.processing ? 'Memproses…' : 'Daftar'}
                     </PrimaryButton>
                     <p className="mt-3 text-center text-xs" style={{ color: 'var(--color-muted)' }}>
-                        Akun langsung aktif dan dapat langsung digunakan.
+                        Langsung bisa digunakan setelah daftar
                     </p>
                 </form>
             )}

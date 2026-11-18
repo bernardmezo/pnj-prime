@@ -116,6 +116,23 @@ class Product extends Model
         ];
     }
 
+    /** Stored stock is the entered supply; no payment writer decrements it. */
+    public function availableStock(): int
+    {
+        $sold = Pengajuan::where('product_id', $this->id)
+            ->whereIn('status', ['Lunas', 'Diproses', 'Dikirim', 'Selesai'])
+            ->pluck('jumlah')->sum(fn ($quantity) => \App\Services\PricingService::parseQty($quantity));
+        return max(0, (int) $this->stock - $sold);
+    }
+
+    public function assertAvailableQuantity(mixed $quantity): void
+    {
+        if ($this->layananTipe() === 'produk' && ($this->meta['availability_status'] ?? 'tersedia') !== 'preorder'
+            && \App\Services\PricingService::parseQty($quantity) > $this->availableStock()) {
+            throw \Illuminate\Validation\ValidationException::withMessages(['jumlah' => 'Jumlah melebihi stok tersedia. Silakan kurangi jumlah atau pilih produk lain.']);
+        }
+    }
+
     public function owner(): BelongsTo
     {
         return $this->belongsTo(User::class, 'owner_id');
@@ -151,7 +168,13 @@ class Product extends Model
      */
     public function layananTipe(): string
     {
-        $slug = $this->category?->slug ?? '';
+        $category = $this->category;
+        if (!$category) return 'produk';
+
+        // Jika ini sub-kategori, gunakan parent slug untuk menentukan tipe
+        $slug = ($category->parent_id !== null)
+            ? ($category->parent?->slug ?? $category->slug)
+            : $category->slug;
 
         return str_contains($slug, 'jasa') ? 'jasa'
             : (str_contains($slug, 'sewa') || str_contains($slug, 'fasilitas') ? 'ruangan' : 'produk');
@@ -193,5 +216,53 @@ class Product extends Model
     public function isDraft(): bool
     {
         return $this->curation_status === 'draft';
+    }
+
+    /**
+     * Check if this product can transition to the given status.
+     */
+    public function canTransitionTo(string $status): bool
+    {
+        return \App\Enums\ProductStatus::canTransition($this->curation_status, $status);
+    }
+
+    /**
+     * Transition to a new status with validation and audit trail.
+     * 
+     * @throws \InvalidArgumentException if transition is not allowed
+     */
+    public function transitionTo(string $status, ?\Illuminate\Contracts\Auth\Authenticatable $user = null, ?string $note = null): void
+    {
+        if (!$this->canTransitionTo($status)) {
+            throw new \InvalidArgumentException(
+                "Invalid status transition from '{$this->curation_status}' to '{$status}'."
+            );
+        }
+
+        $oldStatus = $this->curation_status;
+        $this->curation_status = $status;
+
+        // Update meta with transition audit trail
+        $meta = $this->meta ?? [];
+        $meta['status_history'] = $meta['status_history'] ?? [];
+        $meta['status_history'][] = [
+            'from' => $oldStatus,
+            'to' => $status,
+            'by_user_id' => $user?->id,
+            'by_user_name' => $user?->name,
+            'note' => $note,
+            'at' => now()->toIso8601String(),
+        ];
+        $this->meta = $meta;
+
+        $this->save();
+    }
+
+    /**
+     * Check if Pengelola can edit this product (based on status).
+     */
+    public function isEditableByPengelola(): bool
+    {
+        return in_array($this->curation_status, \App\Enums\ProductStatus::editableByPengelola(), true);
     }
 }

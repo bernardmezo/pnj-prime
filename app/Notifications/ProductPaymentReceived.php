@@ -29,7 +29,7 @@ class ProductPaymentReceived extends Notification implements ShouldQueue
         return (new MailMessage)
             ->subject('Pembayaran lunas — '.$p->code)
             ->greeting('Halo '.$notifiable->name.',')
-            ->line('Midtrans telah mengonfirmasi pembayaran pesanan produk Anda. Silakan siapkan pesanan berikut.')
+            ->line('Pembayaran pesanan produk Anda telah dikonfirmasi lunas. Silakan siapkan pesanan berikut.')
             ->line('Kode pengajuan: '.$p->code)
             ->line('Produk: '.($p->product?->name ?? 'Belum tersedia'))
             ->line('Jumlah: '.($p->jumlah ?? 1))

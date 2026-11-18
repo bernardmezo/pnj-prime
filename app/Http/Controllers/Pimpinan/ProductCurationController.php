@@ -78,15 +78,10 @@ class ProductCurationController extends Controller
             abort(422, 'Hanya produk berstatus pending atau verified yang dapat ditolak Pimpinan.');
         }
 
-        $meta = $product->meta ?? [];
-        $meta['pimpinan_rejected_at'] = now()->toIso8601String();
-        $meta['pimpinan_rejecter_name'] = Auth::user()->name;
-
-        $product->curation_status = 'rejected';
-        $product->is_active = false;
+        // Use transitionTo() for audit trail
         $product->rejection_reason = $catatan;
-        $product->meta = $meta;
-        $product->save();
+        $product->is_active = false;
+        $product->transitionTo('rejected', Auth::user(), $catatan);
 
         return back()->with('success', 'Produk ditolak oleh Pimpinan.');
     }

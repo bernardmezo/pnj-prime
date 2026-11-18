@@ -57,7 +57,7 @@ class RegisteredUserController extends Controller
      */
     private function storeExternal(Request $request): RedirectResponse
     {
-        $request->validate([
+        $validated = $request->validate([
             'name' => 'required|string|max:255',
             'email' => 'required|string|lowercase|email|max:255|unique:'.User::class,
             'password' => ['required', 'confirmed', Rules\Password::defaults()],
@@ -66,7 +66,27 @@ class RegisteredUserController extends Controller
             'user_type' => 'nullable|string|max:64',
             'nik_npwp' => 'nullable|string|max:32',
             'terms' => 'required|accepted',
+            // Field khusus Industri/Perusahaan
+            'npwp_perusahaan' => 'nullable|string|max:32',
+            'penanggung_jawab' => 'nullable|string|max:255',
+            'bidang_usaha' => 'nullable|string|max:255',
+            // Field khusus Mitra kerja sama
+            'nomor_mou_pks' => 'nullable|string|max:100',
+            'contact_person' => 'nullable|string|max:255',
+            'periode_kerja_sama' => 'nullable|string|max:100',
         ]);
+
+        // Siapkan meta berdasarkan user_type
+        $meta = [];
+        if ($validated['user_type'] === 'Industri/Perusahaan') {
+            if (!empty($validated['npwp_perusahaan'])) $meta['npwp_perusahaan'] = $validated['npwp_perusahaan'];
+            if (!empty($validated['penanggung_jawab'])) $meta['penanggung_jawab'] = $validated['penanggung_jawab'];
+            if (!empty($validated['bidang_usaha'])) $meta['bidang_usaha'] = $validated['bidang_usaha'];
+        } elseif ($validated['user_type'] === 'Mitra kerja sama') {
+            if (!empty($validated['nomor_mou_pks'])) $meta['nomor_mou_pks'] = $validated['nomor_mou_pks'];
+            if (!empty($validated['contact_person'])) $meta['contact_person'] = $validated['contact_person'];
+            if (!empty($validated['periode_kerja_sama'])) $meta['periode_kerja_sama'] = $validated['periode_kerja_sama'];
+        }
 
         $user = User::create([
             'name' => $request->name,
@@ -78,13 +98,43 @@ class RegisteredUserController extends Controller
             'institution' => $request->institution,
             'user_type' => $request->user_type,
             'nik_npwp' => $request->nik_npwp,
+            'meta' => empty($meta) ? null : $meta,
         ]);
 
         event(new Registered($user));
 
         Auth::login($user);
 
+        // Check if there's a preserved intended URL (e.g., from pengajuan/create before register)
+        $intendedUrl = session()->pull('_intended_url');
+        
+        if ($intendedUrl && $this->isValidInternalUrl($intendedUrl)) {
+            return redirect($intendedUrl);
+        }
+
         return redirect(route('dashboard', absolute: false));
+    }
+
+    /**
+     * Validate that URL is internal (prevent open redirect).
+     */
+    private function isValidInternalUrl(?string $url): bool
+    {
+        if (!$url) {
+            return false;
+        }
+
+        // Parse URL and check if it's from our domain
+        $parsed = parse_url($url);
+        $currentHost = request()->getHost();
+
+        // If URL has host and it doesn't match current, it's external → reject
+        if (isset($parsed['host']) && $parsed['host'] !== $currentHost) {
+            return false;
+        }
+
+        // Allow URLs without host (relative paths) or same host
+        return true;
     }
 
     /**

@@ -2,12 +2,19 @@ import { Head, Link, router } from '@inertiajs/react';
 import { Package, Plus, Send } from 'lucide-react';
 import DashboardLayout from '@/Layouts/DashboardLayout';
 import { Card, EmptyState, FadeIn, PageHeader, StatusBadge, PrimaryButton } from '@/Components/ui';
+import { useConfirm } from '@/Components/ConfirmDialog';
 
 export default function PengelolaProdukIndex({ auth, products = [] }) {
     const list = Array.isArray(products) ? products : (products?.data || []);
+    const { confirm, ConfirmUI } = useConfirm();
 
-    const handleSubmit = (id) => {
-        if (confirm('Ajukan produk ini untuk verifikasi RTPU?')) {
+    const handleSubmit = async (id) => {
+        const ok = await confirm({
+            title: 'Ajukan produk untuk verifikasi?',
+            message: 'Produk akan dikirim ke Admin RTPU untuk ditelaah. Anda tidak bisa mengubahnya hingga verifikasi selesai.',
+            confirmLabel: 'Ya, Ajukan',
+        });
+        if (ok) {
             router.post(route('pengelola.produk.submit', id));
         }
     };
@@ -77,6 +84,7 @@ export default function PengelolaProdukIndex({ auth, products = [] }) {
                     </div>
                 )}
             </FadeIn>
+            {ConfirmUI}
         </DashboardLayout>
     );
 }

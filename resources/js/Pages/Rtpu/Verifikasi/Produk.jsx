@@ -1,31 +1,10 @@
-import { Head, router } from '@inertiajs/react';
-import { CheckCircle2, PackageCheck } from 'lucide-react';
-import { useState } from 'react';
-import ReviewPanel from '@/Components/ReviewPanel';
+import { Head, Link } from '@inertiajs/react';
+import { CheckCircle2, Eye } from 'lucide-react';
 import DashboardLayout from '@/Layouts/DashboardLayout';
 import { Card, EmptyState, FadeIn, PageHeader, StatusBadge } from '@/Components/ui';
 
-const CHECKLIST = [
-    'Kelengkapan deskripsi dan spesifikasi teknis inovasi',
-    'Kesesuaian kategori dan unit pengusul',
-    'Kelaikan komersialisasi dan dokumen pendukung HKI/riset',
-    'Struktur penentuan harga estimasi atau opsi layanan',
-];
-
 export default function VerifikasiProduk({ auth, products }) {
     const rows = products?.data || (Array.isArray(products) ? products : []);
-    const [selId, setSelId] = useState(rows[0]?.id ?? null);
-    const sel = rows.find((r) => r.id === selId) ?? rows[0] ?? null;
-
-    const handleVerify = (catatan) => {
-        if (!sel) return;
-        router.patch(route('rtpu.verify.produk.verify', sel.id), { catatan });
-    };
-
-    const handleReject = (catatan) => {
-        if (!sel) return;
-        router.patch(route('rtpu.verify.produk.reject', sel.id), { catatan });
-    };
 
     return (
         <DashboardLayout title="Verifikasi Produk & Inovasi" breadcrumb="Admin RTPU / Kurasi Produk" activeKey="verify-layanan">
@@ -44,66 +23,47 @@ export default function VerifikasiProduk({ auth, products }) {
                         desc="Tidak ada produk inovasi yang menunggu telaah kurasi saat ini."
                     />
                 ) : (
-                    <div className="grid gap-6 lg:grid-cols-[1fr_1.3fr] items-start">
-                        <div>
-                            <h2 className="mb-3 text-sm font-semibold text-[var(--color-muted)]">
-                                Antrean Produk Riset ({rows.length})
-                            </h2>
-                            <div className="space-y-2.5">
-                                {rows.map((p) => {
-                                    const isSelected = sel?.id === p.id;
-                                    return (
-                                        <button
-                                            key={p.id}
-                                            type="button"
-                                            onClick={() => setSelId(p.id)}
-                                            aria-pressed={isSelected}
-                                            className="block w-full rounded-xl border p-4 text-left transition"
-                                            style={
-                                                isSelected
-                                                    ? { borderColor: 'var(--color-accent)', background: 'var(--color-accent-tint)' }
-                                                    : { borderColor: 'var(--color-border)', background: 'var(--color-bg)' }
-                                            }
-                                        >
-                                            <div className="flex items-center justify-between gap-2">
-                                                <span className="font-semibold text-sm" style={{ color: 'var(--color-ink)' }}>
-                                                    {p.nama ?? p.name}
-                                                </span>
-                                                <StatusBadge status={p.status_kurasi ?? 'pending_review'} />
-                                            </div>
-                                            <p className="mt-1 text-xs text-[var(--color-muted)] line-clamp-1">
-                                                {p.deskripsi_singkat ?? p.description ?? 'Produk riset civitas PNJ'}
+                    <div className="space-y-3">
+                        <h2 className="text-sm font-semibold text-[var(--color-muted)]">
+                            Antrean Produk Riset ({rows.length})
+                        </h2>
+                        <div className="grid gap-4 lg:grid-cols-2">
+                            {rows.map((p) => (
+                                <Card key={p.id} className="p-5">
+                                    <div className="flex items-start justify-between gap-3 mb-3">
+                                        <div className="flex-1">
+                                            <h3 className="font-semibold text-sm text-[var(--color-ink)] mb-1">
+                                                {p.name}
+                                            </h3>
+                                            <p className="text-xs text-[var(--color-muted)] line-clamp-2">
+                                                {p.category} · {p.unit}
                                             </p>
-                                        </button>
-                                    );
-                                })}
-                            </div>
-                        </div>
-
-                        {sel && (
-                            <Card className="p-6">
-                                <div className="border-b pb-4 mb-4">
-                                    <h3 className="text-lg font-bold text-[var(--color-ink)]">{sel.nama ?? sel.name}</h3>
-                                    <p className="text-sm text-[var(--color-muted)] mt-1">{sel.deskripsi ?? sel.deskripsi_singkat ?? 'Tanpa deskripsi tambahan.'}</p>
-                                    <div className="mt-3 flex flex-wrap gap-4 text-xs text-[var(--color-muted)]">
-                                        <span>Status: <strong className="text-[var(--color-ink)]">{sel.status_kurasi}</strong></span>
-                                        <span>Sasaran: <strong className={sel.target_audience === 'internal_pnj' ? 'text-amber-700 font-bold' : 'text-[var(--color-accent)] font-bold'}>
-                                            {sel.target_audience === 'internal_pnj' ? '🔒 Khusus Sivitas PNJ' : '🌐 Publik & Eksternal'}
-                                        </strong></span>
-                                        <span>Unit: <strong className="text-[var(--color-ink)]">{sel.unit?.name ?? 'Unit Riset PNJ'}</strong></span>
+                                        </div>
+                                        <StatusBadge status={p.curation_status} />
                                     </div>
-                                </div>
-
-                                <ReviewPanel
-                                    title="Formulir Kurasi RTPU"
-                                    checklist={CHECKLIST}
-                                    approveLabel="Verifikasi Produk (Loloskan ke Pimpinan)"
-                                    rejectLabel="Kembalikan untuk Revisi"
-                                    onApprove={handleVerify}
-                                    onReject={handleReject}
-                                />
-                            </Card>
-                        )}
+                                    
+                                    <div className="flex items-center justify-between gap-3 pt-3 border-t border-[var(--color-border)]">
+                                        <div className="text-xs text-[var(--color-muted)]">
+                                            <span className={p.target_audience === 'internal_pnj' ? 'text-amber-700 font-semibold' : 'text-[var(--color-accent)] font-semibold'}>
+                                                {p.target_audience === 'internal_pnj' ? '🔒 Internal PNJ' : '🌐 Publik'}
+                                            </span>
+                                            {' · '}
+                                            <span className="font-medium text-[var(--color-ink)]">
+                                                {p.final_price ? `Rp ${Number(p.final_price).toLocaleString('id-ID')}` : 'Belum ada harga'}
+                                            </span>
+                                        </div>
+                                        <Link
+                                            href={route('rtpu.verify.produk.show', p.id)}
+                                            className="inline-flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-semibold text-white transition hover:opacity-90"
+                                            style={{ background: 'var(--color-accent)' }}
+                                        >
+                                            <Eye className="h-3.5 w-3.5" />
+                                            <span>Verifikasi</span>
+                                        </Link>
+                                    </div>
+                                </Card>
+                            ))}
+                        </div>
                     </div>
                 )}
             </FadeIn>

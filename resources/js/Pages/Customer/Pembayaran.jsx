@@ -1,4 +1,4 @@
-import { Head, Link, router } from '@inertiajs/react';
+import { Head, Link, router, useForm } from '@inertiajs/react';
 import { ArrowLeft, CheckCircle2, FileText } from 'lucide-react';
 import { useEffect, useRef, useState } from 'react';
 import PublicLayout from '@/Layouts/PublicLayout';
@@ -12,7 +12,10 @@ export default function Pembayaran({
     isProduction = false,
     snapScriptUrl = 'https://app.sandbox.midtrans.com/snap/snap.js',
     latestPayment = null,
+    manualPreorder = false,
+    manualInvoice = null,
 }) {
+    const proof = useForm({ metode_id: manualInvoice?.bank_snapshot?.id ?? '', bukti: null });
     const role = auth?.user?.role;
     const p = item;
 
@@ -65,7 +68,7 @@ export default function Pembayaran({
 
     // Preload snap.js on mount
     useEffect(() => {
-        if (!isPaid && clientKey) {
+        if (!manualPreorder && !isPaid && clientKey) {
             loadSnapScript().catch((err) => console.warn('Preload snap.js:', err));
         }
     }, [clientKey, isPaid]);
@@ -187,6 +190,31 @@ export default function Pembayaran({
             setErrorMessage(err.message || 'Terjadi kesalahan saat memulai pembayaran.');
         }
     };
+
+    if (manualPreorder && p) {
+        const invoice = manualInvoice;
+        const bank = invoice?.bank_snapshot;
+        return <PublicLayout auth={auth}><Head title={`Invoice BLU ${p.code}`} />
+            <main className="mx-auto max-w-2xl space-y-5 px-4 py-10">
+                <Link href={route('customer.pengajuan.show', p.id)} className="text-sm underline">Kembali ke pengajuan</Link>
+                <h1 className="font-display text-3xl font-bold">Pembayaran pre-order · BLU</h1>
+                {!invoice || !bank ? <p>Invoice resmi belum diterbitkan. Hubungi Admin RTPU.</p> : <section className="space-y-4 rounded-2xl border border-[var(--color-border)] bg-[var(--color-surface)] p-6">
+                    <p>{invoice.invoice_number} · {p.status}</p>
+                    <dl className="space-y-2 text-sm">{[['Subtotal barang', invoice.subtotal], [`Pajak barang (${invoice.tax_rate_snapshot}%)`, invoice.tax_amount], ['Ongkir (bebas pajak)', invoice.shipping_amount], ['Nominal unik tambahan (bebas pajak)', invoice.unique_amount], ['Total transfer tepat', invoice.total]].map(([label, amount]) => <div key={label} className="flex justify-between gap-4"><dt>{label}</dt><dd className="font-semibold">{fmt(amount)}</dd></div>)}</dl>
+                    <p className="font-display text-3xl font-bold text-[var(--color-accent)]">{fmt(invoice.total)}</p>
+                    <p>Bank: <strong>{bank.name}</strong><br />Nomor rekening: <strong>{bank.account}</strong><br />Atas nama: <strong>{bank.holder}</strong></p>
+                    <p className="whitespace-pre-wrap text-sm">{bank.instructions}</p>
+                    <p className="text-sm">Jatuh tempo: {new Date(invoice.due_at).toLocaleString('id-ID')}. Transfer tepat termasuk nominal unik, lalu unggah bukti. Pembayaran hanya dinyatakan Lunas setelah diverifikasi RTPU.</p>
+                    <a className="text-sm underline" href={route('customer.pengajuan.invoice', p.id)} target="_blank" rel="noreferrer">Lihat / cetak invoice resmi</a>
+                    {p.status === 'Menunggu Pembayaran' && invoice.status === 'issued' ? <form className="space-y-3" onSubmit={(event) => { event.preventDefault(); proof.post(route('customer.pengajuan.proof', p.id), { forceFormData: true }); }}>
+                        <label className="block text-sm">Bukti transfer ke rekening di atas (JPG, PNG, PDF; maksimal 5 MB)<input required type="file" accept="image/jpeg,image/png,application/pdf" className="mt-2 block w-full" onChange={(event) => proof.setData('bukti', event.target.files[0])} /></label>
+                        {Object.values(proof.errors).map((error) => <p role="alert" key={error} className="text-sm text-red-700">{error}</p>)}
+                        <button disabled={proof.processing} className="rounded-full bg-[var(--color-accent)] px-5 py-3 text-sm font-semibold text-white disabled:opacity-40">Kirim bukti transfer BLU</button>
+                    </form> : <p className="font-semibold">{p.status === 'Menunggu Verifikasi Pembayaran' ? 'Bukti diterima, menunggu verifikasi RTPU.' : p.status}</p>}
+                </section>}
+            </main>
+        </PublicLayout>;
+    }
 
     if (!p) {
         return (

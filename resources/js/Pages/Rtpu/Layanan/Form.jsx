@@ -56,6 +56,8 @@ export default function LayananForm({ auth, tipe = 'jasa', initial = null, sugge
         opsi: serializeOpsi(initialOpsi),
     });
 
+    const isPengelola = auth?.user?.role === 'admin_pengelola';
+
     const onOpsiChange = (rows) => {
         setOpsi(rows);
         setData('opsi', serializeOpsi(rows));
@@ -83,9 +85,14 @@ export default function LayananForm({ auth, tipe = 'jasa', initial = null, sugge
                     {FIELDS[tipe].map((f) => (
                         <Field key={f.key} label={f.label} htmlFor={`layanan-${f.key}`} error={errors[f.key]}>
                             {f.type === 'textarea' ? (
-                                <textarea id={`layanan-${f.key}`} value={data[f.key]} onChange={(e) => setData(f.key, e.target.value)} rows={3} placeholder={f.ph} className={inputClass} {...inputStyleProps()} />
+                                <textarea id={`layanan-${f.key}`} value={data[f.key]} onChange={(e) => setData(f.key, e.target.value)} rows={3} placeholder={f.ph} disabled={isPengelola && f.key === 'price'} className={inputClass} {...inputStyleProps()} />
                             ) : (
-                                <input id={`layanan-${f.key}`} type={f.type} value={data[f.key]} onChange={(e) => setData(f.key, e.target.value)} placeholder={f.ph} className={inputClass} {...inputStyleProps()} />
+                                <input id={`layanan-${f.key}`} type={f.type} value={data[f.key]} onChange={(e) => setData(f.key, e.target.value)} placeholder={f.ph} disabled={isPengelola && f.key === 'price'} className={inputClass} {...inputStyleProps()} />
+                            )}
+                            {isPengelola && f.key === 'price' && (
+                                <p className="mt-1 text-xs" style={{ color: 'var(--color-muted)' }}>
+                                    Harga ditetapkan oleh Admin RTPU. Hubungi admin untuk perubahan harga.
+                                </p>
                             )}
                         </Field>
                     ))}

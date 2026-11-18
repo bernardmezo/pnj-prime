@@ -27,12 +27,12 @@ export default function PimpinanVerifikasiProduk({ auth, products }) {
 
     const handleApprove = (catatan) => {
         if (!sel) return;
-        router.patch(route('pimpinan.verify.produk.approve', sel.id), { catatan }, { onSuccess: () => setSelId(null) });
+        router.patch(route('verify.produk.approve', sel.id), { catatan }, { onSuccess: () => setSelId(null) });
     };
 
     const handleReject = (catatan) => {
         if (!sel) return;
-        router.patch(route('pimpinan.verify.produk.reject', sel.id), { catatan }, { onSuccess: () => setSelId(null) });
+        router.patch(route('verify.produk.reject', sel.id), { catatan }, { onSuccess: () => setSelId(null) });
     };
 
     return (

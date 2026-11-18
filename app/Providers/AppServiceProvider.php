@@ -47,5 +47,10 @@ class AppServiceProvider extends ServiceProvider
         Route::pattern('proof', '[0-9]+');
         Route::pattern('metode', '[0-9]+');
         Route::pattern('opsi', '[0-9]+');
+
+        // Super Admin bypasses all policy checks
+        \Illuminate\Support\Facades\Gate::before(function (User $user, string $ability) {
+            return $user->role === 'super_admin' ? true : null;
+        });
     }
 }

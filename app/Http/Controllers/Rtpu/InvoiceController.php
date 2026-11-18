@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Rtpu;
 
 use App\Http\Controllers\Controller;
+use App\Http\Requests\PreparePreorderInvoiceRequest;
 use App\Models\Invoice;
 use App\Models\Pengajuan;
 use App\Services\InvoiceService;
@@ -24,6 +25,12 @@ class InvoiceController extends Controller
      */
     public function store(Request $request, Pengajuan $pengajuan): RedirectResponse
     {
+        if ($pengajuan->isPreorder()) {
+            $form = app(PreparePreorderInvoiceRequest::class);
+            $this->invoiceService->preparePreorder($pengajuan, $request->user(), $form->validated());
+
+            return back()->with('success', 'Draf invoice BLU disiapkan. Periksa rincian sebelum menyetujui pengajuan.');
+        }
         $request->validate([
             'notes' => 'nullable|string|max:1000',
             'due_date' => 'nullable|date|after_or_equal:today',

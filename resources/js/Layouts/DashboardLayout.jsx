@@ -3,6 +3,7 @@ import { AnimatePresence, motion, useReducedMotion } from 'framer-motion';
 import {
     Activity,
     Award,
+    Tag,
     ClipboardCheck,
     Eye,
     FilePlus2,
@@ -21,7 +22,7 @@ import {
 } from 'lucide-react';
 import { useState } from 'react';
 import Logo from '@/Components/Logo';
-import FlashToast from '@/Components/FlashToast';
+import ToastContainer from '@/Components/ToastContainer';
 import SwooshLine from '@/Components/SwooshLine';
 import { EASE } from '@/Components/ui';
 import { filterMenuByFitur, menuForRole, roleLabel } from '@/lib/roles';
@@ -57,6 +58,7 @@ const MENU_ICONS = {
     grid: LayoutGrid,
     links: LayoutGrid,
     settings: LayoutGrid,
+    tag: Tag,
 };
 
 const menuFor = (role) =>
@@ -283,7 +285,12 @@ function SidebarBody({ user, menu, activeKey, pendingCounts, currentUrl, onNavig
             {/* User block at bottom with inline red logout button */}
             <div className="shrink-0 border-t border-[var(--color-border)] p-3.5">
                 <div className="flex items-center justify-between gap-2.5">
-                    <div className="flex items-center gap-2.5 min-w-0">
+                    <Link
+                        href={route('profile.edit')}
+                        title="Profil Saya"
+                        aria-label="Buka profil saya"
+                        className="group flex min-w-0 items-center gap-2.5 rounded-lg p-1 -m-1 transition-colors hover:bg-[var(--color-surface)] focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-accent)]"
+                    >
                         <div
                             className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-[var(--color-accent-tint)] text-xs font-bold text-[var(--color-accent)]"
                             aria-hidden
@@ -294,11 +301,11 @@ function SidebarBody({ user, menu, activeKey, pendingCounts, currentUrl, onNavig
                             <p className="truncate text-xs font-semibold text-[var(--color-ink)] leading-tight">
                                 {user?.name ?? 'Pengguna'}
                             </p>
-                            <p className="truncate text-[10px] text-[var(--color-muted)] font-medium leading-tight mt-0.5">
-                                {displayRole}
+                            <p className="truncate text-[10px] text-[var(--color-muted)] font-medium leading-tight mt-0.5 group-hover:text-[var(--color-accent)]">
+                                {displayRole} · Profil
                             </p>
                         </div>
-                    </div>
+                    </Link>
 
                     <Link
                         href={route('logout')}
@@ -432,7 +439,7 @@ export default function DashboardLayout({ title, activeKey, children }) {
                     {children}
                 </main>
             </div>
-            <FlashToast />
+            <ToastContainer />
         </div>
     );
 }

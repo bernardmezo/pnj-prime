@@ -93,16 +93,6 @@ export default function PublicHeader({ auth }) {
                 <div className="ml-auto hidden shrink-0 items-center gap-3 md:flex">
                     {user ? (
                         <>
-                            {isCustomer && (
-                                <Link
-                                    href="/pengajuan/create"
-                                    className={`${ctaBase} bg-[var(--color-accent)] text-[var(--color-bg)] hover:bg-[var(--color-accent-hover)]`}
-                                >
-                                    <Plus className="h-3.5 w-3.5" />
-                                    Ajukan Layanan
-                                </Link>
-                            )}
-
                             {isStaff && (
                                 <Link
                                     href={menuUrl(roleHome(user?.role))}
@@ -137,9 +127,12 @@ export default function PublicHeader({ auth }) {
                                 }
                                 items={[
                                     ...(isCustomer
-                                        ? customerMenu.map((m) => ({ key: m.key, label: m.label, href: menuUrl(m.page) }))
+                                        ? [...customerMenu.map((m) => ({ key: m.key, label: m.label, href: menuUrl(m.page) })), { key: 'profil', label: 'Profil Saya', href: route('profile.edit') }]
                                         : isStaff
-                                          ? [{ key: 'dash', label: 'Dashboard Staff', href: menuUrl(roleHome(user?.role)) }]
+                                          ? [
+                                                { key: 'dash', label: 'Dashboard Staff', href: menuUrl(roleHome(user?.role)) },
+                                                { key: 'profil', label: 'Profil Saya', href: route('profile.edit') },
+                                            ]
                                           : []),
                                     { type: 'divider' },
                                     {
@@ -208,18 +201,6 @@ export default function PublicHeader({ auth }) {
 
                             {user ? (
                                 <div className="mt-3 border-t pt-3" style={{ borderColor: 'var(--color-border)' }}>
-                                    {isCustomer && (
-                                        <Link
-                                            href="/pengajuan/create"
-                                            onClick={() => setDrawer(false)}
-                                            className="mb-2 flex w-full items-center justify-center gap-1.5 rounded-full py-2.5 text-center text-sm font-semibold transition duration-150"
-                                            style={{ background: 'var(--color-accent)', color: 'var(--color-bg)' }}
-                                        >
-                                            <Plus className="h-4 w-4" />
-                                            Ajukan Layanan
-                                        </Link>
-                                    )}
-
                                     {isStaff && (
                                         <Link
                                             href={menuUrl(roleHome(user?.role))}

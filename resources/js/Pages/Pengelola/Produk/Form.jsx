@@ -3,6 +3,7 @@ import { ArrowLeft, ChevronLeft, ChevronRight, Save, X, ZoomIn } from 'lucide-re
 import { useState } from 'react';
 import DashboardLayout from '@/Layouts/DashboardLayout';
 import { Card, FadeIn, PageHeader, PrimaryButton } from '@/Components/ui';
+import AlertBanner from '@/Components/AlertBanner';
 
 export default function PengelolaProdukForm({ auth, categories = [], item = null }) {
     const isEdit = Boolean(item);
@@ -22,6 +23,9 @@ export default function PengelolaProdukForm({ auth, categories = [], item = null
         short_description: item?.short_description || '',
         description: item?.description || '',
         stock: item?.stock || 10,
+        satuan: item?.meta?.satuan || 'hari',
+        capacity: item?.meta?.capacity || '',
+        location: item?.meta?.location || '',
         thumbnail: null,
         thumbnail_file: null,
         existing_thumbnail: item?.thumbnail || '',
@@ -32,12 +36,70 @@ export default function PengelolaProdukForm({ auth, categories = [], item = null
         existing_video_path: item?.video_path || '',
     });
     const [uploadErrors, setUploadErrors] = useState({});
+    const [videoError, setVideoError] = useState('');
     const maxImageBytes = 2 * 1024 * 1024;
+    const maxVideoBytes = 50 * 1024 * 1024; // 50 MB
+    const maxVideoDuration = 120; // 2 menit (detik)
+    const allowedVideoTypes = ['video/mp4', 'video/quicktime', 'video/avi', 'video/x-ms-wmv'];
     const validateImage = (file) => {
         if (!file.type.startsWith('image/')) return `File "${file.name}" harus berupa gambar.`;
         if (file.size > maxImageBytes) return `Foto "${file.name}" melebihi batas 2 MB per gambar. Ukuran file: ${(file.size / 1024 / 1024).toFixed(2)} MB. Silakan kompres atau pilih foto lain.`;
         return null;
     };
+
+    const handleVideoChange = (e) => {
+        const file = e.target.files[0];
+        setVideoError('');
+        if (!file) { setData('video_file', null); return; }
+
+        // Validasi format
+        if (!allowedVideoTypes.includes(file.type)) {
+            setVideoError('Format video tidak didukung. Gunakan MP4, MOV, AVI, atau WMV.');
+            e.target.value = '';
+            return;
+        }
+
+        // Validasi ukuran
+        if (file.size > maxVideoBytes) {
+            const sizeMB = (file.size / 1024 / 1024).toFixed(1);
+            setVideoError(`Ukuran video maksimal 50 MB. File Anda ${sizeMB} MB. Kompres video sebelum mengunggah.`);
+            e.target.value = '';
+            return;
+        }
+
+        // Validasi durasi via metadata
+        const url = URL.createObjectURL(file);
+        const videoEl = document.createElement('video');
+        videoEl.preload = 'metadata';
+        videoEl.onloadedmetadata = () => {
+            URL.revokeObjectURL(url);
+            if (videoEl.duration > maxVideoDuration) {
+                const mnt = Math.floor(videoEl.duration / 60);
+                const dtk = Math.round(videoEl.duration % 60);
+                setVideoError(`Durasi video maksimal 2 menit. Video Anda ${mnt}:${String(dtk).padStart(2,'0')} menit. Potong video sebelum mengunggah.`);
+                e.target.value = '';
+                return;
+            }
+            setData('video_file', file);
+        };
+        videoEl.onerror = () => {
+            // Tidak bisa baca metadata (codec tidak dikenal) — izinkan saja, server yang validasi
+            URL.revokeObjectURL(url);
+            setData('video_file', file);
+        };
+        videoEl.src = url;
+    };
+
+    const selectedCategory = categories.find((c) => String(c.id) === String(data.category_id));
+    const parentSlug = selectedCategory?.parent_slug ?? '';
+    const tipe = parentSlug.includes('jasa') ? 'jasa' : (parentSlug.includes('sewa') || parentSlug.includes('fasilitas')) ? 'sewa' : 'produk';
+    const TIPE_COPY = {
+        produk: { typeLabel: 'Produk Fisik', nameLabel: 'Nama Produk / Inovasi', namePlaceholder: 'Contoh: Alat Sensor Kualitas Udara Pintar', priceLabel: 'Estimasi Harga', hint: 'Produk memiliki stok atau pre-order, berat, dan dimensi untuk perhitungan ongkir.' },
+        jasa: { typeLabel: 'Jasa / Layanan', nameLabel: 'Nama Jasa / Layanan', namePlaceholder: 'Nama jasa atau layanan', priceLabel: 'Tarif Dasar', hint: 'Jasa tidak memiliki stok, berat, maupun ongkir.' },
+        sewa: { typeLabel: 'Sewa Fasilitas', nameLabel: 'Nama Fasilitas / Alat', namePlaceholder: 'Contoh: Aula Gedung Serbaguna', priceLabel: 'Tarif Sewa', hint: 'Sewa memakai tarif per hari atau per jam dan jadwal, tanpa ongkir.' },
+    };
+    const copy = TIPE_COPY[tipe];
+
     const formErrors = { ...errors, ...pageErrors, ...uploadErrors };
 
     const allGalleryUrls = [];
@@ -51,20 +113,32 @@ export default function PengelolaProdukForm({ auth, categories = [], item = null
 
     const submit = (e) => {
         e.preventDefault();
+        // Blokir submit jika ada error validasi video client-side
+        if (videoError) return;
         const formData = new FormData();
         formData.append('name', data.name);
         formData.append('category_id', data.category_id);
         formData.append('target_audience', data.target_audience || 'publik');
-        formData.append('availability_status', data.availability_status);
-        formData.append('preorder_duration', data.preorder_duration || '');
-        formData.append('weight', data.weight || 1000);
-        formData.append('length', data.length || 10);
-        formData.append('width', data.width || 10);
-        formData.append('height', data.height || 10);
         formData.append('base_price', data.base_price);
         formData.append('short_description', data.short_description || '');
         formData.append('description', data.description || '');
-        formData.append('stock', data.stock || 0);
+        if (tipe === 'produk') {
+            formData.append('availability_status', data.availability_status);
+            formData.append('preorder_duration', data.preorder_duration || '');
+            formData.append('weight', data.weight || 1000);
+            formData.append('length', data.length || 10);
+            formData.append('width', data.width || 10);
+            formData.append('height', data.height || 10);
+            formData.append('stock', data.stock || 0);
+        } else {
+            formData.append('availability_status', 'tersedia');
+            formData.append('stock', 0);
+        }
+        if (tipe === 'sewa') {
+            formData.append('satuan', data.satuan);
+            formData.append('capacity', data.capacity || '');
+            formData.append('location', data.location || '');
+        }
         formData.append('video_url', data.video_url || '');
 
         if (data.thumbnail_file) {
@@ -119,34 +193,95 @@ export default function PengelolaProdukForm({ auth, categories = [], item = null
                             <Card className="p-8 shadow-sm border-[var(--color-border)] rounded-2xl">
                                 <form onSubmit={submit} id="productForm" className="space-y-6" noValidate>
                             <div className="space-y-1">
-                                <label className="block text-xs font-bold uppercase tracking-wider text-[var(--color-muted)] mb-1">Nama Produk / Inovasi <span className="text-red-500">*</span></label>
+                                <label className="block text-xs font-bold uppercase tracking-wider text-[var(--color-muted)] mb-1">{copy.nameLabel} <span className="text-red-500">*</span></label>
                                 <input
                                     type="text"
                                     value={data.name}
                                     onChange={(e) => setData('name', e.target.value)}
-                                    placeholder="Contoh: Alat Sensor Kualitas Udara Pintar"
+                                    placeholder={copy.namePlaceholder}
                                     className="w-full rounded-xl border border-[var(--color-border)] focus:border-teal-500 focus:ring-2 focus:ring-teal-500/20 p-3 text-sm transition"
                                     required
                                 />
                                 {formErrors.name && <p className="text-xs text-red-500 mt-1">{formErrors.name}</p>}
                             </div>
 
-                            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                                 <div className="space-y-1">
-                                    <label className="block text-xs font-bold uppercase tracking-wider text-[var(--color-muted)] mb-1">Jenis Item <span className="text-red-500">*</span></label>
+                                    <label className="block text-xs font-bold uppercase tracking-wider text-[var(--color-muted)] mb-1">{tipe === 'produk' ? 'Kategori Produk' : tipe === 'jasa' ? 'Kategori Jasa / Layanan' : 'Kategori Fasilitas'} <span className="text-red-500">*</span></label>
                                     <select
-                                        value={data.item_type}
-                                        onChange={(e) => setData('item_type', e.target.value)}
+                                        value={data.category_id}
+                                        onChange={(e) => setData('category_id', e.target.value)}
                                         className="w-full rounded-xl border border-[var(--color-border)] focus:border-teal-500 focus:ring-2 focus:ring-teal-500/20 p-3 text-sm bg-white transition"
                                         required
                                     >
-                                        <option value="produk">Produk Fisik</option>
-                                        <option value="jasa">Jasa / Layanan Uji</option>
-                                        <option value="sewa">Sewa Fasilitas</option>
+                                        <option value="" disabled>Pilih Kategori</option>
+                                        {/* Kelompokkan sub-kategori berdasarkan parent */}
+                                        {Object.entries(
+                                            categories.reduce((acc, c) => {
+                                                const key = c.parent_name ?? 'Lainnya';
+                                                (acc[key] = acc[key] ?? []).push(c);
+                                                return acc;
+                                            }, {})
+                                        ).map(([parentName, items]) => (
+                                            <optgroup key={parentName} label={parentName}>
+                                                {items.map((c) => (
+                                                    <option key={c.id} value={c.id}>{c.name}</option>
+                                                ))}
+                                            </optgroup>
+                                        ))}
                                     </select>
-                                    {formErrors.item_type && <p className="text-xs text-red-500 mt-1">{formErrors.item_type}</p>}
+                                    {formErrors.category_id && <p className="text-xs text-red-500 mt-1">{formErrors.category_id}</p>}
                                 </div>
+                                <div className="space-y-1">
+                                    <label className="block text-xs font-bold uppercase tracking-wider text-[var(--color-muted)] mb-1">Sasaran Akses <span className="text-red-500">*</span></label>
+                                    <select
+                                        value={data.target_audience}
+                                        onChange={(e) => setData('target_audience', e.target.value)}
+                                        className="w-full rounded-xl border border-[var(--color-border)] focus:border-teal-500 focus:ring-2 focus:ring-teal-500/20 p-3 text-sm bg-white transition"
+                                        required
+                                    >
+                                        <option value="publik">Semua Pengguna (Publik & Eksternal)</option>
+                                        <option value="internal_pnj">Khusus Sivitas Akademika PNJ (Internal / SSO)</option>
+                                    </select>
+                                    <p className="text-[11px] text-[var(--color-muted)]">
+                                        {data.target_audience === 'internal_pnj'
+                                            ? 'Hanya dapat dilihat dan dipesan oleh mahasiswa/dosen/staf PNJ.'
+                                            : 'Dapat dilihat dan dipesan oleh masyarakat umum dan perusahaan.'}
+                                    </p>
+                                    {formErrors.target_audience && <p className="text-xs text-red-500 mt-1">{formErrors.target_audience}</p>}
+                                </div>
+                            </div>
 
+                            <div className="rounded-xl border border-[var(--color-border)] bg-[var(--color-surface)] px-4 py-3">
+                                <p className="text-xs font-bold text-[var(--color-ink)]">Jenis: {copy.typeLabel}</p>
+                                <p className="mt-0.5 text-[11px] text-[var(--color-muted)]">{copy.hint}</p>
+                            </div>
+
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                                <div className="space-y-1">
+                                    <label className="block text-xs font-bold uppercase tracking-wider text-[var(--color-muted)] mb-1">{copy.priceLabel} <span className="text-red-500">*</span></label>
+                                    <div className="relative">
+                                        <span className="absolute inset-y-0 left-0 flex items-center pl-3.5 text-xs font-bold text-[var(--color-muted)]">Rp</span>
+                                        <input
+                                            type="number"
+                                            value={data.base_price}
+                                            onChange={(e) => setData('base_price', e.target.value)}
+                                            placeholder="Contoh: 1500000"
+                                            className="w-full rounded-xl border border-[var(--color-border)] focus:border-teal-500 focus:ring-2 focus:ring-teal-500/20 py-3 pl-10 pr-3 text-sm transition"
+                                            required
+                                        />
+                                    </div>
+                                    {data.base_price ? (
+                                        <p className="mt-1.5 text-xs font-bold text-emerald-600 flex items-center gap-1">
+                                            <span>Format:</span>
+                                            <span>Rp {Number(data.base_price).toLocaleString('id-ID')}</span>
+                                        </p>
+                                    ) : (
+                                        <p className="mt-1 text-[11px] text-[var(--color-muted)]">Masukkan angka tanpa titik/koma (misal: 1500000)</p>
+                                    )}
+                                    {formErrors.base_price && <p className="text-xs text-red-500 mt-1">{formErrors.base_price}</p>}
+                                </div>
+                                {tipe === 'produk' && (
                                 <div className="space-y-1">
                                     <label className="block text-xs font-bold uppercase tracking-wider text-[var(--color-muted)] mb-1">Ketersediaan <span className="text-red-500">*</span></label>
                                     <select
@@ -160,7 +295,26 @@ export default function PengelolaProdukForm({ auth, categories = [], item = null
                                     </select>
                                     {formErrors.availability_status && <p className="text-xs text-red-500 mt-1">{formErrors.availability_status}</p>}
                                 </div>
+                                )}
+                                {tipe === 'sewa' && (
+                                    <div className="space-y-1">
+                                        <label className="block text-xs font-bold uppercase tracking-wider text-[var(--color-muted)] mb-1">Satuan Tarif <span className="text-red-500">*</span></label>
+                                        <select
+                                            value={data.satuan}
+                                            onChange={(e) => setData('satuan', e.target.value)}
+                                            className="w-full rounded-xl border border-[var(--color-border)] focus:border-teal-500 focus:ring-2 focus:ring-teal-500/20 p-3 text-sm bg-white transition"
+                                            required
+                                        >
+                                            <option value="hari">Per hari</option>
+                                            <option value="jam">Per jam</option>
+                                        </select>
+                                        {formErrors.satuan && <p className="text-xs text-red-500 mt-1">{formErrors.satuan}</p>}
+                                    </div>
+                                )}
+                            </div>
 
+                            {tipe === 'produk' && (
+                                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                                 <div className="space-y-1">
                                     <label className="block text-xs font-bold uppercase tracking-wider text-[var(--color-muted)] mb-1">
                                         {data.availability_status === 'preorder' ? 'Estimasi PO' : 'Stok'}
@@ -187,70 +341,35 @@ export default function PengelolaProdukForm({ auth, categories = [], item = null
                                     {formErrors.preorder_duration && <p className="text-xs text-red-500 mt-1">{formErrors.preorder_duration}</p>}
                                     {formErrors.stock && <p className="text-xs text-red-500 mt-1">{formErrors.stock}</p>}
                                 </div>
-                            </div>
-
-                            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                                <div className="space-y-1">
-                                    <label className="block text-xs font-bold uppercase tracking-wider text-[var(--color-muted)] mb-1">Sasaran Akses Produk <span className="text-red-500">*</span></label>
-                                    <select
-                                        value={data.target_audience}
-                                        onChange={(e) => setData('target_audience', e.target.value)}
-                                        className="w-full rounded-xl border border-[var(--color-border)] focus:border-teal-500 focus:ring-2 focus:ring-teal-500/20 p-3 text-sm bg-white transition"
-                                        required
-                                    >
-                                        <option value="publik">Semua Pengguna (Publik & Eksternal)</option>
-                                        <option value="internal_pnj">Khusus Sivitas Akademika PNJ (Internal / SSO)</option>
-                                    </select>
-                                    <p className="text-[11px] text-[var(--color-muted)]">
-                                        {data.target_audience === 'internal_pnj'
-                                            ? 'Hanya dapat dilihat dan dipesan oleh mahasiswa/dosen/staf PNJ.'
-                                            : 'Dapat dilihat dan dipesan oleh masyarakat umum dan perusahaan.'}
-                                    </p>
-                                    {formErrors.target_audience && <p className="text-xs text-red-500 mt-1">{formErrors.target_audience}</p>}
                                 </div>
+                            )}
 
-                                <div className="space-y-1">
-                                    <label className="block text-xs font-bold uppercase tracking-wider text-[var(--color-muted)] mb-1">Kategori Produk <span className="text-red-500">*</span></label>
-                                    <select
-                                        value={data.category_id}
-                                        onChange={(e) => setData('category_id', e.target.value)}
-                                        className="w-full rounded-xl border border-[var(--color-border)] focus:border-teal-500 focus:ring-2 focus:ring-teal-500/20 p-3 text-sm bg-white transition"
-                                        required
-                                    >
-                                        <option value="" disabled>Pilih Kategori</option>
-                                        {categories.map((c) => (
-                                            <option key={c.id} value={c.id}>{c.name}</option>
-                                        ))}
-                                    </select>
-                                    {formErrors.category_id && <p className="text-xs text-red-500 mt-1">{formErrors.category_id}</p>}
-                                </div>
-                            </div>
-
-                            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                                <div className="space-y-1">
-                                    <label className="block text-xs font-bold uppercase tracking-wider text-[var(--color-muted)] mb-1">Estimasi Harga <span className="text-red-500">*</span></label>
-                                    <div className="relative">
-                                        <span className="absolute inset-y-0 left-0 flex items-center pl-3.5 text-xs font-bold text-[var(--color-muted)]">Rp</span>
+                            {tipe === 'sewa' && (
+                                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                                    <div className="space-y-1">
+                                        <label className="block text-xs font-bold uppercase tracking-wider text-[var(--color-muted)] mb-1">Kapasitas (orang)</label>
                                         <input
                                             type="number"
-                                            value={data.base_price}
-                                            onChange={(e) => setData('base_price', e.target.value)}
-                                            placeholder="Contoh: 1500000"
-                                            className="w-full rounded-xl border border-[var(--color-border)] focus:border-teal-500 focus:ring-2 focus:ring-teal-500/20 py-3 pl-10 pr-3 text-sm transition"
-                                            required
+                                            min="1"
+                                            value={data.capacity}
+                                            onChange={(e) => setData('capacity', e.target.value)}
+                                            className="w-full rounded-xl border border-[var(--color-border)] focus:border-teal-500 focus:ring-2 focus:ring-teal-500/20 p-3 text-sm transition"
                                         />
+                                        {formErrors.capacity && <p className="text-xs text-red-500 mt-1">{formErrors.capacity}</p>}
                                     </div>
-                                    {data.base_price ? (
-                                        <p className="mt-1.5 text-xs font-bold text-emerald-600 flex items-center gap-1">
-                                            <span>Format:</span>
-                                            <span>Rp {Number(data.base_price).toLocaleString('id-ID')}</span>
-                                        </p>
-                                    ) : (
-                                        <p className="mt-1 text-[11px] text-[var(--color-muted)]">Masukkan angka tanpa titik/koma (misal: 1500000)</p>
-                                    )}
-                                    {formErrors.base_price && <p className="text-xs text-red-500 mt-1">{formErrors.base_price}</p>}
+                                    <div className="space-y-1">
+                                        <label className="block text-xs font-bold uppercase tracking-wider text-[var(--color-muted)] mb-1">Lokasi</label>
+                                        <input
+                                            type="text"
+                                            value={data.location}
+                                            onChange={(e) => setData('location', e.target.value)}
+                                            className="w-full rounded-xl border border-[var(--color-border)] focus:border-teal-500 focus:ring-2 focus:ring-teal-500/20 p-3 text-sm transition"
+                                        />
+                                        {formErrors.location && <p className="text-xs text-red-500 mt-1">{formErrors.location}</p>}
+                                    </div>
                                 </div>
-                            </div>
+                            )}
+
 
                             <div className="space-y-1">
                                 <label className="block text-xs font-bold uppercase tracking-wider text-[var(--color-muted)] mb-1">Deskripsi Singkat</label>
@@ -265,6 +384,7 @@ export default function PengelolaProdukForm({ auth, categories = [], item = null
                                 {formErrors.short_description && <p className="text-xs text-red-500 mt-1">{formErrors.short_description}</p>}
                             </div>
 
+                            {tipe === 'produk' && (
                             <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
                                 <div className="space-y-1">
                                     <label className="block text-xs font-bold uppercase tracking-wider text-[var(--color-muted)] mb-1">Berat (gram) <span className="text-red-500">*</span></label>
@@ -316,6 +436,7 @@ export default function PengelolaProdukForm({ auth, categories = [], item = null
                                     {formErrors.height && <p className="text-xs text-red-500 mt-1">{formErrors.height}</p>}
                                 </div>
                             </div>
+                            )}
 
                         <div className="space-y-2">
                             <label className="block text-xs font-bold uppercase tracking-wider text-[var(--color-muted)]">
@@ -505,13 +626,18 @@ export default function PengelolaProdukForm({ auth, categories = [], item = null
                         </div>
 
                         <div>
-                            <label className="block text-xs font-semibold text-[var(--color-ink)] mb-1">Atau Upload File Video (MP4 / MOV, Max 20MB)</label>
+                            <label className="block text-xs font-semibold text-[var(--color-ink)] mb-1">Atau Upload File Video (MP4 / MOV / AVI / WMV, Maks 50 MB, maks 2 menit)</label>
                             <input
                                 type="file"
                                 accept="video/mp4,video/quicktime,video/avi,video/x-ms-wmv"
-                                onChange={(e) => setData('video_file', e.target.files[0])}
+                                onChange={handleVideoChange}
                                 className="w-full rounded border border-[var(--color-border)] p-2 text-sm file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-xs file:font-semibold file:bg-teal-50 file:text-teal-700 hover:file:bg-teal-100"
                             />
+                            {videoError && (
+                                <div className="mt-2">
+                                    <AlertBanner type="warning" message={videoError} />
+                                </div>
+                            )}
                             {data.video_file && (
                                 <div className="mt-3 relative rounded-xl border overflow-hidden bg-black max-w-sm">
                                     <video controls className="w-full max-h-48 object-contain">
@@ -600,15 +726,6 @@ export default function PengelolaProdukForm({ auth, categories = [], item = null
                                 <p className="text-xs text-[var(--color-muted)] mb-4">
                                     Produk yang disimpan akan berstatus <strong>Draft</strong> sebelum Anda mengajukannya secara resmi ke kurator RTPU.
                                 </p>
-                                <button
-                                    type="submit"
-                                    form="productForm"
-                                    className="w-full py-3 px-4 rounded-xl text-xs font-bold text-white shadow-sm transition hover:opacity-90 flex items-center justify-center gap-2"
-                                    style={{ background: 'var(--color-accent)' }}
-                                >
-                                    <Save className="w-4 h-4" />
-                                    {isEdit ? 'Simpan Perubahan' : 'Simpan Sebagai Draft'}
-                                </button>
                             </Card>
                         </div>
                     </div>

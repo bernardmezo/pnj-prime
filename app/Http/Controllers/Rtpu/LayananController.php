@@ -165,8 +165,6 @@ class LayananController extends Controller
                 'name' => $data['name'],
                 'short_description' => $data['desc'] ?? null,
                 'description' => $data['desc'] ?? null,
-                'base_price' => $data['price'],
-                'final_price' => $data['price'],
                 'stock' => $data['stock'] ?? null,
                 'is_active' => (bool) ($data['active'] ?? true),
                 'meta' => [
@@ -180,6 +178,12 @@ class LayananController extends Controller
                 ],
                 'thumbnail' => $data['photo'] ?? $product->thumbnail,
             ];
+
+            // Only Admin RTPU can update price. Admin Pengelola can only update info.
+            if (Auth::user()->role === 'admin_rtpu') {
+                $updates['base_price'] = $data['price'];
+                $updates['final_price'] = $data['price'];
+            }
 
             // If this product was spawned from a Produk Unggulan and is now
             // being activated, promote it from 'draft' to 'approved' so it appears

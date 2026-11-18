@@ -75,7 +75,12 @@ export default function Riwayat({ auth, riwayat = [] }) {
                                         Tutup
                                     </button>
                                 </div>
+                                <a className="mb-4 block text-sm underline" href={open.detail_url}>Lihat rincian transaksi lengkap</a>
+                                {open.invoice_url && <a className="mb-4 block text-sm underline" href={open.invoice_url}>Lihat invoice</a>}
                                 <StatusTimeline flow={LAYANAN_FLOW} history={open.history ?? []} current={open.status} />
+                                {(open.history ?? []).map((h, i) => <div key={i} className="mt-3 border-t pt-3 text-sm"><strong>{h.status}</strong><p>{h.at} · {h.by}</p><p>{h.note}</p></div>)}
+                                {open.pickup?.handed_over_at && <section className="mt-5 space-y-2 text-sm"><h3 className="font-bold">Bukti serah terima</h3><p>Pengambil: {open.pickup.collector_name}</p><p>Kontak: {open.pickup.collector_contact}</p><p>{open.pickup.handed_over_at}</p><img src={open.pickup.photo_url} alt="Pengambil bersama barang saat serah terima" className="w-full rounded-xl" /></section>}
+                                {open.status === 'Selesai' && open.pickup && !open.pickup.handed_over_at && <p className="mt-4 text-sm">Bukti serah terima belum tercatat pada transaksi lama ini.</p>}
                             </motion.aside>
                         </>
                     )}

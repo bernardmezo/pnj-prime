@@ -64,6 +64,7 @@ return [
         'key' => env('RAJAONGKIR_API_KEY'),
         'type' => env('RAJAONGKIR_TYPE', 'starter'), // starter, basic, pro
         'origin_city_id' => env('RAJAONGKIR_ORIGIN_CITY', '152'), // Default Kota Depok
+        'origin_postal_code' => env('RAJAONGKIR_ORIGIN_POSTAL', '16424'), // Default Depok (PNJ)
     ],
 
 ];

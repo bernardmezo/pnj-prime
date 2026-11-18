@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Pimpinan;
 use App\Http\Controllers\Controller;
 use App\Models\Pengajuan;
 use App\Models\ProdukUnggulan;
+use App\Models\Product;
 use Inertia\Inertia;
 use Inertia\Response;
 
@@ -26,6 +27,7 @@ class DashboardController extends Controller
             'menunggu' => $all->where('status', 'Diajukan')->count() + $pendingAccountsCount + $pendingProductsCount,
             'akun_pending' => $pendingAccountsCount,
             'produk_verified' => $pendingProductsCount,
+            'persetujuan_final_produk' => $pendingProductsCount,
             'disetujui' => $all->where('status', 'Disetujui')->count(),
             'ditolak' => $all->where('status', 'Ditolak')->count(),
             'total_pengajuan' => $allPengajuan->count(),
@@ -66,17 +68,18 @@ class DashboardController extends Controller
             ->take(5)
             ->values();
 
-        $antrean = ProdukUnggulan::where('status', 'Diajukan')
+        $antrean = Product::with('category', 'owner:id,name,phone,nip,jurusan,institution,unit_name')
+            ->whereIn('curation_status', ['pending', 'verified'])
             ->latest()
             ->limit(10)
             ->get()
             ->map(fn ($p) => [
                 'id' => $p->id,
-                'code' => $p->code,
                 'name' => $p->name,
-                'researcher' => $p->researcher,
+                'code' => $p->code ?? '-',
+                'researcher' => $p->owner?->name ?? '-',
                 'date' => optional($p->created_at)->format('Y-m-d'),
-                'status' => $p->status,
+                'status' => $p->curation_status,
             ]);
 
         return Inertia::render('Pimpinan/Dashboard', [

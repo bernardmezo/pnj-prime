@@ -7,6 +7,7 @@ use App\Models\Pengajuan;
 use Exception;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Validation\ValidationException;
 
 class MidtransService
 {
@@ -64,6 +65,9 @@ class MidtransService
      */
     public function createSnapPayment(Pengajuan $pengajuan): Payment
     {
+        if ($pengajuan->isPreorder()) {
+            throw ValidationException::withMessages(['payment' => 'Pre-order wajib dibayar melalui transfer rekening BLU sesuai invoice.']);
+        }
         // 1. Check if a valid unexpired pending payment token already exists for this request
         $existing = $pengajuan->payments()
             ->where('status', 'pending')

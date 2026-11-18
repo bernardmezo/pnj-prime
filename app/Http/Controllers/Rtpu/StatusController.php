@@ -41,6 +41,17 @@ class StatusController extends Controller
             'catatan' => 'nullable|string|max:1000',
         ]);
 
+        if ($pengajuan->isPreorder()) {
+            if ($pengajuan->status === 'Diajukan' && $data['status'] === 'Menunggu Pembayaran') {
+                app(\App\Services\InvoiceService::class)->approvePreorder($pengajuan, $request->user());
+            } else {
+                abort_unless(in_array($data['status'], ['Ditolak', 'Dibatalkan', 'Diproses', 'Selesai'], true), 422, 'Pembayaran BLU wajib melalui verifikasi bukti transfer.');
+                app(\App\Services\PengajuanWorkflow::class)->transition($pengajuan, $data['status'], $data['catatan'] ?? null, $request->user()->name);
+            }
+
+            return back()->with('success', 'Status diperbarui.');
+        }
+
         $pengajuan->setStatus($data['status'], $data['catatan'] ?? null, Auth::user()->name);
         $pengajuan->save();
 

@@ -22,11 +22,7 @@ export default function PengajuanIndex({ auth, pengajuan = [] }) {
                     eyebrow="Customer"
                     title="Pengajuan Saya"
                     desc="Pantau semua pengajuan layanan Anda yang masih berjalan."
-                    actions={
-                        <PrimaryButton href={navHref('customer.pengajuan.create', {}, role)}>
-                            + Ajukan Layanan
-                        </PrimaryButton>
-                    }
+                    actions={undefined}
                 />
                 <CustomerTabs active="pengajuan" role={role} />
                 <div className="mb-4 flex flex-wrap gap-3">

@@ -71,7 +71,7 @@ class CatalogController extends Controller
                 ->with('category:id,name')
                 ->addSelect(['sold_count' => \App\Models\Pengajuan::selectRaw('COALESCE(SUM(CAST(jumlah AS INTEGER)), 0)')
                     ->whereColumn('product_id', 'products.id')
-                    ->whereIn('status', ['Lunas', 'Diproses', 'Selesai'])])
+                    ->whereIn('status', ['Lunas', 'Diproses', 'Dikirim', 'Selesai'])])
                 ->latest()->get();
 
             return Inertia::render('Pengelola/Katalog', ['products' => $products]);

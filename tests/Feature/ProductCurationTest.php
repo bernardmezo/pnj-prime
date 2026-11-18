@@ -63,6 +63,8 @@ class ProductCurationTest extends TestCase
                 'short_description' => 'Robot otomatis pembersih panel surya skala industri',
                 'description' => 'Spesifikasi detail robot pembersih solar panel dengan sensor otomatis.',
                 'stock' => 5,
+                'availability_status' => 'tersedia',
+                'weight' => 500,
             ]);
 
         $response->assertRedirect(route('pengelola.produk.index'));

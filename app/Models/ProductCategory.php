@@ -44,6 +44,7 @@ class ProductCategory extends Model
         'icon',
         'is_active',
         'sort_order',
+        'parent_id',
     ];
 
     protected function casts(): array
@@ -51,11 +52,36 @@ class ProductCategory extends Model
         return [
             'is_active' => 'boolean',
             'sort_order' => 'integer',
+            'parent_id' => 'integer',
         ];
     }
 
     public function products(): HasMany
     {
         return $this->hasMany(Product::class, 'category_id');
+    }
+
+    /**
+     * Parent category (NULL jika ini kategori tipe level-1).
+     */
+    public function parent(): \Illuminate\Database\Eloquent\Relations\BelongsTo
+    {
+        return $this->belongsTo(self::class, 'parent_id');
+    }
+
+    /**
+     * Sub-kategori (hanya untuk kategori tipe level-1).
+     */
+    public function children(): HasMany
+    {
+        return $this->hasMany(self::class, 'parent_id')->orderBy('sort_order');
+    }
+
+    /**
+     * Apakah kategori ini adalah sub-kategori (level 2)?
+     */
+    public function isSubCategory(): bool
+    {
+        return $this->parent_id !== null;
     }
 }

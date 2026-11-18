@@ -234,23 +234,16 @@ export default function CatalogIndex({ auth, categories = [], featured_products 
 
                 <div className="landing-container relative grid items-center gap-12 py-16 md:py-24 lg:grid-cols-[1.05fr_0.95fr]">
                     <div className="order-2 lg:order-1">
-                        <motion.div {...heroStagger(0)} className="mb-5 flex items-center gap-3">
-                            <SpeedLines size="sm" />
-                            <span className="inline-flex items-center gap-2 rounded-full border px-3.5 py-1 text-xs font-semibold tracking-wide" style={{ borderColor: 'var(--color-dark-border)', background: 'color-mix(in srgb, var(--color-dark-text) 10%, transparent)', color: 'var(--color-dark-text)' }}>
-                                <span className="h-2 w-2 rounded-full" style={{ background: 'var(--color-gold)' }} />
-                                Rekayasa Teknologi &amp; Produk Unggulan PNJ
-                            </span>
-                        </motion.div>
-                        <motion.h1 {...heroStagger(1)} className="landing-h1 font-display" style={{ color: 'var(--color-dark-text)' }}>
+                        <motion.h1 {...heroStagger(0)} className="landing-h1 font-display" style={{ color: 'var(--color-dark-text)' }}>
                             Inovasi PNJ, siap melaju bersama <span style={{ color: 'var(--color-gold)' }}>industri</span> &amp; masyarakat
                         </motion.h1>
-                        <motion.p {...heroStagger(2)} className="mt-6 max-w-xl text-[17px] leading-relaxed" style={{ color: 'var(--color-dark-muted)' }}>
+                        <motion.p {...heroStagger(1)} className="mt-6 max-w-xl text-[17px] leading-relaxed" style={{ color: 'var(--color-dark-muted)' }}>
                             PNJ Prime mempertemukan produk, jasa pengujian, dan fasilitas unggulan
                             hasil riset kampus dengan masyarakat dan industri. Produk diajukan
                             Admin P3M, dikurasi Admin RTPU, dan pembayaran masuk ke rekening
                             resmi PNJ.
                         </motion.p>
-                        <motion.div {...heroStagger(3)} className="mt-8 flex flex-wrap gap-3">
+                        <motion.div {...heroStagger(2)} className="mt-8 flex flex-wrap gap-3">
                             <a
                                 href="/katalog"
                                 className="group inline-flex items-center gap-2 rounded-full bg-[var(--color-gold)] px-7 py-3.5 text-[15px] font-semibold text-[var(--color-deep)] transition duration-150 hover:-translate-y-px hover:bg-[var(--color-gold-deep)] active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-gold)] focus-visible:ring-offset-2"
@@ -267,7 +260,7 @@ export default function CatalogIndex({ auth, categories = [], featured_products 
                                 <ArrowRight className="h-4 w-4 transition-transform duration-200 group-hover:translate-x-1" />
                             </a>
                         </motion.div>
-                        <motion.div {...heroStagger(4)} className="mt-8 flex items-center gap-3 text-sm" style={{ color: 'var(--color-dark-muted)' }}>
+                        <motion.div {...heroStagger(3)} className="mt-8 flex items-center gap-3 text-sm" style={{ color: 'var(--color-dark-muted)' }}>
                             <span className="flex items-center gap-1.5" style={{ color: 'var(--color-gold)' }}>
                                 <Star className="h-4 w-4 fill-current" />
                                 <Star className="h-4 w-4 fill-current" />
@@ -290,10 +283,6 @@ export default function CatalogIndex({ auth, categories = [], featured_products 
                             <SwooshLine size="md" opacity={0.5} color="var(--color-accent)" stroke={1.5} />
                         </div>
                         <div className="mx-auto max-w-2xl text-center">
-                            <p className="mb-4 inline-flex items-center gap-2 rounded-full border px-4 py-1.5 text-[11px] font-bold uppercase tracking-widest" style={{ borderColor: 'color-mix(in srgb, var(--color-accent) 25%, transparent)', color: 'var(--color-accent)', background: 'color-mix(in srgb, var(--color-accent-tint) 50%, transparent)' }}>
-                                <span className="h-1.5 w-1.5 rounded-full" style={{ background: 'var(--color-gold)' }} />
-                                Katalog Pilihan
-                            </p>
                             <h2 className="font-display text-3xl font-bold sm:text-4xl lg:text-[44px] lg:leading-[1.08]" style={{ color: 'var(--color-ink)' }}>
                                 Produk, jasa, dan fasilitas unggulan
                             </h2>

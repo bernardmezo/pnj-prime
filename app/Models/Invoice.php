@@ -40,6 +40,7 @@ class Invoice extends Model
     protected $table = 'invoices';
 
     protected $fillable = [
+        'bank_snapshot', 'request_snapshot', 'shipping_amount', 'unique_amount',
         'invoice_number',
         'pengajuan_id',
         'order_id',
@@ -60,6 +61,10 @@ class Invoice extends Model
     protected function casts(): array
     {
         return [
+            'bank_snapshot' => 'array',
+            'request_snapshot' => 'array',
+            'shipping_amount' => 'integer',
+            'unique_amount' => 'integer',
             'issued_at' => 'datetime',
             'due_at' => 'datetime',
             'subtotal' => 'integer',

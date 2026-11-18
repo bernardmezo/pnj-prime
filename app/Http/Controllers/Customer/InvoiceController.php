@@ -19,7 +19,7 @@ class InvoiceController extends Controller
         }
 
         $invoice = $pengajuan->latestInvoice;
-        if (! $invoice) {
+        if (! $invoice || in_array($invoice->status, ['draft', 'cancelled'], true)) {
             abort(404, 'Invoice belum diterbitkan untuk pengajuan ini.');
         }
 
@@ -40,7 +40,7 @@ class InvoiceController extends Controller
         }
 
         $invoice = $pengajuan->latestInvoice;
-        if (! $invoice) {
+        if (! $invoice || in_array($invoice->status, ['draft', 'cancelled'], true)) {
             abort(404, 'Invoice belum diterbitkan untuk pengajuan ini.');
         }
 

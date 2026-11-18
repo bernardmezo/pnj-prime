@@ -22,6 +22,12 @@
     --color-danger-tint: #fdecec;
     --color-success: #0e8a66;
     --color-success-tint: #e6f4f0;
+    --color-warning: #c47d1a;
+    --color-warning-hover: #a3650f;
+    --color-warning-tint: #fef3e2;
+    --color-info: #2563eb;
+    --color-info-hover: #1d4ed8;
+    --color-info-tint: #eff6ff;
     --ease-out-expo: cubic-bezier(0.22, 1, 0.36, 1);
 
     /* Dark panel tokens (sidebar & auth panel) — teal gelap latar */
@@ -152,6 +158,12 @@ h3,
 }
 .no-scrollbar::-webkit-scrollbar {
     display: none;
+}
+
+/* Toast animation */
+@keyframes toast-in {
+    from { opacity: 0; transform: translateX(1rem); }
+    to   { opacity: 1; transform: translateX(0); }
 }
 
 /* Gold ribbon shimmer sweep */

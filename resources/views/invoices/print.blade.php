@@ -186,6 +186,10 @@
                 <td>PPN ({{ $invoice->tax_rate_snapshot }}%)</td>
                 <td class="text-right">Rp {{ number_format($invoice->tax_amount, 0, ',', '.') }}</td>
             </tr>
+            @if($invoice->bank_snapshot)
+            <tr><td>Ongkir (bebas pajak)</td><td class="text-right">Rp {{ number_format($invoice->shipping_amount, 0, ',', '.') }}</td></tr>
+            <tr><td>Nominal unik tambahan (bebas pajak)</td><td class="text-right">Rp {{ number_format($invoice->unique_amount, 0, ',', '.') }}</td></tr>
+            @endif
             <tr class="total-row">
                 <td>Total Tagihan</td>
                 <td class="text-right">Rp {{ number_format($invoice->total, 0, ',', '.') }}</td>
@@ -195,7 +199,13 @@
         <div class="footer-note">
             <strong>Catatan & Pembayaran:</strong>
             <p style="margin: 4px 0 0 0;">
-                Pembayaran dapat dilakukan melalui gerbang pembayaran resmi PNJ PRIME (Midtrans) atau transfer ke Rekening BLU Politeknik Negeri Jakarta.
+                @if($invoice->bank_snapshot)
+                Transfer BLU hanya ke {{ $invoice->bank_snapshot['name'] }}, rekening {{ $invoice->bank_snapshot['account'] }}, atas nama {{ $invoice->bank_snapshot['holder'] }}.
+                Transfer tepat Rp {{ number_format($invoice->total, 0, ',', '.') }} termasuk nominal unik tambahan, lalu unggah bukti untuk verifikasi RTPU.
+                {{ $invoice->bank_snapshot['instructions'] ?? '' }}
+                @else
+                Pembayaran melalui metode resmi PNJ PRIME sesuai petunjuk pembayaran pengajuan.
+                @endif
                 Invoice ini sah dan diterbitkan secara digital oleh sistem resmi PNJ PRIME.
             </p>
             @if($invoice->notes)

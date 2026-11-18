@@ -1,5 +1,5 @@
 import { motion, useReducedMotion } from 'framer-motion';
-import FlashToast from '@/Components/FlashToast';
+import ToastContainer from '@/Components/ToastContainer';
 import LogoMotion from '@/Components/LogoMotion';
 import SpeedLines from '@/Components/SpeedLines';
 import SwooshLine from '@/Components/SwooshLine';
@@ -41,10 +41,6 @@ export default function AuthLayout({ title, subtitle, children }) {
                     <LogoMotion onDark height={42} />
                 </div>
                 <div className="relative max-w-lg">
-                    <p className="mb-4 inline-flex items-center gap-2 rounded-full border px-3 py-1 font-mono text-xs font-medium uppercase tracking-[0.18em]" style={{ borderColor: 'var(--color-dark-border)', color: 'var(--color-dark-muted)', background: 'color-mix(in srgb, var(--color-dark-text) 8%, transparent)' }}>
-                        <span className="h-1.5 w-1.5 rounded-full" style={{ background: 'var(--color-gold)' }} />
-                        Akses PNJ Prime
-                    </p>
                     <p className="font-display font-bold leading-[1.04] text-white" style={{ fontSize: 'clamp(36px, 3.6vw, 56px)', letterSpacing: '-0.02em' }}>
                         Satu akun untuk
                         <br />
@@ -86,7 +82,7 @@ export default function AuthLayout({ title, subtitle, children }) {
                     </div>
                 </motion.div>
             </div>
-            <FlashToast />
+            <ToastContainer />
         </div>
     );
 }

@@ -17,6 +17,20 @@ class FileController extends Controller
      * - produk-unggulan documents: owner, Pimpinan RTPU, or Direktur
      * - payment proofs: buyer or Admin RTPU
      */
+    /**
+     * Unduh berkas hasil pengerjaan jasa. Kepemilikan dicek di PengajuanPolicy::downloadHasil;
+     * file berada di disk privat dan hanya dilayani lewat route ini.
+     */
+    public function hasilJasa(Pengajuan $pengajuan, int $index)
+    {
+        $this->authorize('downloadHasil', $pengajuan);
+
+        $file = ($pengajuan->hasil_files ?? [])[$index] ?? null;
+        abort_unless($file && ! empty($file['path']) && Storage::disk('local')->exists($file['path']), 404);
+
+        return Storage::disk('local')->download($file['path'], $file['name'] ?? basename($file['path']));
+    }
+
     public function show(string $kind, int $id, int $index)
     {
         $user = Auth::user();

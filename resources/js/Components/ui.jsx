@@ -41,7 +41,7 @@ const BADGE_STYLES = {
 export function statusTone(status) {
     const s = String(status ?? '');
     if (['aktif', 'Aktif', 'approved', 'Approved', 'disetujui', 'Disetujui', 'selesai', 'Selesai', 'tersedia', 'Tersedia', 'verified', 'paid', 'lunas', 'Diverifikasi', 'Terverifikasi', 'Lunas'].includes(s)) return 'teal';
-    if (['pending', 'Pending', 'menunggu', 'Menunggu', 'menunggu_pembayaran', 'menunggu_verifikasi', 'diproses', 'Diproses', 'diproses_admin', 'unggulan', 'draft_pengajuan', 'Diajukan', 'Menunggu Pembayaran', 'Menunggu Verifikasi Pembayaran'].includes(s)) return 'gold';
+    if (['pending', 'Pending', 'menunggu', 'Menunggu', 'menunggu_pembayaran', 'menunggu_verifikasi', 'diproses', 'Diproses', 'diproses_admin', 'unggulan', 'draft_pengajuan', 'Diajukan', 'Menunggu Pembayaran', 'Menunggu Verifikasi Pembayaran', 'Dikirim', 'Dijadwalkan', 'Dikerjakan', 'Hasil Diunggah'].includes(s)) return 'gold';
     if (['ditolak', 'Ditolak', 'rejected', 'dibatalkan', 'Dibatalkan', 'cancelled', 'nonaktif', 'Nonaktif', 'gagal'].includes(s)) return 'danger';
     return 'neutral';
 }
@@ -122,12 +122,6 @@ export function PageHeader({ eyebrow, title, desc, actions }) {
             <div className="pointer-events-none absolute inset-x-0 top-0 h-[2px] bg-gradient-to-r from-[var(--color-gold)] via-[var(--color-accent)] to-[var(--color-gold)]" aria-hidden />
             <div className="relative flex flex-wrap items-end justify-between gap-4">
                 <div className="max-w-2xl">
-                    {eyebrow && (
-                        <p className="mb-2 inline-flex items-center gap-2 rounded-full border px-3 py-1 text-[11px] font-bold uppercase tracking-widest" style={{ borderColor: 'color-mix(in srgb, var(--color-accent) 22%, transparent)', color: 'var(--color-accent)', background: 'color-mix(in srgb, var(--color-accent-tint) 50%, transparent)' }}>
-                            <span className="h-1.5 w-1.5 rounded-full" style={{ background: 'var(--color-gold)' }} />
-                            {eyebrow}
-                        </p>
-                    )}
                     <h1 className="font-display text-[28px] font-bold tracking-tight sm:text-3xl" style={{ color: 'var(--color-ink)' }}>
                         {title}
                     </h1>

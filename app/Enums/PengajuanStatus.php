@@ -11,6 +11,10 @@ enum PengajuanStatus: string
     case MenungguVerifikasiPembayaran = 'Menunggu Verifikasi Pembayaran';
     case Lunas = 'Lunas';
     case Diproses = 'Diproses';
+    case Dikirim = 'Dikirim';
+    case Dijadwalkan = 'Dijadwalkan';
+    case Dikerjakan = 'Dikerjakan';
+    case HasilDiunggah = 'Hasil Diunggah';
     case Selesai = 'Selesai';
     case Dibatalkan = 'Dibatalkan';
     case Ditolak = 'Ditolak';

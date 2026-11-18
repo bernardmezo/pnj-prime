@@ -48,14 +48,16 @@ export const isStaffRole = (raw) => roleLayout(raw) === 'dashboard';
 // Icons are string keys resolved by DashboardLayout.
 export const MENUS = {
     admin_rtpu: [
-        { key: 'dashboard', label: 'Dashboard', page: 'rtpu.dashboard', icon: 'home', fitur: 'verifikasi', section: 1 },
-        { key: 'catalog', label: 'Katalog', page: 'catalog', icon: 'store', fitur: 'katalog', section: 1 },
-        { key: 'verify-layanan', label: 'Verifikasi Pengajuan & Produk', page: 'rtpu.verify.layanan', icon: 'verify', fitur: 'verifikasi', section: 2, countKey: 'menunggu_verifikasi' },
-        { key: 'verify-bayar', label: 'Verifikasi Pembayaran', page: 'rtpu.verify.bayar', icon: 'pay', fitur: 'pembayaran', section: 2, countKey: 'verifikasi_bayar' },
-        { key: 'status', label: 'Status Layanan', page: 'rtpu.status', icon: 'status', fitur: 'pengajuan', section: 2 },
-        { key: 'layanan', label: 'Kelola Layanan', page: 'rtpu.layanan', icon: 'sliders', fitur: 'katalog', section: 3 },
-        { key: 'metode', label: 'Metode Pembayaran', page: 'rtpu.metode', icon: 'wallet', fitur: 'pembayaran', section: 3 },
-        { key: 'riwayat', label: 'Riwayat', page: 'rtpu.riwayat', icon: 'history', fitur: 'pengajuan', section: 3 },
+        { key: 'dashboard',    label: 'Dashboard',              page: 'rtpu.dashboard',       icon: 'home',    fitur: 'verifikasi', section: 1 },
+        { key: 'verify-layanan', label: 'Verifikasi Pengajuan', page: 'rtpu.verify.layanan',  icon: 'verify',  fitur: 'verifikasi', section: 2, countKey: 'menunggu_verifikasi' },
+        { key: 'verify-produk',  label: 'Verifikasi Produk',    page: 'rtpu.verify.produk',   icon: 'box',     fitur: 'verifikasi', section: 2 },
+        { key: 'verify-bayar',   label: 'Verifikasi Pembayaran',page: 'rtpu.verify.bayar',    icon: 'pay',     fitur: 'pembayaran', section: 2, countKey: 'verifikasi_bayar' },
+        { key: 'status',       label: 'Status Layanan',         page: 'rtpu.status',          icon: 'status',  fitur: 'pengajuan',  section: 2 },
+        { key: 'catalog',      label: 'Katalog',                page: 'catalog',              icon: 'store',   fitur: 'katalog',    section: 3 },
+        { key: 'layanan',      label: 'Kelola Layanan',         page: 'rtpu.layanan',         icon: 'sliders', fitur: 'katalog',    section: 3 },
+        { key: 'metode',       label: 'Metode Pembayaran',      page: 'rtpu.metode',          icon: 'wallet',  fitur: 'pembayaran', section: 3 },
+        { key: 'riwayat',      label: 'Riwayat',                page: 'rtpu.riwayat',         icon: 'history', fitur: 'pengajuan',  section: 3 },
+        { key: 'laporan',      label: 'Laporan',                page: 'rtpu.reports',         icon: 'status',  fitur: 'laporan',    section: 3 },
     ],
     admin_p3m: [
         { key: 'dashboard', label: 'Dashboard', page: 'p3m.dashboard', icon: 'home', fitur: 'produk-unggulan', section: 1 },
@@ -76,12 +78,13 @@ export const MENUS = {
         { key: 'pesanan', label: 'Pesanan Produk', page: 'pengelola.pesanan.index', icon: 'pay', fitur: 'katalog', section: 2 },
     ],
     pimpinan_rtpu: [
-        { key: 'dashboard', label: 'Dashboard', page: 'pimpinan.dashboard', icon: 'home', fitur: 'produk-unggulan', section: 1 },
-        { key: 'catalog', label: 'Katalog', page: 'catalog', icon: 'store', fitur: 'katalog', section: 1 },
-        { key: 'verify-akun', label: 'Verifikasi Akun Pengelola', page: 'pimpinan.verify.akun', icon: 'users', fitur: 'produk-unggulan', section: 2 },
-        { key: 'verify-produk', label: 'Persetujuan Final Produk Unit', page: 'pimpinan.verify.produk', icon: 'verify', fitur: 'produk-unggulan', section: 2 },
-        { key: 'pantau', label: 'Pemantauan', page: 'pimpinan.monitor', icon: 'eye', fitur: 'produk-unggulan', section: 2 },
-        { key: 'riwayat', label: 'Riwayat', page: 'pimpinan.riwayat', icon: 'history', fitur: 'produk-unggulan', section: 2 },
+        { key: 'dashboard',    label: 'Dashboard',                     page: 'pimpinan.dashboard',    icon: 'home',    fitur: 'produk-unggulan', section: 1 },
+        { key: 'verify-produk', label: 'Persetujuan Final Produk',     page: 'pimpinan.verify.produk',icon: 'award',   fitur: 'produk-unggulan', section: 2, countKey: 'persetujuan_final_produk' },
+        { key: 'verify-akun',  label: 'Verifikasi Akun Pengelola',     page: 'pimpinan.verify.akun',  icon: 'users',   fitur: 'produk-unggulan', section: 2 },
+        { key: 'pantau',       label: 'Pemantauan',                    page: 'pimpinan.monitor',      icon: 'eye',     fitur: 'produk-unggulan', section: 2 },
+        { key: 'riwayat',      label: 'Riwayat Keputusan',             page: 'pimpinan.riwayat',      icon: 'history', fitur: 'produk-unggulan', section: 2 },
+        { key: 'laporan',      label: 'Laporan',                       page: 'pimpinan.reports',      icon: 'status',  fitur: 'laporan',         section: 2 },
+        { key: 'catalog',      label: 'Katalog',                       page: 'catalog',               icon: 'store',   fitur: 'katalog',         section: 3 },
     ],
     direktur: [
         { key: 'dashboard', label: 'Dashboard', page: 'direktur.dashboard', icon: 'home', fitur: 'produk-unggulan', section: 1 },
@@ -95,6 +98,7 @@ export const MENUS = {
         { key: 'users', label: 'Kelola User', page: 'superadmin.users', icon: 'users', fitur: 'pengguna', section: 3 },
         { key: 'hak', label: 'Hak Akses', page: 'superadmin.hakakses', icon: 'key', fitur: 'hak-akses', section: 3 },
         { key: 'fitur', label: 'Kelola Fitur', page: 'superadmin.fitur', icon: 'grid', fitur: 'fitur', section: 3 },
+        { key: 'kategori', label: 'Kelola Kategori', page: 'superadmin.kategori.index', icon: 'tag', fitur: 'pengguna', section: 3 },
     ],
     customer: [],
 };
@@ -139,7 +143,7 @@ export function filterMenuByFitur(menu, activeKeys) {
 
 // Customer header user menu (PublicLayout).
 export const CUSTOMER_MENU = [
-    { key: 'ajukan', label: 'Ajukan Layanan', page: 'customer.pengajuan.create', fitur: 'pengajuan' },
+
     { key: 'pengajuan', label: 'Pengajuan Saya', page: 'customer.pengajuan.index', fitur: 'pengajuan' },
     { key: 'riwayat', label: 'Riwayat', page: 'customer.riwayat', fitur: 'pengajuan' },
 ];

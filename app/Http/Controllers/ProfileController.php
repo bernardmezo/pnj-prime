@@ -6,7 +6,6 @@ use App\Http\Requests\ProfileUpdateRequest;
 use Illuminate\Contracts\Auth\MustVerifyEmail;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Redirect;
 use Inertia\Inertia;
 use Inertia\Response;
@@ -29,7 +28,9 @@ class ProfileController extends Controller
      */
     public function update(ProfileUpdateRequest $request): RedirectResponse
     {
-        $request->user()->fill($request->validated());
+        abort_unless($request->user()->canDo('profil', 'Ubah'), 403);
+
+        $request->user()->fill($request->attributesToSave());
 
         if ($request->user()->isDirty('email')) {
             $request->user()->email_verified_at = null;
@@ -37,27 +38,21 @@ class ProfileController extends Controller
 
         $request->user()->save();
 
-        return Redirect::route('profile.edit');
+        return Redirect::route('profile.edit')->with('success', 'Profil berhasil diperbarui.');
     }
 
     /**
-     * Delete the user's account.
+     * Delete user account — DISABLED per Sprint 4.
+     * Route removed from routes/web.php. Kept here for reference only.
      */
-    public function destroy(Request $request): RedirectResponse
-    {
-        $request->validate([
-            'password' => ['required', 'current_password'],
-        ]);
-
-        $user = $request->user();
-
-        Auth::logout();
-
-        $user->delete();
-
-        $request->session()->invalidate();
-        $request->session()->regenerateToken();
-
-        return Redirect::to('/');
-    }
+    // public function destroy(Request $request): RedirectResponse
+    // {
+    //     $request->validate(['password' => ['required', 'current_password']]);
+    //     $user = $request->user();
+    //     Auth::logout();
+    //     $user->delete();
+    //     $request->session()->invalidate();
+    //     $request->session()->regenerateToken();
+    //     return Redirect::to('/');
+    // }
 }

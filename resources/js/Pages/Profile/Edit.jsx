@@ -2,11 +2,9 @@ import { Head } from '@inertiajs/react';
 import DashboardLayout from '@/Layouts/DashboardLayout';
 import PublicLayout from '@/Layouts/PublicLayout';
 import { Card, FadeIn, isInternalRole, roleLabel } from '@/Components/ui';
-import DeleteUserForm from './Partials/DeleteUserForm';
 import UpdatePasswordForm from './Partials/UpdatePasswordForm';
 import UpdateProfileInformationForm from './Partials/UpdateProfileInformationForm';
 
-// TODO(backend): not in use-case diagram; remove profile routes when backend migrates
 export default function Edit({ auth, mustVerifyEmail, status }) {
     const internal = isInternalRole(auth?.user?.role);
 
@@ -19,7 +17,7 @@ export default function Edit({ auth, mustVerifyEmail, status }) {
                 Profil Saya
             </h1>
             <p className="mb-6 mt-2 max-w-xl text-sm" style={{ color: 'var(--color-muted)' }}>
-                Kelola informasi akun, kata sandi, dan preferensi Anda.
+                Kelola informasi akun dan kata sandi Anda.
             </p>
             <div className="mx-auto max-w-3xl space-y-5">
                 <Card className="p-6 sm:p-8">
@@ -27,9 +25,6 @@ export default function Edit({ auth, mustVerifyEmail, status }) {
                 </Card>
                 <Card className="p-6 sm:p-8">
                     <UpdatePasswordForm className="max-w-xl" />
-                </Card>
-                <Card className="p-6 sm:p-8" style={{ borderColor: 'var(--color-danger)' }}>
-                    <DeleteUserForm className="max-w-xl" />
                 </Card>
             </div>
         </>

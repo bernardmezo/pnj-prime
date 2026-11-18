@@ -43,7 +43,7 @@ class Fitur extends Model
      * Fitur that can never be deactivated, deleted, or stripped from the
      * Super Admin (lockout prevention). Mirrored by the `terkunci` column.
      */
-    public const PROTECTED = ['pengguna', 'hak-akses', 'fitur'];
+    public const PROTECTED = ['pengguna', 'hak-akses', 'fitur', 'profil'];
 
     protected $fillable = ['key', 'nama', 'deskripsi', 'aktif', 'grup', 'aksi_tersedia', 'urutan', 'terkunci'];
 

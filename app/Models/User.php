@@ -90,6 +90,8 @@ class User extends Authenticatable
         'jurusan',
         'prodi',
         'institution',
+        'postal_code',
+        'address',
         'ktp_number',
         'npwp_number',
         'pdp_consent_at',
@@ -97,6 +99,7 @@ class User extends Authenticatable
         'account_status',
         'unit_name',
         'unit_id',
+        'meta',
     ];
 
     /**
@@ -123,6 +126,7 @@ class User extends Authenticatable
             'password' => 'hashed',
             'is_active' => 'boolean',
             'pdp_consent_at' => 'datetime',
+            'meta' => 'array',
         ];
     }
 

@@ -23,6 +23,7 @@ class UsecaseSeeder extends Seeder
         'master-pajak' => ['Administrasi', 9],
         'laporan' => ['Administrasi', 10],
         'tenant' => ['Layanan', 11],
+        'profil' => ['Administrasi', 12],
     ];
 
     /**
@@ -69,7 +70,10 @@ class UsecaseSeeder extends Seeder
         $out = [];
         foreach (['customer', 'admin_rtpu', 'admin_p3m', 'admin_pengelola', 'admin_jurusan', 'pimpinan_rtpu', 'direktur', 'super_admin'] as $role) {
             foreach ($keys as $key) {
-                $out[$role][$key] = $role === 'super_admin' ? $full : ($explicit[$role][$key] ?? $read);
+                // Profil hanya milik sendiri: semua role Lihat/Ubah, tidak ada Hapus.
+                $out[$role][$key] = $key === 'profil'
+                    ? ['Lihat' => true, 'Tambah' => false, 'Ubah' => true, 'Hapus' => false, 'Verifikasi' => false]
+                    : ($role === 'super_admin' ? $full : ($explicit[$role][$key] ?? $read));
             }
         }
 
@@ -101,6 +105,7 @@ class UsecaseSeeder extends Seeder
             ['master-pajak', 'Master Pajak', 'Kelola tarif pajak dan ambang PPN.'],
             ['laporan', 'Laporan & Audit', 'Laporan transaksi, statistik, dan log audit.'],
             ['tenant', 'Verifikasi Tenant', 'Validasi profil usaha dan dokumen tenant.'],
+            ['profil', 'Profil Saya', 'Melihat dan mengubah informasi akun sendiri.'],
         ];
         foreach ($fitur as [$key, $nama, $deskripsi]) {
             [$grup, $urutan] = self::META[$key] ?? ['Lainnya', 0];

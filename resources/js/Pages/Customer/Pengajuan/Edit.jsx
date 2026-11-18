@@ -59,6 +59,13 @@ export default function PengajuanEdit({ auth, item, layanan = null }) {
         jam_selesai: p?.jam_selesai ?? '',
         metode_pengambilan: p?.metode_pengambilan ?? '',
         catatan: p?.catatan ?? '',
+        kebutuhan_detail: {
+            jenis_pengujian: p?.kebutuhan_detail?.jenis_pengujian ?? '',
+            metode_standar: p?.kebutuhan_detail?.metode_standar ?? '',
+            jumlah_sampel: p?.kebutuhan_detail?.jumlah_sampel ?? '',
+            uraian_kebutuhan: p?.kebutuhan_detail?.uraian_kebutuhan ?? '',
+            konsultasi_biaya: p?.kebutuhan_detail?.konsultasi_biaya ?? '',
+        },
         opsi: opsiPayload,
     });
 
@@ -164,6 +171,40 @@ export default function PengajuanEdit({ auth, item, layanan = null }) {
                         <Field label="Tanggal diharapkan" error={errors.tanggal}>
                             <input type="date" value={data.tanggal} onChange={(e) => setData('tanggal', e.target.value)} className={inputClass} {...inputStyleProps()} />
                         </Field>
+                    )}
+
+                    {tipe === 'jasa' && (
+                        <fieldset className="space-y-4 rounded-2xl border p-4" style={{ borderColor: 'var(--color-border)' }}>
+                            <legend className="px-2 text-sm font-semibold" style={{ color: 'var(--color-ink)' }}>Kebutuhan pengujian &amp; konsultasi biaya</legend>
+                            {[
+                                ['jenis_pengujian', 'Jenis pengujian / layanan', 'input'],
+                                ['metode_standar', 'Metode / standar yang diinginkan', 'input'],
+                                ['jumlah_sampel', 'Jumlah sampel', 'number'],
+                                ['uraian_kebutuhan', 'Uraian kebutuhan', 'textarea'],
+                                ['konsultasi_biaya', 'Konsultasi biaya', 'textarea'],
+                            ].map(([key, label, kind]) => (
+                                <Field key={key} label={label} error={errors[`kebutuhan_detail.${key}`]}>
+                                    {kind === 'textarea' ? (
+                                        <textarea
+                                            value={data.kebutuhan_detail[key]}
+                                            onChange={(e) => setData('kebutuhan_detail', { ...data.kebutuhan_detail, [key]: e.target.value })}
+                                            rows={key === 'uraian_kebutuhan' ? 3 : 2}
+                                            className={inputClass}
+                                            {...inputStyleProps()}
+                                        />
+                                    ) : (
+                                        <input
+                                            type={kind === 'number' ? 'number' : 'text'}
+                                            min={kind === 'number' ? 1 : undefined}
+                                            value={data.kebutuhan_detail[key]}
+                                            onChange={(e) => setData('kebutuhan_detail', { ...data.kebutuhan_detail, [key]: e.target.value })}
+                                            className={inputClass}
+                                            {...inputStyleProps()}
+                                        />
+                                    )}
+                                </Field>
+                            ))}
+                        </fieldset>
                     )}
 
                     {tipe === 'produk' && (

@@ -1,11 +1,15 @@
-import { Head, Link, router, useForm } from '@inertiajs/react';
-import { ArrowLeft, Check, Truck } from 'lucide-react';
+import { Head, router, useForm } from '@inertiajs/react';
+import { ArrowLeft, AlertCircle, Building2, CalendarRange, Check, ClipboardList, Minus, Package, Plus, ShieldCheck, Truck } from 'lucide-react';
 import { useEffect, useMemo, useState } from 'react';
 import FileDropzone from '@/Components/FileDropzone';
 import PublicLayout from '@/Layouts/PublicLayout';
 import Select from '@/Components/ui/Select';
 import { Field } from '@/Components/ui';
+import AlertBanner from '@/Components/AlertBanner';
+import { VisualPlaceholder } from '@/Components/Public/shared';
+import { resolveImageUrl } from '@/Components/Public/CatalogCard';
 import { useOpsiQuote } from '@/lib/useOpsiQuote';
+import { usePengajuanDraft } from '@/lib/usePengajuanDraft';
 
 const TIPE = [
     { value: 'jasa', label: 'Jasa', desc: 'Pengujian lab & konsultasi teknis' },
@@ -20,9 +24,40 @@ const METODE_OPTIONS = [
     { value: 'Diantar', label: 'Diantar via ekspedisi' },
 ];
 
+/** Judul bagian form. Angka + teks, tanpa dekorasi berlebih. */
+function SectionHeading({ number, title }) {
+    return (
+        <div className="flex items-center gap-3 border-b border-[var(--color-border)] pb-3">
+            <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-[var(--color-accent-tint)] text-xs font-bold text-[var(--color-accent)]">
+                {number}
+            </span>
+            <h2 className="text-sm font-bold text-[var(--color-ink)]">{title}</h2>
+        </div>
+    );
+}
+
+const rupiah = (n) => `Rp ${Number(n ?? 0).toLocaleString('id-ID')}`;
+
 export default function PengajuanCreate({ auth, layanan = [], selected = {} }) {
     const locked = Boolean(selected?.product_id);
     const [step, setStep] = useState(locked ? 3 : 1);
+    const { restoreDraft, clearDraft } = usePengajuanDraft();
+
+    // Restore draft after login (if any)
+    useEffect(() => {
+        const draft = restoreDraft();
+        if (draft && draft.product_id && !selected?.product_id) {
+            // User came back from login with saved draft
+            clearDraft(); // Clear after restore
+            // Redirect to create page with product_id & tipe query params
+            const url = route('customer.pengajuan.create', { 
+                product_id: draft.product_id,
+                tipe: draft.tipe 
+            });
+            router.visit(url, { replace: true });
+        }
+    }, []);
+
     const [tipe, setTipe] = useState(selected?.tipe ?? 'jasa');
     const [docs, setDocs] = useState([]);
     const [selectedOpsi, setSelectedOpsi] = useState({});
@@ -38,7 +73,26 @@ export default function PengajuanCreate({ auth, layanan = [], selected = {} }) {
         peserta: '',
         metode_pengambilan: '',
         catatan: '',
+        rental_start: '',
+        rental_end: '',
+        renter_data: {
+            company_name: '',
+            npwp: '',
+            ktp_number: '',
+            contact_person: '',
+            contact_phone: '',
+        },
+        kebutuhan_detail: {
+            jenis_pengujian: '',
+            metode_standar: '',
+            jumlah_sampel: '',
+            uraian_kebutuhan: '',
+            konsultasi_biaya: '',
+        },
     });
+
+    // Rental conflict state
+    const [rentalConflict, setRentalConflict] = useState(null);
 
     const [cities, setCities] = useState([
         { city_id: '152', city_name: 'Depok', type: 'Kota' },
@@ -63,6 +117,7 @@ export default function PengajuanCreate({ auth, layanan = [], selected = {} }) {
     const [loadingShipping, setLoadingShipping] = useState(false);
     const [shippingAddress, setShippingAddress] = useState('');
     const [shippingError, setShippingError] = useState('');
+    const [postalCode, setPostalCode] = useState('');
 
     useEffect(() => {
         fetch('/api/shipping/cities')
@@ -81,6 +136,7 @@ export default function PengajuanCreate({ auth, layanan = [], selected = {} }) {
             return;
         }
         setLoadingShipping(true);
+        setShippingError('');
         const itemWeight = Number(current?.weight ?? current?.meta?.weight ?? 1000);
         const totalWeight = itemWeight * (Number(data.jumlah) || 1);
 
@@ -129,10 +185,61 @@ export default function PengajuanCreate({ auth, layanan = [], selected = {} }) {
                     setData('catatan', `Pengiriman ke ${cityId} via ${chosenCourier.toUpperCase()} (Reguler) - Rp ${fallbackVal.toLocaleString('id-ID')}`);
                 }
             })
-            .catch(() => {
+            .catch((err) => {
                 setLoadingShipping(false);
+                setShippingError('Gagal menghitung ongkir. Gunakan estimasi manual.');
                 const fallbackVal = Math.round(15000 * cityMultiplier * Math.max(1, Math.ceil(totalWeight / 1000)));
                 setShippingCost(fallbackVal);
+            });
+    };
+
+    const calculateOngkirByPostalCode = (destinationPostalCode, chosenCourier) => {
+        if (!destinationPostalCode || destinationPostalCode.length !== 5 || !chosenCourier) {
+            return;
+        }
+        setLoadingShipping(true);
+        setShippingError('');
+        const itemWeight = Number(current?.weight ?? current?.meta?.weight ?? 1000);
+        const totalWeight = itemWeight * (Number(data.jumlah) || 1);
+
+        fetch('/api/shipping/calculate-postal', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || '',
+            },
+            body: JSON.stringify({
+                destination_postal_code: destinationPostalCode,
+                courier: chosenCourier,
+                weight: totalWeight,
+            }),
+        })
+            .then((res) => res.json())
+            .then((res) => {
+                setLoadingShipping(false);
+                if (res?.success && Array.isArray(res.costs) && res.costs.length > 0) {
+                    const costs = res.costs[0]?.costs || [];
+                    setShippingOptions(costs);
+                    if (costs.length > 0 && costs[0]?.cost?.[0]?.value) {
+                        const val = costs[0].cost[0].value;
+                        setShippingCost(val);
+                        setData('catatan', `Alamat: ${shippingAddress} | Kode Pos: ${destinationPostalCode} | Kurir: ${chosenCourier.toUpperCase()} (${costs[0].service}) - Rp ${val.toLocaleString('id-ID')}`);
+                    }
+                } else if (res?.error) {
+                    // Fallback ke city_id jika postal code gagal (RajaOngkir bukan Pro)
+                    setShippingError(res.error);
+                    if (selectedCity) {
+                        calculateOngkir(selectedCity, chosenCourier);
+                    }
+                }
+            })
+            .catch((err) => {
+                setLoadingShipping(false);
+                setShippingError('Perhitungan ongkir via kode pos gagal. Gunakan pilihan kota di bawah.');
+                // Fallback ke city_id
+                if (selectedCity) {
+                    calculateOngkir(selectedCity, chosenCourier);
+                }
             });
     };
 
@@ -212,6 +319,8 @@ export default function PengajuanCreate({ auth, layanan = [], selected = {} }) {
     };
 
     const parsedQty = parseInt(String(data.jumlah || '1'), 10) || 1;
+    const currentThumb = resolveImageUrl(current?.thumbnail ?? null);
+    const typeLabel = TYPE_LABEL[tipe] ?? 'Layanan';
     const baseTotal = currentPrice * (tipe === 'produk' ? parsedQty : 1);
     const displaySubtotal = (quote?.subtotal != null ? quote.subtotal : baseTotal) + (data.metode_pengambilan === 'Diantar' ? shippingCost : 0);
     const displayPpn = quote?.ppn != null ? quote.ppn : Math.round(displaySubtotal * 0.12);
@@ -226,9 +335,9 @@ export default function PengajuanCreate({ auth, layanan = [], selected = {} }) {
 
     return (
         <PublicLayout auth={auth}>
-            <Head title={`Ajukan Layanan · ${selectedName || 'PNJ Prime'}`} />
+            <Head title={`Checkout · ${selectedName || 'PNJ Prime'}`} />
 
-            <div className="mx-auto w-full max-w-[640px] px-4 py-8 sm:px-6">
+            <div className="mx-auto w-full max-w-[1120px] px-4 py-8 sm:px-6 lg:py-10">
                 {/* Header: small Kembali text link */}
                 <div>
                     <button
@@ -237,72 +346,87 @@ export default function PengajuanCreate({ auth, layanan = [], selected = {} }) {
                         className="inline-flex items-center gap-1 text-xs text-[var(--color-muted)] hover:text-[var(--color-ink)] transition"
                     >
                         <ArrowLeft className="h-3.5 w-3.5" />
-                        <span>Kembali</span>
+                        <span>Kembali ke katalog</span>
                     </button>
                 </div>
 
-                {/* Page Title & Muted line naming product */}
-                <div className="relative mt-4 overflow-hidden rounded-2xl border border-[var(--color-border)] bg-white p-6 shadow-card sm:p-7">
+                {/* Header: judul + stepper di dalam satu panel */}
+                <div className="relative mt-4 overflow-hidden rounded-3xl border border-[var(--color-border)] bg-white p-6 shadow-card sm:p-8">
                     <div className="pointer-events-none absolute inset-x-0 top-0 h-[2px] bg-gradient-to-r from-[var(--color-gold)] via-[var(--color-accent)] to-[var(--color-gold)]" aria-hidden />
-                    <div className="relative">
-                        <h1 className="font-display text-[28px] font-bold tracking-tight text-[var(--color-ink)] sm:text-3xl">
-                            Ajukan Layanan
-                        </h1>
-                        <p className="mt-1.5 max-w-xl text-sm text-[var(--color-muted)]">
-                            {selectedName ? selectedName : 'Lengkapi detail permohonan layanan riset PNJ.'}
-                        </p>
+                    <div className="relative flex flex-col gap-6 lg:flex-row lg:items-end lg:justify-between">
+                        <div>
+                            <p className="text-xs font-semibold uppercase tracking-[0.08em] text-[var(--color-muted)]">
+                                Checkout · {typeLabel}
+                            </p>
+                            <h1 className="mt-2 font-display text-[28px] font-bold tracking-tight text-[var(--color-ink)] sm:text-3xl">
+                                Selesaikan pesanan Anda
+                            </h1>
+                            <p className="mt-1.5 max-w-xl text-sm text-[var(--color-muted)]">
+                                {selectedName ? selectedName : 'Pilih layanan dan lengkapi detail permohonan Anda.'}
+                            </p>
+                        </div>
+                        {/* Stepper: ringkas saat produk sudah dipilih dari katalog, lengkap saat memilih manual */}
+                        <div className="flex items-center gap-3 text-xs" aria-label="Tahapan pengajuan">
+                            {[
+                                { num: 1, label: 'Pilih Layanan', done: locked || step > 2, active: !locked && step <= 2 },
+                                { num: 2, label: 'Detail Pesanan', done: false, active: locked || step === 3 },
+                            ].map((s, i) => (
+                                <div key={s.num} className="flex items-center gap-3">
+                                    {i > 0 && <span className="h-px w-6 bg-[var(--color-border)] sm:w-10" aria-hidden />}
+                                    <div className="flex items-center gap-2">
+                                        <span
+                                            className={`flex h-6 w-6 items-center justify-center rounded-full text-xs font-bold ${
+                                                s.done || s.active
+                                                    ? 'bg-[var(--color-accent)] text-white'
+                                                    : 'bg-[var(--color-surface)] text-[var(--color-muted)]'
+                                            }`}
+                                            aria-current={s.active ? 'step' : undefined}
+                                        >
+                                            {s.done ? <Check className="h-3.5 w-3.5" /> : s.num}
+                                        </span>
+                                        <span className={s.active ? 'font-semibold text-[var(--color-ink)]' : 'text-[var(--color-muted)]'}>
+                                            {s.label}
+                                        </span>
+                                    </div>
+                                </div>
+                            ))}
+                        </div>
                     </div>
                 </div>
 
-                {/* Plain product row: Name left, base price right, separated by thin divider */}
+                {/* Ringkasan item: foto, nama, harga satuan */}
                 {selectedName ? (
-                    <div className="mt-6 border-b border-[var(--color-border)] pb-4">
-                        <div className="flex items-center justify-between gap-4">
-                            <span className="font-medium text-[var(--color-ink)] text-sm sm:text-base">
+                    <div className="mt-6 flex items-center gap-4 rounded-2xl border border-[var(--color-border)] bg-white p-4 shadow-card sm:gap-5 sm:p-5">
+                        <VisualPlaceholder
+                            icon={Package}
+                            image={currentThumb}
+                            alt={selectedName}
+                            className="h-16 w-16 shrink-0 rounded-xl sm:h-20 sm:w-20"
+                        />
+                        <div className="min-w-0 flex-1">
+                            <p className="text-[11px] font-semibold uppercase tracking-[0.06em] text-[var(--color-muted)]">
+                                Item pesanan · {typeLabel}
+                            </p>
+                            <p className="mt-0.5 truncate font-display text-base font-bold text-[var(--color-ink)] sm:text-lg">
                                 {selectedName}
-                            </span>
-                            {currentPrice > 0 && (
-                                <span className="tabular-nums font-semibold text-[var(--color-ink)] text-sm sm:text-base whitespace-nowrap">
-                                    Rp {currentPrice.toLocaleString('id-ID')}
-                                </span>
-                            )}
+                            </p>
+                            <p className="mt-0.5 text-xs text-[var(--color-muted)]">
+                                {currentPrice > 0 ? `${rupiah(currentPrice)} / unit` : 'Harga ditetapkan setelah verifikasi'}
+                            </p>
+                        </div>
+                        <div className="hidden text-right sm:block">
+                            <p className="text-[11px] text-[var(--color-muted)]">Tarif dasar</p>
+                            <p className="mt-0.5 tabular-nums font-display text-lg font-bold text-[var(--color-accent)]">
+                                {rupiah(currentPrice)}
+                            </p>
                         </div>
                     </div>
                 ) : null}
 
-                {/* Unlocked Stepper if not locked */}
-                {!locked && (
-                    <div className="mt-6 flex items-center gap-3 border-b border-[var(--color-border)] pb-4 text-xs">
-                        {[
-                            { num: 1, label: 'Kategori' },
-                            { num: 2, label: 'Layanan' },
-                            { num: 3, label: 'Detail' },
-                        ].map((s, i) => (
-                            <div key={s.num} className="flex items-center gap-2">
-                                <span
-                                    className={`flex h-5 w-5 items-center justify-center rounded-full text-[11px] font-semibold ${
-                                        step === s.num
-                                            ? 'bg-[var(--color-deep)] text-white'
-                                            : step > s.num
-                                              ? 'bg-[var(--color-accent)] text-white'
-                                              : 'bg-[var(--color-surface)] text-[var(--color-muted)]'
-                                    }`}
-                                >
-                                    {step > s.num ? <Check className="h-3 w-3" /> : s.num}
-                                </span>
-                                <span className={step === s.num ? 'font-semibold text-[var(--color-ink)]' : 'text-[var(--color-muted)]'}>
-                                    {s.label}
-                                </span>
-                                {i < 2 && <span className="text-[var(--color-border)]">/</span>}
-                            </div>
-                        ))}
-                    </div>
-                )}
-
                 <div className="mt-6">
                     {/* Unlocked Step 1: Type Selection */}
                     {!locked && step === 1 && (
-                        <div className="space-y-4">
+                        <div className="mx-auto max-w-xl space-y-4">
                             <div className="space-y-2">
                                 {TIPE.map((t) => {
                                     const isPicked = tipe === t.value;
@@ -340,7 +464,7 @@ export default function PengajuanCreate({ auth, layanan = [], selected = {} }) {
 
                     {/* Unlocked Step 2: Service Selection */}
                     {!locked && step === 2 && (
-                        <div className="space-y-4">
+                        <div className="mx-auto max-w-xl space-y-4">
                             <Select
                                 label={`Pilih ${TYPE_LABEL[tipe]}`}
                                 value={data.product_id}
@@ -374,21 +498,42 @@ export default function PengajuanCreate({ auth, layanan = [], selected = {} }) {
 
                     {/* Step 3 or Locked: Form */}
                     {(locked || step === 3) && (
-                        <form onSubmit={submit} className="space-y-6">
+                        <form onSubmit={submit} className="grid items-start gap-6 lg:grid-cols-[minmax(0,1fr)_380px]">
+                          <div className="space-y-6 rounded-3xl border border-[var(--color-border)] bg-white p-5 shadow-card sm:p-7">
                             {/* Product Form Fields */}
                             {tipe === 'produk' && (
-                                <div className="space-y-4">
+                                <div className="space-y-5">
+                                    <SectionHeading number={1} title="Detail pesanan" />
                                     <div className="grid gap-4 sm:grid-cols-2">
                                         <Field label="Jumlah Unit" error={errors.jumlah} htmlFor="f-jumlah">
-                                            <input
-                                                id="f-jumlah"
-                                                type="number"
-                                                min="1"
-                                                value={data.jumlah}
-                                                onChange={(e) => setData('jumlah', e.target.value)}
-                                                placeholder="1"
-                                                className={inputBaseClass}
-                                            />
+                                            <div className="flex items-center overflow-hidden rounded-xl border border-[var(--color-border)] bg-white focus-within:border-[var(--color-accent)] focus-within:ring-1 focus-within:ring-[var(--color-accent)]">
+                                                <button
+                                                    type="button"
+                                                    aria-label="Kurangi jumlah"
+                                                    disabled={parsedQty <= 1}
+                                                    onClick={() => setData('jumlah', String(Math.max(1, parsedQty - 1)))}
+                                                    className="flex h-11 w-11 shrink-0 items-center justify-center text-[var(--color-ink)] transition hover:bg-[var(--color-surface)] disabled:cursor-not-allowed disabled:opacity-40"
+                                                >
+                                                    <Minus className="h-4 w-4" />
+                                                </button>
+                                                <input
+                                                    id="f-jumlah"
+                                                    type="number"
+                                                    min="1"
+                                                    value={data.jumlah}
+                                                    onChange={(e) => setData('jumlah', e.target.value)}
+                                                    placeholder="1"
+                                                    className="h-11 w-full min-w-0 border-0 bg-transparent px-1 text-center text-sm font-semibold tabular-nums text-[var(--color-ink)] outline-none [appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none"
+                                                />
+                                                <button
+                                                    type="button"
+                                                    aria-label="Tambah jumlah"
+                                                    onClick={() => setData('jumlah', String(parsedQty + 1))}
+                                                    className="flex h-11 w-11 shrink-0 items-center justify-center text-[var(--color-ink)] transition hover:bg-[var(--color-surface)]"
+                                                >
+                                                    <Plus className="h-4 w-4" />
+                                                </button>
+                                            </div>
                                         </Field>
                                         <Select
                                             label="Metode Pengambilan"
@@ -412,11 +557,7 @@ export default function PengajuanCreate({ auth, layanan = [], selected = {} }) {
                                                 <span>Alamat Lengkap & Kalkulator Ongkir (RajaOngkir)</span>
                                             </div>
 
-                                            {shippingError && (
-                                                <div className="p-3 bg-red-50 border border-red-200 text-red-600 rounded-xl text-xs font-semibold">
-                                                    {shippingError}
-                                                </div>
-                                            )}
+                                            {shippingError && <AlertBanner type="error" message={shippingError} />}
 
                                             <div>
                                                 <label className="block text-xs font-semibold text-[var(--color-ink)] mb-1">Alamat Pengiriman Lengkap (Jalan, No. Rumah, RT/RW, Patokan)</label>
@@ -424,13 +565,41 @@ export default function PengajuanCreate({ auth, layanan = [], selected = {} }) {
                                                     value={shippingAddress}
                                                     onChange={(e) => {
                                                         setShippingAddress(e.target.value);
-                                                        setData('catatan', `Alamat: ${e.target.value} | Kota: ${selectedCity} | Kurir: ${courier ? courier.toUpperCase() : '-'} | Ongkir: Rp ${shippingCost.toLocaleString('id-ID')}`);
+                                                        setData('catatan', `Alamat: ${e.target.value} | Kode Pos: ${postalCode || '-'} | Kota: ${selectedCity} | Kurir: ${courier ? courier.toUpperCase() : '-'} | Ongkir: Rp ${shippingCost.toLocaleString('id-ID')}`);
                                                     }}
                                                     rows={2}
                                                     placeholder="Masukkan alamat lengkap penerima..."
                                                     className="w-full rounded-xl border border-[var(--color-border)] p-2.5 text-xs bg-white"
                                                     required={data.metode_pengambilan === 'Diantar'}
                                                 />
+                                            </div>
+
+                                            <div>
+                                                <label className="block text-xs font-semibold text-[var(--color-ink)] mb-1">
+                                                    Kode Pos <span className="text-[var(--color-muted)] font-normal">(5 digit)</span>
+                                                </label>
+                                                <input
+                                                    type="text"
+                                                    value={postalCode}
+                                                    onChange={(e) => {
+                                                        const value = e.target.value.replace(/\D/g, '').slice(0, 5);
+                                                        setPostalCode(value);
+                                                        setData('catatan', `Alamat: ${shippingAddress} | Kode Pos: ${value || '-'} | Kota: ${selectedCity} | Kurir: ${courier ? courier.toUpperCase() : '-'} | Ongkir: Rp ${shippingCost.toLocaleString('id-ID')}`);
+                                                        
+                                                        // Auto-calculate ongkir jika kode pos valid (5 digit)
+                                                        if (value.length === 5 && courier) {
+                                                            calculateOngkirByPostalCode(value, courier);
+                                                        }
+                                                    }}
+                                                    placeholder="Contoh: 16424"
+                                                    maxLength={5}
+                                                    pattern="\d{5}"
+                                                    className="w-full rounded-xl border border-[var(--color-border)] p-2.5 text-xs bg-white"
+                                                    required={data.metode_pengambilan === 'Diantar'}
+                                                />
+                                                <p className="mt-1 text-[10px] text-[var(--color-muted)]">
+                                                    Isi kode pos untuk perhitungan ongkir akurat. Jika tidak tahu, pilih kota tujuan di bawah.
+                                                </p>
                                             </div>
 
                                             <div className="grid gap-3 sm:grid-cols-2">
@@ -496,7 +665,8 @@ export default function PengajuanCreate({ auth, layanan = [], selected = {} }) {
 
                             {/* Jasa Form Fields */}
                             {tipe === 'jasa' && (
-                                <div className="space-y-4">
+                                <div className="space-y-5">
+                                    <SectionHeading number={1} title="Detail pengajuan jasa" />
                                     <Field label="Tujuan / Keperluan" error={errors.keperluan} htmlFor="f-keperluan">
                                         <textarea
                                             id="f-keperluan"
@@ -527,6 +697,67 @@ export default function PengajuanCreate({ auth, layanan = [], selected = {} }) {
                                             />
                                         </Field>
                                     </div>
+
+                                    {/* Detail kebutuhan pengujian (test lab) & konsultasi biaya */}
+                                    <fieldset className="space-y-4 rounded-2xl border border-[var(--color-border)] p-4 sm:p-5">
+                                        <legend className="px-2 text-sm font-semibold text-[var(--color-ink)]">Kebutuhan pengujian &amp; konsultasi biaya</legend>
+                                        <p className="text-xs text-[var(--color-muted)]">
+                                            Isi bila Anda memesan pengujian lab atau layanan teknis. Tim RTPU akan membaca kebutuhan Anda lalu menetapkan tarif sebelum invoice diterbitkan. Semua isian ini opsional.
+                                        </p>
+                                        <div className="grid gap-4 sm:grid-cols-2">
+                                            <Field label="Jenis pengujian / layanan" error={errors['kebutuhan_detail.jenis_pengujian']} htmlFor="f-kd-jenis">
+                                                <input
+                                                    id="f-kd-jenis"
+                                                    value={data.kebutuhan_detail.jenis_pengujian}
+                                                    onChange={(e) => setData('kebutuhan_detail', { ...data.kebutuhan_detail, jenis_pengujian: e.target.value })}
+                                                    className={inputBaseClass}
+                                                    maxLength={255}
+                                                />
+                                            </Field>
+                                            <Field label="Metode / standar yang diinginkan" error={errors['kebutuhan_detail.metode_standar']} htmlFor="f-kd-metode">
+                                                <input
+                                                    id="f-kd-metode"
+                                                    value={data.kebutuhan_detail.metode_standar}
+                                                    onChange={(e) => setData('kebutuhan_detail', { ...data.kebutuhan_detail, metode_standar: e.target.value })}
+                                                    className={inputBaseClass}
+                                                    maxLength={255}
+                                                />
+                                            </Field>
+                                            <Field label="Jumlah sampel" error={errors['kebutuhan_detail.jumlah_sampel']} htmlFor="f-kd-sampel">
+                                                <input
+                                                    id="f-kd-sampel"
+                                                    type="number"
+                                                    min="1"
+                                                    inputMode="numeric"
+                                                    value={data.kebutuhan_detail.jumlah_sampel}
+                                                    onChange={(e) => setData('kebutuhan_detail', { ...data.kebutuhan_detail, jumlah_sampel: e.target.value })}
+                                                    className={inputBaseClass}
+                                                />
+                                            </Field>
+                                        </div>
+                                        <Field label="Uraian kebutuhan" error={errors['kebutuhan_detail.uraian_kebutuhan']} htmlFor="f-kd-uraian">
+                                            <textarea
+                                                id="f-kd-uraian"
+                                                rows={3}
+                                                value={data.kebutuhan_detail.uraian_kebutuhan}
+                                                onChange={(e) => setData('kebutuhan_detail', { ...data.kebutuhan_detail, uraian_kebutuhan: e.target.value })}
+                                                placeholder="Jelaskan apa yang ingin diuji atau dikerjakan, kondisi sampel, dan hasil yang diharapkan."
+                                                className={inputBaseClass}
+                                                maxLength={4000}
+                                            />
+                                        </Field>
+                                        <Field label="Konsultasi biaya" error={errors['kebutuhan_detail.konsultasi_biaya']} htmlFor="f-kd-biaya">
+                                            <textarea
+                                                id="f-kd-biaya"
+                                                rows={2}
+                                                value={data.kebutuhan_detail.konsultasi_biaya}
+                                                onChange={(e) => setData('kebutuhan_detail', { ...data.kebutuhan_detail, konsultasi_biaya: e.target.value })}
+                                                placeholder="Tuliskan anggaran Anda atau hal yang ingin ditanyakan soal biaya."
+                                                className={inputBaseClass}
+                                                maxLength={1000}
+                                            />
+                                        </Field>
+                                    </fieldset>
                                     <Field label="Dokumen Pendukung" error={errors.dokumen} htmlFor={null}>
                                         <FileDropzone
                                             multiple
@@ -540,7 +771,8 @@ export default function PengajuanCreate({ auth, layanan = [], selected = {} }) {
 
                             {/* Ruangan Form Fields */}
                             {tipe === 'ruangan' && (
-                                <div className="space-y-4">
+                                <div className="space-y-5">
+                                    <SectionHeading number={1} title="Detail pengajuan sewa" />
                                     <div className="grid gap-4 sm:grid-cols-2">
                                         <Field label="Tanggal Pemakaian" error={errors.tanggal} htmlFor="f-tanggal">
                                             <input
@@ -593,13 +825,150 @@ export default function PengajuanCreate({ auth, layanan = [], selected = {} }) {
                                             className={inputBaseClass}
                                         />
                                     </Field>
+
+                                    {/* Rental Period (Jalur C: Sewa) */}
+                                    <div className="rounded-xl border border-[var(--color-border)] p-4 space-y-4 bg-[var(--color-surface)]">
+                                        <h3 className="text-sm font-semibold text-[var(--color-ink)] flex items-center gap-2">
+                                            <CalendarRange className="h-4 w-4 text-[var(--color-accent)]" />
+                                            Periode Sewa
+                                        </h3>
+                                        <div className="grid gap-4 sm:grid-cols-2">
+                                            <Field label="Mulai Sewa" error={errors.rental_start} htmlFor="f-rental-start">
+                                                <input
+                                                    id="f-rental-start"
+                                                    type="datetime-local"
+                                                    value={data.rental_start}
+                                                    min={new Date().toISOString().slice(0, 16)}
+                                                    onChange={(e) => {
+                                                        setData('rental_start', e.target.value);
+                                                        setRentalConflict(null);
+                                                    }}
+                                                    className={inputBaseClass}
+                                                />
+                                            </Field>
+                                            <Field label="Selesai Sewa" error={errors.rental_end} htmlFor="f-rental-end">
+                                                <input
+                                                    id="f-rental-end"
+                                                    type="datetime-local"
+                                                    value={data.rental_end}
+                                                    min={data.rental_start || new Date().toISOString().slice(0, 16)}
+                                                    onChange={(e) => {
+                                                        const val = e.target.value;
+                                                        setData('rental_end', val);
+                                                        setRentalConflict(null);
+                                                        // Auto-check conflict
+                                                        if (data.rental_start && val && data.product_id) {
+                                                            fetch('/api/rental/check-conflict', {
+                                                                method: 'POST',
+                                                                headers: {
+                                                                    'Content-Type': 'application/json',
+                                                                    'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || '',
+                                                                },
+                                                                body: JSON.stringify({
+                                                                    product_id: data.product_id,
+                                                                    rental_start: data.rental_start,
+                                                                    rental_end: val,
+                                                                }),
+                                                            })
+                                                                .then((r) => r.json())
+                                                                .then((r) => {
+                                                                    if (r.conflict) {
+                                                                        setRentalConflict(r.conflict_message || 'Jadwal sudah dipesan.');
+                                                                    }
+                                                                })
+                                                                .catch(() => {});
+                                                        }
+                                                    }}
+                                                    className={inputBaseClass}
+                                                />
+                                            </Field>
+                                        </div>
+                                        {rentalConflict && (
+                                            <div className="rounded-lg bg-rose-50 border border-rose-200 p-3 text-xs text-rose-700 flex items-start gap-2">
+                                                <AlertCircle className="h-4 w-4 shrink-0 mt-0.5" />
+                                                <span>{rentalConflict}</span>
+                                            </div>
+                                        )}
+                                        {data.rental_start && data.rental_end && !rentalConflict && (
+                                            <div className="rounded-lg bg-teal-50 border border-teal-200 p-3 text-xs text-teal-700 flex items-center gap-2">
+                                                <Check className="h-4 w-4 shrink-0" />
+                                                <span>Jadwal tersedia</span>
+                                            </div>
+                                        )}
+                                    </div>
+
+                                    {/* Renter Data (Jalur C: Sewa) */}
+                                    <div className="rounded-xl border border-[var(--color-border)] p-4 space-y-4">
+                                        <h3 className="text-sm font-semibold text-[var(--color-ink)] flex items-center gap-2">
+                                            <Building2 className="h-4 w-4 text-[var(--color-accent)]" />
+                                            Data Penyewa
+                                        </h3>
+                                        <div className="grid gap-4 sm:grid-cols-2">
+                                            <Field label="Nama Instansi / Perorangan" htmlFor="f-company-name">
+                                                <input
+                                                    id="f-company-name"
+                                                    type="text"
+                                                    value={data.renter_data.company_name}
+                                                    onChange={(e) => setData('renter_data', { ...data.renter_data, company_name: e.target.value })}
+                                                    placeholder="PT / CV / Nama Lengkap"
+                                                    className={inputBaseClass}
+                                                />
+                                            </Field>
+                                            <Field label="NPWP (opsional)" htmlFor="f-npwp">
+                                                <input
+                                                    id="f-npwp"
+                                                    type="text"
+                                                    value={data.renter_data.npwp}
+                                                    onChange={(e) => setData('renter_data', { ...data.renter_data, npwp: e.target.value })}
+                                                    placeholder="00.000.000.0-000.000"
+                                                    className={inputBaseClass}
+                                                />
+                                            </Field>
+                                        </div>
+                                        <div className="grid gap-4 sm:grid-cols-2">
+                                            <Field label="Nomor KTP / NIK" htmlFor="f-ktp">
+                                                <input
+                                                    id="f-ktp"
+                                                    type="text"
+                                                    value={data.renter_data.ktp_number}
+                                                    onChange={(e) => setData('renter_data', { ...data.renter_data, ktp_number: e.target.value })}
+                                                    placeholder="16 digit NIK"
+                                                    maxLength={16}
+                                                    className={inputBaseClass}
+                                                />
+                                            </Field>
+                                            <Field label="Nama Kontak Person" htmlFor="f-contact-person">
+                                                <input
+                                                    id="f-contact-person"
+                                                    type="text"
+                                                    value={data.renter_data.contact_person}
+                                                    onChange={(e) => setData('renter_data', { ...data.renter_data, contact_person: e.target.value })}
+                                                    placeholder="Nama PIC"
+                                                    className={inputBaseClass}
+                                                />
+                                            </Field>
+                                        </div>
+                                        <Field label="Nomor Telepon Kontak" htmlFor="f-contact-phone">
+                                            <input
+                                                id="f-contact-phone"
+                                                type="tel"
+                                                value={data.renter_data.contact_phone}
+                                                onChange={(e) => setData('renter_data', { ...data.renter_data, contact_phone: e.target.value })}
+                                                placeholder="08xx-xxxx-xxxx"
+                                                className={inputBaseClass}
+                                            />
+                                        </Field>
+                                        <p className="text-[10px] text-[var(--color-muted)]">
+                                            Data KTP/NIK bersifat rahasia dan hanya dapat dilihat oleh Admin RTPU sesuai UU No. 27 Tahun 2022 tentang PDP.
+                                        </p>
+                                    </div>
                                 </div>
                             )}
 
                             {/* Add-ons: clean unboxed rows with "Tambahan" heading */}
                             {(termasukItems.length > 0 || addonItems.length > 0) && (
                                 <div className="space-y-3 pt-2">
-                                    <h2 className="text-sm font-semibold text-[var(--color-ink)]">Tambahan</h2>
+                                    <SectionHeading number={2} title="Tambahan" />
 
                                     {/* Included items */}
                                     {termasukItems.map((o) => (
@@ -648,46 +1017,75 @@ export default function PengajuanCreate({ auth, layanan = [], selected = {} }) {
                                 </div>
                             )}
 
-                            {/* Live summary at the bottom, directly above the submit button */}
-                            <div className="border-t border-[var(--color-border)] pt-5 space-y-2 text-sm">
-                                <div className="flex justify-between text-[var(--color-muted)]">
-                                    <span>Tarif dasar</span>
-                                    <span className="tabular-nums text-[var(--color-ink)]">Rp {baseTotal.toLocaleString('id-ID')}</span>
-                                </div>
-                                {totalAddons > 0 && (
-                                    <div className="flex justify-between text-[var(--color-muted)]">
-                                        <span>Tambahan</span>
-                                        <span className="tabular-nums text-[var(--color-ink)]">Rp {totalAddons.toLocaleString('id-ID')}</span>
+                          </div>
+
+                          {/* Kolom kanan: ringkasan pesanan, sticky di desktop */}
+                          <aside className="space-y-4 lg:sticky lg:top-24" aria-label="Ringkasan pesanan">
+                            <div className="relative overflow-hidden rounded-3xl border border-[var(--color-border)] bg-white p-5 shadow-card sm:p-6">
+                                <div className="pointer-events-none absolute inset-x-0 top-0 h-[2px] bg-gradient-to-r from-[var(--color-gold)] via-[var(--color-accent)] to-[var(--color-gold)]" aria-hidden />
+                                <h2 className="flex items-center gap-2 text-sm font-bold text-[var(--color-ink)]">
+                                    <ClipboardList className="h-4 w-4 text-[var(--color-accent)]" />
+                                    Ringkasan Pesanan
+                                </h2>
+
+                                {selectedName && (
+                                    <div className="mt-4 flex items-start justify-between gap-3 border-b border-[var(--color-border)] pb-4 text-sm">
+                                        <div className="min-w-0">
+                                            <p className="truncate font-semibold text-[var(--color-ink)]">{selectedName}</p>
+                                            {tipe === 'produk' && (
+                                                <p className="mt-0.5 text-xs text-[var(--color-muted)]">
+                                                    {parsedQty} × {rupiah(currentPrice)}
+                                                </p>
+                                            )}
+                                        </div>
+                                        <span className="tabular-nums font-semibold text-[var(--color-ink)]">{rupiah(baseTotal)}</span>
                                     </div>
                                 )}
-                                {data.metode_pengambilan === 'Diantar' && shippingCost > 0 && (
+
+                                <dl className="mt-4 space-y-2.5 text-sm">
                                     <div className="flex justify-between text-[var(--color-muted)]">
-                                        <span>Biaya Pengiriman (Ongkir)</span>
-                                        <span className="tabular-nums text-emerald-700 font-semibold">+ Rp {shippingCost.toLocaleString('id-ID')}</span>
+                                        <dt>Tarif dasar</dt>
+                                        <dd className="tabular-nums text-[var(--color-ink)]">{rupiah(baseTotal)}</dd>
                                     </div>
-                                )}
-                                <div className="flex justify-between text-[var(--color-muted)]">
-                                    <span>PPN (12%)</span>
-                                    <span className="tabular-nums text-[var(--color-ink)]">Rp {displayPpn.toLocaleString('id-ID')}</span>
-                                </div>
-                                <div className="flex justify-between border-t border-[var(--color-border)] pt-3 text-base">
-                                    <span className="font-semibold text-[var(--color-ink)]">Total</span>
-                                    <span className="tabular-nums font-bold text-[var(--color-ink)] text-lg">
-                                        Rp {displayTotal.toLocaleString('id-ID')}
+                                    {totalAddons > 0 && (
+                                        <div className="flex justify-between text-[var(--color-muted)]">
+                                            <dt>Tambahan</dt>
+                                            <dd className="tabular-nums text-[var(--color-ink)]">{rupiah(totalAddons)}</dd>
+                                        </div>
+                                    )}
+                                    {data.metode_pengambilan === 'Diantar' && shippingCost > 0 && (
+                                        <div className="flex justify-between text-[var(--color-muted)]">
+                                            <dt>Ongkos kirim</dt>
+                                            <dd className="tabular-nums font-semibold text-[var(--color-success)]">+ {rupiah(shippingCost)}</dd>
+                                        </div>
+                                    )}
+                                    <div className="flex justify-between text-[var(--color-muted)]">
+                                        <dt>PPN (12%)</dt>
+                                        <dd className="tabular-nums text-[var(--color-ink)]">{rupiah(displayPpn)}</dd>
+                                    </div>
+                                </dl>
+
+                                <div className="mt-4 flex items-baseline justify-between border-t border-[var(--color-border)] pt-4">
+                                    <span className="text-sm font-semibold text-[var(--color-ink)]">Total</span>
+                                    <span className="tabular-nums font-display text-2xl font-bold text-[var(--color-accent)]">
+                                        {rupiah(displayTotal)}
                                     </span>
                                 </div>
-                            </div>
 
-                            {/* Submit button: rectangular 6px radius, sticky on mobile */}
-                            <div className="pt-2 sticky bottom-4 sm:static bg-white/90 sm:bg-transparent backdrop-blur-sm sm:backdrop-blur-none py-2 sm:py-0">
                                 <button
                                     type="submit"
                                     disabled={processing}
-                                    className="w-full rounded-full bg-[var(--color-accent)] py-3 text-sm font-semibold text-white transition hover:bg-[var(--color-accent-hover)] active:scale-[0.99] disabled:opacity-50"
+                                    className="mt-5 inline-flex w-full items-center justify-center rounded-full bg-[var(--color-accent)] py-3 text-sm font-semibold text-white transition hover:bg-[var(--color-accent-hover)] active:scale-[0.99] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-accent)] focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-60"
                                 >
-                                    {processing ? 'Mengajukan…' : 'Ajukan'}
+                                    {processing ? 'Mengirim…' : 'Kirim Pengajuan'}
                                 </button>
+
+                                <p className="mt-3 flex items-start gap-2 text-[11px] leading-relaxed text-[var(--color-muted)]">
+                                    <ShieldCheck className="mt-0.5 h-3.5 w-3.5 shrink-0 text-[var(--color-accent)]" />
+                                    Pengajuan diverifikasi Admin RTPU. Pembayaran dilakukan setelah pengajuan disetujui.
+                                </p>
                             </div>
+                          </aside>
                         </form>
                     )}
                 </div>

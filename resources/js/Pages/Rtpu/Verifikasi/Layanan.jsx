@@ -1,10 +1,9 @@
-import { Head, router } from '@inertiajs/react';
+import { Head, Link, router, useForm } from '@inertiajs/react';
 import { CheckCircle2 } from 'lucide-react';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import ReviewPanel from '@/Components/ReviewPanel';
 import DashboardLayout from '@/Layouts/DashboardLayout';
 import { Card, EmptyState, FadeIn, PageHeader, StatusBadge } from '@/Components/ui';
-import Modal from '@/Components/ui/Modal';
 
 const TYPE_LABEL = { jasa: 'Jasa', ruangan: 'Ruangan', produk: 'Produk' };
 const CHECKLIST = [
@@ -14,10 +13,33 @@ const CHECKLIST = [
     'Dokumen pendukung dilampirkan bila diperlukan',
 ];
 
-export default function VerifikasiLayanan({ auth, antrean = [], selected = null }) {
+export default function VerifikasiLayanan({ auth, antrean = [], selected = null, bluBanks = [], shippingCouriers = [] }) {
+    const invoiceForm = useForm({ unit_price: selected?.product_detail?.final_price ?? selected?.product_detail?.base_price ?? '', shipping_courier: '', shipping_service: '', shipping_amount: 0, tax_rate: '0', bank_id: '', due_date: '', notes: '' });
+    const [rates, setRates] = useState([]);
+    const [shippingError, setShippingError] = useState('');
+    const [loadingRates, setLoadingRates] = useState(false);
+    const delivery = ['kurir', 'Diantar'].includes(selected?.fulfillment);
+    useEffect(() => {
+        setRates([]);
+        invoiceForm.setData('shipping_service', '');
+        invoiceForm.setData('shipping_amount', 0);
+        if (!delivery || !invoiceForm.data.shipping_courier) return;
+        const controller = new AbortController();
+        setLoadingRates(true);
+        setShippingError('');
+        fetch(`${route('rtpu.verify.layanan.shipping', selected.id)}?courier=${encodeURIComponent(invoiceForm.data.shipping_courier)}`, { headers: { Accept: 'application/json' }, signal: controller.signal })
+            .then(async (response) => {
+                const data = await response.json();
+                if (!response.ok) throw new Error(Object.values(data.errors ?? {}).flat().join(' ') || data.message || 'Tarif live tidak tersedia.');
+                setRates(data.rates);
+            })
+            .catch((error) => { if (error.name !== 'AbortError') setShippingError(error.message); })
+            .finally(() => { if (!controller.signal.aborted) setLoadingRates(false); });
+        return () => controller.abort();
+    }, [selected?.id, delivery, invoiceForm.data.shipping_courier]);
     const rows = antrean;
-    const [selId, setSelId] = useState(null);
-    const sel = rows.find((r) => r.id === selId) ?? null;
+    const sel = selected;
+    const [tarifJasa, setTarifJasa] = useState('');
     const [processing, setProcessing] = useState(false);
     const detail = sel?.product_detail;
     const meta = detail?.meta ?? {};
@@ -35,7 +57,7 @@ export default function VerifikasiLayanan({ auth, antrean = [], selected = null 
                     desc="Periksa kelengkapan data, verifikasi isi pengajuan, lalu verifikasi atau tolak dengan catatan."
                 />
 
-                {rows.length === 0 ? (
+                {!sel && (rows.length === 0 ? (
                     <EmptyState
                         icon={CheckCircle2}
                         title="Antrean Pengajuan Kosong"
@@ -49,11 +71,9 @@ export default function VerifikasiLayanan({ auth, antrean = [], selected = null 
                             </h2>
                             <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
                                 {rows.map((p) => (
-                                    <button
+                                    <Link
                                         key={p.id}
-                                        type="button"
-                                        onClick={() => setSelId(p.id)}
-                                        aria-haspopup="dialog"
+                                        href={route('rtpu.verify.layanan.show', p.id)}
                                         className="block w-full rounded-2xl border p-5 text-left shadow-[var(--shadow-card)] transition duration-150 hover:border-[var(--color-accent)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-accent)]"
                                         style={
                                             sel?.id === p.id
@@ -72,12 +92,15 @@ export default function VerifikasiLayanan({ auth, antrean = [], selected = null 
                                             {TYPE_LABEL[p.type]} · {p.customer} · {p.date}
                                         </span>
                                         <span className="mt-4 inline-flex rounded-full bg-[var(--color-accent)] px-4 py-2 text-xs font-semibold text-white">Lihat Detail &amp; Verifikasi</span>
-                                    </button>
+                                    </Link>
                                 ))}
                             </div>
                         </div>
 
-                        <Modal open={Boolean(sel)} onClose={() => setSelId(null)} title="Detail Pengajuan & Verifikasi" size="2xl">
+                        </div>
+                ))}
+                {sel && <Link href={route('rtpu.verify.layanan')} className="mb-5 inline-flex rounded-full border border-[var(--color-border)] px-5 py-2 text-sm font-semibold text-[var(--color-accent)]">← Kembali ke antrean pengajuan</Link>}
+                        {sel && <Card>
                             {sel && (
                             <div>
                                 <div className="mb-1 flex flex-wrap items-center gap-2">
@@ -121,7 +144,7 @@ export default function VerifikasiLayanan({ auth, antrean = [], selected = null 
                                         ['Jurusan pengaju', display(sel.jurusan)],
                                         ['Tipe', TYPE_LABEL[sel.type]],
                                         ['Jumlah', sel.qty ?? '-'],
-                                        ['Keperluan', sel.need ?? '-'],
+                                        ...(!sel.is_product && sel.type !== 'produk' && !sel.is_preorder ? [['Keperluan', sel.need ?? '-']] : []),
                                         ['Tanggal', sel.date],
                                         ['Kategori', display(sel.category)],
                                         ['Unit / institusi', display(sel.unit)],
@@ -136,6 +159,29 @@ export default function VerifikasiLayanan({ auth, antrean = [], selected = null 
                                         </div>
                                     ))}
                                 </dl>
+                                {sel.kebutuhan_detail && (
+                                    <section className="mt-5 rounded-2xl border border-[var(--color-border)] p-4" aria-label="Kebutuhan pengujian dan konsultasi biaya">
+                                        <h3 className="text-sm font-semibold text-[var(--color-ink)]">Kebutuhan pengujian &amp; konsultasi biaya</h3>
+                                        <dl className="mt-3 space-y-2.5 text-sm">
+                                            {[
+                                                ['Jenis pengujian / layanan', sel.kebutuhan_detail.jenis_pengujian],
+                                                ['Metode / standar', sel.kebutuhan_detail.metode_standar],
+                                                ['Jumlah sampel', sel.kebutuhan_detail.jumlah_sampel],
+                                                ['Uraian kebutuhan', sel.kebutuhan_detail.uraian_kebutuhan],
+                                                ['Konsultasi biaya dari Customer', sel.kebutuhan_detail.konsultasi_biaya],
+                                            ].filter(([, v]) => v !== undefined && v !== null && v !== '').map(([k, v]) => (
+                                                <div key={k}>
+                                                    <dt className="text-xs text-[var(--color-muted)]">{k}</dt>
+                                                    <dd className="mt-0.5 whitespace-pre-wrap break-words font-medium text-[var(--color-ink)]">{v}</dd>
+                                                </div>
+                                            ))}
+                                        </dl>
+                                    </section>
+                                )}
+                                {sel.owner_detail && <section className="mt-5 rounded-2xl border border-[var(--color-border)] p-4">
+                                    <h3 className="text-sm font-semibold">Pemilik produk / unit pengelola</h3>
+                                    <dl className="mt-2 space-y-2 text-sm">{[['Nama', sel.owner_detail.name], ['Email', sel.owner_detail.email], ['Telepon', sel.owner_detail.phone], ['NIP', sel.owner_detail.nip], ['Jurusan', sel.owner_detail.jurusan], ['Unit / institusi', sel.owner_detail.unit_name || sel.owner_detail.institution]].map(([label, value]) => <div key={label} className="flex justify-between gap-4"><dt>{label}</dt><dd className="text-right font-medium">{display(value)}</dd></div>)}</dl>
+                                </section>}
                                 <section className="mt-5 space-y-4 rounded-2xl bg-[var(--color-surface)] p-4">
                                     <div>
                                         <h3 className="text-sm font-semibold text-[var(--color-ink)]">Deskripsi singkat</h3>
@@ -146,15 +192,64 @@ export default function VerifikasiLayanan({ auth, antrean = [], selected = null 
                                         <p className="mt-2 whitespace-pre-wrap break-words text-sm leading-relaxed text-[var(--color-muted)]">{display(detail?.description)}</p>
                                     </div>
                                 </section>
+                                {sel.is_preorder && <section className="mt-5 space-y-3 rounded-2xl border border-[var(--color-border)] p-4">
+                                    <h3 className="font-semibold">Invoice pre-order · Transfer BLU</h3>
+                                    {sel.invoice?.status === 'draft' ? <div className="space-y-2 text-sm">
+                                        <p>{sel.invoice.invoice_number} · Total transfer {rupiah(sel.invoice.total)}</p>
+                                        <p>Barang {rupiah(sel.invoice.subtotal)} + pajak {sel.invoice.tax_rate_snapshot}% ({rupiah(sel.invoice.tax_amount)}) + ongkir {rupiah(sel.invoice.shipping_amount)} + nominal unik {rupiah(sel.invoice.unique_amount)}</p>
+                                        <p>{sel.invoice.bank_snapshot?.name} · {sel.invoice.bank_snapshot?.account} · {sel.invoice.bank_snapshot?.holder}</p>
+                                        <button type="button" className="underline" onClick={() => router.patch(route('rtpu.invoice.cancel', sel.invoice.id), { reason: 'Penyusunan ulang draf invoice' })}>Batalkan draf untuk menyusun ulang</button>
+                                    </div> : <form className="space-y-3" onSubmit={(event) => { event.preventDefault(); invoiceForm.post(route('rtpu.invoice.store', sel.id)); }}>
+                                        <p className="text-xs text-[var(--color-muted)]">Harga per unit × {sel.qty || 1}. Pajak hanya atas barang. Nominal unik ditambahkan otomatis, bebas pajak.</p>
+                                        {!bluBanks.length && <p role="alert">Rekening resmi belum tersedia. Masukkan rekening resmi institusi bertipe BLU yang aktif terlebih dahulu; jangan gunakan nomor contoh. <Link href={`${route('rtpu.metode')}?tambah=blu`} className="font-semibold text-[var(--color-accent)] underline">Tambah rekening resmi BLU di Metode Pembayaran</Link>.</p>}
+                                        <label className="block text-sm">Harga barang per unit (Rp)<input required inputMode="numeric" className="mt-1 block w-full rounded-xl border-[var(--color-border)]" value={invoiceForm.data.unit_price === '' ? '' : Number(invoiceForm.data.unit_price).toLocaleString('id-ID')} onChange={(event) => invoiceForm.setData('unit_price', event.target.value.replace(/\D/g, '') === '' ? '' : Number(event.target.value.replace(/\D/g, '')))} /></label>
+                                        {delivery ? <div className="space-y-3">
+                                            <p className="text-sm">Pilihan pelanggan: diantar. Tarif dihitung live dari kota tujuan tersimpan dan berat produk × jumlah.</p>
+                                            <label className="block text-sm">Ekspedisi<select required className="mt-1 block w-full rounded-xl border-[var(--color-border)]" value={invoiceForm.data.shipping_courier} onChange={(event) => invoiceForm.setData('shipping_courier', event.target.value)}><option value="">Pilih ekspedisi</option>{shippingCouriers.map((code) => <option key={code} value={code}>{code.toUpperCase()}</option>)}</select></label>
+                                            {loadingRates && <p role="status">Memuat tarif live…</p>}
+                                            {shippingError && <p role="alert" className="text-sm text-[var(--color-danger)]">{shippingError} Invoice pengiriman belum dapat disiapkan; tidak ada tarif pengganti otomatis.</p>}
+                                            <label className="block text-sm">Layanan &amp; ongkir<select required disabled={loadingRates || !rates.length} className="mt-1 block w-full rounded-xl border-[var(--color-border)]" value={invoiceForm.data.shipping_service} onChange={(event) => { const rate = rates.find((item) => item.service === event.target.value); invoiceForm.setData((data) => ({ ...data, shipping_service: event.target.value, shipping_amount: rate?.amount ?? 0 })); }}><option value="">Pilih tarif live</option>{rates.map((rate) => <option key={rate.service} value={rate.service}>{rate.service} · {rupiah(rate.amount)} · estimasi {rate.etd || 'tidak tersedia'}</option>)}</select></label>
+                                        </div> : <p className="text-sm">Pilihan pelanggan: ambil di PNJ · Ongkir Rp 0</p>}
+                                        {[['tax_rate', 'Pajak barang (%)', 'number'], ['due_date', 'Jatuh tempo', 'date'], ['notes', 'Catatan invoice', 'text']].map(([key, label, type]) => <label key={key} className="block text-sm">{label}<input required={key !== 'notes'} type={type} min={type === 'number' ? 0 : undefined} step={key === 'tax_rate' ? '0.01' : undefined} className="mt-1 block w-full rounded-xl border-[var(--color-border)]" value={invoiceForm.data[key]} onChange={(event) => invoiceForm.setData(key, event.target.value)} /></label>)}
+                                        <label className="block text-sm">Rekening resmi BLU<select required className="mt-1 block w-full rounded-xl border-[var(--color-border)]" value={invoiceForm.data.bank_id} onChange={(event) => invoiceForm.setData('bank_id', event.target.value)}><option value="">Pilih rekening</option>{bluBanks.map((bank) => <option key={bank.id} value={bank.id}>{bank.nama} · {bank.rekening} · {bank.holder}</option>)}</select></label>
+                                        {Object.values(invoiceForm.errors).map((error) => <p role="alert" key={error} className="text-sm text-red-700">{error}</p>)}
+                                        <button disabled={!bluBanks.length || invoiceForm.processing || (delivery && (loadingRates || !invoiceForm.data.shipping_service || !!shippingError))} className="rounded-full bg-[var(--color-accent)] px-4 py-2 text-sm text-white disabled:opacity-40">Simpan draf invoice</button>
+                                    </form>}
+                                </section>}
+                                {!sel.is_product && !sel.is_preorder && ['jasa', 'ruangan'].includes(sel.type) && (
+                                    <section className="mt-5 space-y-2 rounded-2xl border border-[var(--color-border)] p-4" aria-label="Penetapan tarif">
+                                        <h3 className="text-sm font-semibold text-[var(--color-ink)]">Penetapan tarif</h3>
+                                        <p className="text-xs text-[var(--color-muted)]">
+                                            Tarif dasar layanan {rupiah(sel.total)}. Isi tarif per satuan bila berbeda sesuai kebutuhan Customer; tarif ini dipakai saat invoice diterbitkan. Kosongkan untuk memakai tarif katalog.
+                                        </p>
+                                        <label htmlFor="tarif-jasa" className="block text-sm">
+                                            Tarif per satuan (Rp)
+                                            <input
+                                                id="tarif-jasa"
+                                                inputMode="numeric"
+                                                className="mt-1 block w-full rounded-xl border-[var(--color-border)]"
+                                                value={tarifJasa === '' ? '' : Number(tarifJasa).toLocaleString('id-ID')}
+                                                onChange={(event) => {
+                                                    const digits = event.target.value.replace(/\D/g, '');
+                                                    setTarifJasa(digits === '' ? '' : Number(digits));
+                                                }}
+                                            />
+                                        </label>
+                                    </section>
+                                )}
                                 <div className="mt-5 border-t pt-5" style={{ borderColor: 'var(--color-border)' }}>
                                     <ReviewPanel
                                         title="Panel peninjau"
                                         checklist={CHECKLIST}
                                         approveLabel="Verifikasi"
                                         onApprove={() => {
+                                            if (sel.is_preorder && sel.invoice?.status !== 'draft') {
+                                                invoiceForm.setError('invoice', 'Siapkan invoice BLU sebelum menyetujui pre-order.');
+                                                return null;
+                                            }
                                             setProcessing(true);
-                                            router.patch(route('rtpu.verify.layanan.approve', sel.id), {}, {
-                                                onSuccess: () => setSelId(null),
+                                            router.patch(route('rtpu.verify.layanan.approve', sel.id), tarifJasa === '' ? {} : { tarif_jasa: tarifJasa }, {
+                                                onSuccess: () => router.visit(route('rtpu.verify.layanan')),
                                                 onFinish: () => setProcessing(false),
                                             });
                                             return null;
@@ -162,7 +257,7 @@ export default function VerifikasiLayanan({ auth, antrean = [], selected = null 
                                         onReject={(catatan) => {
                                             setProcessing(true);
                                             router.patch(route('rtpu.verify.layanan.reject', sel.id), { catatan }, {
-                                                onSuccess: () => setSelId(null),
+                                                onSuccess: () => router.visit(route('rtpu.verify.layanan')),
                                                 onFinish: () => setProcessing(false),
                                             });
                                             return null;
@@ -171,9 +266,7 @@ export default function VerifikasiLayanan({ auth, antrean = [], selected = null 
                                 </div>
                             </div>
                         )}
-                        </Modal>
-                </div>
-            )}
+                        </Card>}
             </FadeIn>
         </DashboardLayout>
     );

@@ -3,6 +3,7 @@
 use App\Http\Controllers\Admin\ExternalLinkController;
 use App\Http\Controllers\Admin\SettingController;
 use App\Http\Controllers\Admin\TaxRateController;
+use App\Http\Controllers\Api\RentalConflictController;
 use App\Http\Controllers\Api\ShippingController;
 use App\Http\Controllers\Auth\SsoController;
 use App\Http\Controllers\Catalog\CatalogController;
@@ -35,6 +36,7 @@ use App\Http\Controllers\Rtpu\RiwayatController as RtpuRiwayatController;
 use App\Http\Controllers\Rtpu\StatusController as RtpuStatusController;
 use App\Http\Controllers\Rtpu\TenantVerificationController;
 use App\Http\Controllers\Rtpu\VerifikasiController as RtpuVerifikasiController;
+use App\Http\Controllers\SuperAdmin\CategoryController as SuperAdminCategoryController;
 use App\Http\Controllers\SuperAdmin\DashboardController as SuperAdminDashboardController;
 use App\Http\Controllers\SuperAdmin\FiturController as SuperAdminFiturController;
 use App\Http\Controllers\SuperAdmin\HakAksesController as SuperAdminHakController;
@@ -43,12 +45,37 @@ use App\Http\Controllers\SuperAdmin\UsersController as SuperAdminUsersController
 use Illuminate\Support\Facades\Route;
 use Inertia\Inertia;
 
-Route::get('/api/shipping/cities', [ShippingController::class, 'cities'])->name('api.shipping.cities');
 Route::post('/api/shipping/calculate', [ShippingController::class, 'calculate'])->name('api.shipping.calculate');
+Route::post('/api/shipping/calculate-postal', [ShippingController::class, 'calculateByPostalCode'])->name('api.shipping.calculate-postal');
+Route::get('/api/shipping/cities', [ShippingController::class, 'cities'])->name('api.shipping.cities');
+Route::post('/api/rental/check-conflict', RentalConflictController::class)->name('api.rental.check-conflict');
 
 Route::get('/', [CatalogController::class, 'index'])->name('home')->middleware('fitur:katalog');
 Route::get('/katalog', [CatalogController::class, 'browse'])->name('catalog.index')->middleware('fitur:katalog');
 Route::get('/catalog/{product:slug}', [CatalogController::class, 'show'])->name('catalog.show')->middleware('fitur:katalog');
+
+// Tombol "Masuk untuk Checkout" di katalog publik menuju sini dulu: simpan URL
+// checkout tujuan sebagai intended URL, baru redirect ke halaman login. Tanpa ini,
+// setelah login guest selalu jatuh ke dashboard karena tidak pernah menyentuh
+// route customer.pengajuan.create (yang ditangkap PreserveIntendedUrl) sebelum login.
+Route::get('/lanjut-checkout', function (\Illuminate\Http\Request $request) {
+    $target = $request->query('redirect_to');
+
+    if ($target) {
+        $parsed = parse_url($target);
+        $sameHost = ! isset($parsed['host']) || $parsed['host'] === $request->getHost();
+        $isRelativeOrSameHost = $sameHost && ! str_starts_with($target, '//');
+
+        if ($isRelativeOrSameHost) {
+            // Normalisasi ke URL absolut di host saat ini agar konsisten dengan
+            // yang dibaca AuthenticatedSessionController/RegisteredUserController.
+            $path = ($parsed['path'] ?? '/').(isset($parsed['query']) ? '?'.$parsed['query'] : '');
+            session(['_intended_url' => url($path)]);
+        }
+    }
+
+    return redirect()->route('login');
+})->middleware('guest')->name('checkout.redirect-login');
 
 // DEV-ONLY: UI Kit playground for design system review.
 if (app()->environment('local')) {
@@ -58,18 +85,23 @@ if (app()->environment('local')) {
 }
 
 Route::middleware(['auth', 'verified'])->group(function () {
+    Route::get('/pickup/{pengajuan}/photo', \App\Http\Controllers\PickupPhotoController::class)->name('pickup.photo');
     Route::get('/dashboard', function () {
         return Inertia::render('Dashboard');
     })->name('dashboard');
+
+    Route::get('/hasil-jasa/{pengajuan}/{index}', [FileController::class, 'hasilJasa'])
+        ->whereNumber('index')->name('hasil-jasa.download');
 
     Route::get('/berkas/{kind}/{id}/{index}', [FileController::class, 'show'])
         ->whereNumber(['id', 'index'])
         ->whereIn('kind', ['pengajuan-dokumen', 'produk-dokumen', 'bukti', 'tenant-ktp'])
         ->name('berkas.show');
 
-    Route::get('/profile', [ProfileController::class, 'edit'])->name('profile.edit');
-    Route::patch('/profile', [ProfileController::class, 'update'])->name('profile.update');
-    Route::delete('/profile', [ProfileController::class, 'destroy'])->name('profile.destroy');
+    // Profil sendiri (Sprint 4 #1). Selalu memakai Auth::user(), tanpa parameter id,
+    // sehingga user tidak bisa membuka/mengubah profil orang lain. Hapus akun dinonaktifkan.
+    Route::get('/profile', [ProfileController::class, 'edit'])->name('profile.edit')->middleware(['fitur:profil', 'permission:profil,Lihat']);
+    Route::patch('/profile', [ProfileController::class, 'update'])->name('profile.update')->middleware(['fitur:profil', 'permission:profil,Ubah']);
 
     // ---- Use-case model: Customer ----
     Route::middleware('role:customer')->prefix('pengajuan')->name('customer.pengajuan.')->group(function () {
@@ -81,6 +113,10 @@ Route::middleware(['auth', 'verified'])->group(function () {
         Route::get('/{pengajuan}/edit', [CustomerPengajuanController::class, 'edit'])->name('edit')->middleware(['fitur:pengajuan', 'permission:pengajuan,Ubah']);
         Route::patch('/{pengajuan}', [CustomerPengajuanController::class, 'update'])->name('update')->middleware(['fitur:pengajuan', 'permission:pengajuan,Ubah']);
         Route::patch('/{pengajuan}/cancel', [CustomerPengajuanController::class, 'cancel'])->name('cancel')->middleware(['fitur:pengajuan', 'permission:pengajuan,Ubah']);
+        Route::patch('/{pengajuan}/terima', [CustomerPengajuanController::class, 'confirmReceipt'])->name('confirm-receipt')->middleware(['fitur:pengajuan', 'permission:pengajuan,Ubah']);
+        Route::patch('/{pengajuan}/jasa/selesai', [CustomerPengajuanController::class, 'confirmJasa'])->name('jasa.confirm')->middleware(['fitur:pengajuan', 'permission:pengajuan,Ubah']);
+        Route::patch('/{pengajuan}/jasa/revisi', [CustomerPengajuanController::class, 'requestRevision'])->name('jasa.revision')->middleware(['fitur:pengajuan', 'permission:pengajuan,Ubah']);
+        Route::post('/{pengajuan}/jasa/rating', [CustomerPengajuanController::class, 'rateJasa'])->name('jasa.rate')->middleware(['fitur:pengajuan', 'permission:pengajuan,Ubah']);
         Route::get('/{pengajuan}/bayar', [CustomerPengajuanController::class, 'bayar'])->name('bayar')->middleware(['fitur:pembayaran', 'permission:pembayaran,Lihat']);
         Route::post('/{pengajuan}/pembayaran', [CustomerPengajuanController::class, 'createPayment'])->name('pembayaran.create')->middleware(['fitur:pembayaran', 'permission:pembayaran,Tambah']);
         Route::get('/{pengajuan}/status-pembayaran', [CustomerPengajuanController::class, 'paymentStatus'])->name('pembayaran.status')->middleware(['fitur:pembayaran', 'permission:pembayaran,Lihat']);
@@ -119,6 +155,8 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::middleware('role:admin_rtpu')->prefix('rtpu')->name('rtpu.')->group(function () {
         Route::get('/dashboard', RtpuDashboardController::class)->name('dashboard')->middleware(['fitur:verifikasi', 'permission:verifikasi,Lihat']);
         Route::get('/verifikasi/layanan', [RtpuVerifikasiController::class, 'layanan'])->name('verify.layanan')->middleware(['fitur:verifikasi', 'permission:verifikasi,Lihat']);
+        Route::get('/verifikasi/layanan/{id}', [RtpuVerifikasiController::class, 'layanan'])->name('verify.layanan.show')->where('id', '(?:prod-)?[0-9]+')->middleware(['fitur:verifikasi', 'permission:verifikasi,Lihat']);
+        Route::get('/verifikasi/layanan/{pengajuan}/shipping', [RtpuVerifikasiController::class, 'shippingRates'])->name('verify.layanan.shipping')->middleware(['fitur:verifikasi', 'permission:verifikasi,Lihat']);
         Route::patch('/verifikasi/layanan/{id}/approve', [RtpuVerifikasiController::class, 'approveLayanan'])->name('verify.layanan.approve')->middleware(['fitur:verifikasi', 'permission:verifikasi,Verifikasi']);
         Route::patch('/verifikasi/layanan/{id}/reject', [RtpuVerifikasiController::class, 'rejectLayanan'])->name('verify.layanan.reject')->middleware(['fitur:verifikasi', 'permission:verifikasi,Verifikasi']);
         Route::get('/verifikasi/pembayaran', [RtpuVerifikasiController::class, 'pembayaran'])->name('verify.bayar')->middleware(['fitur:pembayaran', 'permission:pembayaran,Lihat']);
@@ -129,6 +167,7 @@ Route::middleware(['auth', 'verified'])->group(function () {
         Route::get('/invoices/{invoice}/print', [RtpuInvoiceController::class, 'print'])->name('invoice.print')->middleware(['fitur:pembayaran', 'permission:pembayaran,Lihat']);
         Route::patch('/invoices/{invoice}/cancel', [RtpuInvoiceController::class, 'cancel'])->name('invoice.cancel')->middleware(['fitur:pembayaran', 'permission:pembayaran,Ubah']);
         Route::get('/verifikasi/produk', [RtpuProductCurationController::class, 'index'])->name('verify.produk')->middleware(['fitur:verifikasi', 'permission:verifikasi,Lihat']);
+        Route::get('/verifikasi/produk/{product}', [RtpuProductCurationController::class, 'show'])->name('verify.produk.show')->middleware(['fitur:verifikasi', 'permission:verifikasi,Lihat']);
         Route::patch('/verifikasi/produk/{product}/verify', [RtpuProductCurationController::class, 'verify'])->name('verify.produk.verify')->middleware(['fitur:verifikasi', 'permission:verifikasi,Verifikasi']);
         Route::patch('/verifikasi/produk/{product}/reject', [RtpuProductCurationController::class, 'reject'])->name('verify.produk.reject')->middleware(['fitur:verifikasi', 'permission:verifikasi,Verifikasi']);
         Route::get('/status', [RtpuStatusController::class, 'index'])->name('status')->middleware(['fitur:pengajuan', 'permission:pengajuan,Lihat']);
@@ -182,6 +221,7 @@ Route::middleware(['auth', 'verified'])->group(function () {
     // ---- Use-case model: Direktur (read-only) ----
     Route::middleware('role:direktur')->prefix('direktur')->name('direktur.')->group(function () {
         Route::get('/dashboard', DirekturDashboardController::class)->name('dashboard')->middleware(['fitur:produk-unggulan', 'permission:produk-unggulan,Lihat']);
+        Route::get('/dashboard/ekspor', [DirekturDashboardController::class, 'export'])->name('dashboard.export')->middleware(['fitur:produk-unggulan', 'permission:produk-unggulan,Lihat', 'throttle:20,1']);
         Route::get('/pemantauan', [DirekturController::class, 'monitor'])->name('monitor')->middleware(['fitur:produk-unggulan', 'permission:produk-unggulan,Lihat']);
         Route::get('/riwayat', [DirekturController::class, 'riwayat'])->name('riwayat')->middleware(['fitur:produk-unggulan', 'permission:produk-unggulan,Lihat']);
         Route::get('/reports', [ReportController::class, 'index'])->name('reports')->middleware(['fitur:laporan', 'permission:laporan,Lihat']);
@@ -205,6 +245,12 @@ Route::middleware(['auth', 'verified'])->group(function () {
         Route::get('/pengelola-applications/{application}', [SuperAdminPengelolaApplicationController::class, 'show'])->name('pengelola.show')->middleware('fitur:pengguna');
         Route::patch('/pengelola-applications/{application}/approve', [SuperAdminPengelolaApplicationController::class, 'approve'])->name('pengelola.approve')->middleware('fitur:pengguna');
         Route::patch('/pengelola-applications/{application}/reject', [SuperAdminPengelolaApplicationController::class, 'reject'])->name('pengelola.reject')->middleware('fitur:pengguna');
+
+        // Kelola sub-kategori produk
+        Route::get('/kategori', [SuperAdminCategoryController::class, 'index'])->name('kategori.index')->middleware('fitur:pengguna');
+        Route::post('/kategori', [SuperAdminCategoryController::class, 'store'])->name('kategori.store')->middleware('fitur:pengguna');
+        Route::patch('/kategori/{category}', [SuperAdminCategoryController::class, 'update'])->name('kategori.update')->middleware('fitur:pengguna');
+        Route::patch('/kategori/{category}/toggle', [SuperAdminCategoryController::class, 'toggle'])->name('kategori.toggle')->middleware('fitur:pengguna');
     });
 
     // ---- Use-case model: Admin Pengelola Unit ----

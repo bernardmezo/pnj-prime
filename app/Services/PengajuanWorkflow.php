@@ -47,7 +47,26 @@ class PengajuanWorkflow
             'Dibatalkan',
         ],
         'Diproses' => [
+            'Dikirim',
+            'Dijadwalkan',
             'Selesai',
+            'Dibatalkan',
+        ],
+        'Dikirim' => [
+            'Selesai',
+            'Dibatalkan',
+        ],
+        'Dijadwalkan' => [
+            'Dikerjakan',
+            'Dibatalkan',
+        ],
+        'Dikerjakan' => [
+            'Hasil Diunggah',
+            'Dibatalkan',
+        ],
+        'Hasil Diunggah' => [
+            'Selesai',
+            'Dikerjakan',
             'Dibatalkan',
         ],
         'Selesai' => [],
@@ -85,6 +104,12 @@ class PengajuanWorkflow
         }
 
         DB::transaction(function () use ($pengajuan, $targetStatus, $note, $actorName) {
+            $locked = Pengajuan::whereKey($pengajuan->id)->lockForUpdate()->firstOrFail();
+            if (! in_array($targetStatus, self::ALLOWED_TRANSITIONS[$locked->status] ?? [], true)) {
+                throw ValidationException::withMessages(['status' => 'Status pengajuan telah berubah. Muat ulang halaman.']);
+            }
+            $pengajuan->setRawAttributes($locked->getAttributes(), true);
+            $pengajuan->unsetRelations();
             $user = Auth::user();
             $actor = $actorName ?? ($user ? $user->name : 'Sistem');
 
@@ -122,7 +147,26 @@ class PengajuanWorkflow
             if (in_array($targetStatus, ['Ditolak', 'Dibatalkan'], true)) {
                 $this->roomBookingService->releaseForPengajuan($pengajuan->id);
             }
+
+            // Sewa (ruangan/alat): kunci jadwal saat pengajuan masuk agar slot
+            // tidak bisa diambil pengajuan lain. Hanya bila belum ada reservation.
+            if ($targetStatus === 'Diajukan' && $pengajuan->isRental() && $pengajuan->product_id) {
+                $this->roomBookingService->reserve(
+                    $pengajuan->product_id,
+                    $pengajuan->id,
+                    $pengajuan->rental_start,
+                    $pengajuan->rental_end,
+                );
+            }
         });
+
+        // Jalur B (ready stock, Midtrans): buat kwitansi otomatis saat pesanan selesai.
+        // Dijalankan setelah transaksi di atas commit, supaya notifikasi afterCommit() terkirim.
+        if ($targetStatus === 'Selesai' && ! $pengajuan->isPreorder() && $pengajuan->tipe === 'produk') {
+            $invoiceService = app(InvoiceService::class);
+            $invoiceService->issueReceiptForReadyStock($pengajuan);
+            $invoiceService->notifyReadyStockReceipt($pengajuan);
+        }
 
         return $pengajuan->fresh(['order.items', 'product']);
     }
@@ -160,12 +204,27 @@ class PengajuanWorkflow
                 'order_id' => $order->id,
                 'product_id' => $product->id,
                 'product_name' => $product->name,
-                'unit_price' => $product->final_price ?? $product->base_price,
+                'unit_price' => $this->unitPriceForSnapshot($pengajuan, $subtotal, $product),
                 'quantity' => $pengajuan->jumlah ?: 1,
                 'subtotal' => $subtotal,
             ]);
         }
 
         return $order;
+    }
+
+    /**
+     * Harga satuan snapshot. Jasa/sewa: bila RTPU menetapkan tarif (total pengajuan),
+     * satuan = total / jumlah agar subtotal item sama dengan total order.
+     */
+    private function unitPriceForSnapshot(Pengajuan $pengajuan, int $subtotal, $product): int
+    {
+        if (in_array($pengajuan->tipe, ['jasa', 'ruangan', 'alat'], true) && $pengajuan->total) {
+            $qty = max(1, PricingService::parseQty($pengajuan->jumlah));
+
+            return intdiv($subtotal, $qty);
+        }
+
+        return (int) ($product->final_price ?? $product->base_price);
     }
 }

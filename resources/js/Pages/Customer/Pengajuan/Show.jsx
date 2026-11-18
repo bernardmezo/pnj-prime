@@ -12,6 +12,10 @@ const STATUS_HINT = {
     'Menunggu Verifikasi Pembayaran': 'Pembayaran sedang diverifikasi oleh staf keuangan.',
     Lunas: 'Pembayaran telah diterima. Menunggu pemilik produk menyiapkan pesanan.',
     Diproses: 'Pesanan sedang ditindaklanjuti pemilik produk. Periksa informasi pengiriman atau pengambilan.',
+    Dikirim: 'Pesanan sudah dikirim lewat kurir. Lacak dengan nomor resi di situs kurir.',
+    Dijadwalkan: 'Jadwal pengerjaan telah ditetapkan. Lihat tanggal mulai dan perkiraan selesai di bawah.',
+    Dikerjakan: 'Pesanan sedang dikerjakan sesuai jadwal.',
+    'Hasil Diunggah': 'Hasil pengerjaan sudah tersedia. Unduh, periksa, lalu konfirmasi selesai atau ajukan revisi.',
     Selesai: 'Layanan telah selesai dan dapat dimanfaatkan sepenuhnya.',
     Ditolak: 'Permohonan ditolak oleh RTPU. Periksa catatan alasan.',
     Dibatalkan: 'Pengajuan telah dibatalkan.',
@@ -30,7 +34,13 @@ export default function PengajuanShow({ auth, item }) {
     const p = item;
     const [cancelOpen, setCancelOpen] = useState(false);
     const [cancelReason, setCancelReason] = useState('');
+    const [receiptOpen, setReceiptOpen] = useState(false);
     const [processing, setProcessing] = useState(false);
+    const [confirmJasaOpen, setConfirmJasaOpen] = useState(false);
+    const [revisionOpen, setRevisionOpen] = useState(false);
+    const [revisionNote, setRevisionNote] = useState('');
+    const [rating, setRating] = useState(5);
+    const [ulasan, setUlasan] = useState('');
 
     if (!p) {
         return (
@@ -45,9 +55,16 @@ export default function PengajuanShow({ auth, item }) {
 
     const typeLabel = p.type === 'jasa' ? 'Jasa' : p.type === 'ruangan' ? 'Ruangan' : 'Produk';
     const isPickup = /ambil/i.test(p.metode_pengambilan || '');
+    const isShipment = Boolean(p.shipment);
     const flow = ['Diajukan', 'Menunggu Pembayaran', ...(p.status === 'Menunggu Verifikasi Pembayaran' || (p.history ?? []).some((h) => h.status === 'Menunggu Verifikasi Pembayaran') ? ['Menunggu Verifikasi Pembayaran'] : []), 'Lunas', 'Diproses', 'Selesai'];
-    const flowIdx = flow.indexOf(p.status);
-    const stepLabel = (status) => status === 'Lunas' ? 'Pembayaran lunas' : status === 'Diproses' ? (isPickup ? 'Penyiapan / pengambilan di PNJ' : 'Penyiapan / pengiriman') : status === 'Selesai' ? 'Selesai — barang diterima' : status;
+    if (isPickup) flow.splice(flow.indexOf('Selesai'), 0, 'Siap Diambil');
+    if (isShipment) flow.splice(flow.indexOf('Selesai'), 0, 'Dikirim');
+    const isJasa = Boolean(p.jasa);
+    if (isJasa) flow.splice(flow.indexOf('Selesai'), 0, 'Dijadwalkan', 'Dikerjakan', 'Hasil Diunggah');
+    const currentStatus = p.status === 'Diproses' && p.pickup?.ready ? 'Siap Diambil' : p.status;
+    const flowIdx = flow.indexOf(currentStatus);
+    const jasaStepLabel = { Dijadwalkan: 'Jadwal pengerjaan', Dikerjakan: 'Sedang dikerjakan', 'Hasil Diunggah': 'Hasil diunggah' };
+    const stepLabel = (status) => status === 'Lunas' ? 'Pembayaran lunas' : status === 'Diproses' ? (isPickup ? 'Penyiapan / pengambilan di PNJ' : isJasa ? 'Penyiapan pesanan jasa' : 'Penyiapan / pengiriman') : status === 'Selesai' ? (isJasa ? 'Selesai — hasil diterima' : 'Selesai — barang diterima') : jasaStepLabel[status] ?? status;
 
     const historyList = p.history ?? [];
 
@@ -57,6 +74,11 @@ export default function PengajuanShow({ auth, item }) {
         ['Pengiriman / pengambilan', p.metode_pengambilan || 'Belum diisi'],
         ...(p.qty ? [['Jumlah', p.qty]] : []),
         ...(p.need ? [['Keperluan', p.need]] : []),
+        ...(p.kebutuhan_detail?.jenis_pengujian ? [['Jenis pengujian / layanan', p.kebutuhan_detail.jenis_pengujian]] : []),
+        ...(p.kebutuhan_detail?.metode_standar ? [['Metode / standar', p.kebutuhan_detail.metode_standar]] : []),
+        ...(p.kebutuhan_detail?.jumlah_sampel ? [['Jumlah sampel', p.kebutuhan_detail.jumlah_sampel]] : []),
+        ...(p.kebutuhan_detail?.uraian_kebutuhan ? [['Uraian kebutuhan', p.kebutuhan_detail.uraian_kebutuhan]] : []),
+        ...(p.kebutuhan_detail?.konsultasi_biaya ? [['Konsultasi biaya', p.kebutuhan_detail.konsultasi_biaya]] : []),
         ...(p.date ? [['Tanggal Diharapkan', p.date]] : []),
         ...(p.total ? [['Total tagihan', `Rp ${Number(p.total).toLocaleString('id-ID')}`]] : []),
         ...(p.payment_method ? [['Metode Pembayaran', p.payment_method]] : []),
@@ -95,25 +117,106 @@ export default function PengajuanShow({ auth, item }) {
                             style={{ background: statusDotColor(p.status) }}
                             aria-hidden
                         />
-                        <span>{p.status}</span>
+                        <span>{currentStatus}</span>
                     </div>
                 </div>
 
+                {p.invoice_url && <a href={p.invoice_url} className="mt-4 inline-block text-sm underline">Lihat invoice transaksi</a>}
+                {p.shipment?.shipped_at && (
+                    <section className="mt-5 space-y-1.5 rounded-xl border border-[var(--color-accent)]/20 bg-[var(--color-accent-tint)]/40 p-4 text-sm">
+                        <h2 className="font-bold">Informasi pengiriman</h2>
+                        <p>Kurir: <span className="font-semibold">{p.shipment.courier_name}</span></p>
+                        <p>Nomor resi: <span className="font-mono font-semibold text-[var(--color-accent)]">{p.shipment.tracking_number}</span></p>
+                        <p className="text-xs text-[var(--color-muted)]">Dikirim: {p.shipment.shipped_at}. Lacak paket secara manual di situs resmi kurir.</p>
+                        {p.status === 'Dikirim' && (
+                            <button
+                                type="button"
+                                disabled={processing}
+                                onClick={() => setReceiptOpen(true)}
+                                className="mt-2 inline-flex w-full items-center justify-center rounded-full bg-[var(--color-accent)] px-5 py-2.5 text-sm font-semibold text-white transition hover:bg-[var(--color-accent-hover)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-accent)] focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-60"
+                            >
+                                Barang Sudah Saya Terima
+                            </button>
+                        )}
+                    </section>
+                )}
+                {isJasa && (
+                    <section aria-labelledby="jasa-heading" className="mt-5 space-y-4 rounded-xl border border-[var(--color-accent)]/20 bg-[var(--color-accent-tint)]/40 p-4 text-sm sm:p-5">
+                        <h2 id="jasa-heading" className="font-bold">Pengerjaan jasa</h2>
+                        {p.jasa.jadwal_mulai_label ? (
+                            <dl className="grid gap-3 sm:grid-cols-2">
+                                <div><dt className="text-xs text-[var(--color-muted)]">Mulai pengerjaan</dt><dd className="mt-0.5 font-semibold">{p.jasa.jadwal_mulai_label}</dd></div>
+                                <div><dt className="text-xs text-[var(--color-muted)]">Perkiraan selesai</dt><dd className="mt-0.5 font-semibold">{p.jasa.jadwal_selesai_label}</dd></div>
+                            </dl>
+                        ) : (
+                            <p className="text-[var(--color-muted)]">Jadwal pengerjaan belum ditetapkan. Anda akan menerima email setelah jadwal tersedia.</p>
+                        )}
+
+                        {p.jasa.files.length > 0 && (
+                            <div>
+                                <h3 className="text-xs font-semibold uppercase tracking-wide text-[var(--color-muted)]">Berkas hasil</h3>
+                                <ul className="mt-2 divide-y divide-[var(--color-border)] rounded-xl border border-[var(--color-border)] bg-[var(--color-bg)]">
+                                    {p.jasa.files.map((f) => (
+                                        <li key={f.index} className="flex items-center justify-between gap-3 px-4 py-2.5">
+                                            <span className="min-w-0 truncate">{f.name}</span>
+                                            <a href={route('hasil-jasa.download', { pengajuan: p.id, index: f.index })} className="shrink-0 text-sm font-semibold text-[var(--color-accent)] underline">
+                                                Unduh{f.size ? ` (${(f.size / 1048576).toFixed(1)} MB)` : ''}
+                                            </a>
+                                        </li>
+                                    ))}
+                                </ul>
+                            </div>
+                        )}
+
+                        {p.status === 'Hasil Diunggah' && (
+                            <div className="flex flex-wrap gap-2">
+                                <button type="button" disabled={processing} onClick={() => setConfirmJasaOpen(true)} className="rounded-full bg-[var(--color-accent)] px-5 py-2.5 text-sm font-semibold text-white disabled:opacity-60">Hasil Sesuai, Selesaikan</button>
+                                <button type="button" disabled={processing || !p.jasa.can_request_revision} onClick={() => setRevisionOpen(true)} className="rounded-full border border-[var(--color-border)] bg-[var(--color-bg)] px-5 py-2.5 text-sm font-semibold disabled:opacity-60">
+                                    Minta Revisi ({p.jasa.revision_left} dari 2 tersisa)
+                                </button>
+                            </div>
+                        )}
+
+                        {p.status === 'Selesai' && (
+                            p.jasa.rating ? (
+                                <div>
+                                    <p aria-label={`Penilaian ${p.jasa.rating} dari 5 bintang`} className="text-lg text-[var(--color-gold)]">{'★'.repeat(p.jasa.rating)}{'☆'.repeat(5 - p.jasa.rating)}</p>
+                                    {p.jasa.ulasan && <p className="mt-1 whitespace-pre-wrap text-[var(--color-muted)]">{p.jasa.ulasan}</p>}
+                                </div>
+                            ) : (
+                                <form className="space-y-3 rounded-xl border border-[var(--color-border)] bg-[var(--color-bg)] p-4" onSubmit={(e) => {
+                                    e.preventDefault();
+                                    setProcessing(true);
+                                    router.post(route('customer.pengajuan.jasa.rate', p.id), { rating, ulasan }, { preserveScroll: true, onFinish: () => setProcessing(false) });
+                                }}>
+                                    <label htmlFor="jasa-rating" className="block font-semibold">Beri penilaian layanan ini</label>
+                                    <select id="jasa-rating" value={rating} onChange={(e) => setRating(Number(e.target.value))} className="block w-full max-w-xs rounded-xl border-[var(--color-border)]">
+                                        {[5, 4, 3, 2, 1].map((n) => <option key={n} value={n}>{n} bintang</option>)}
+                                    </select>
+                                    <label htmlFor="jasa-ulasan" className="block text-xs text-[var(--color-muted)]">Ulasan (opsional)</label>
+                                    <textarea id="jasa-ulasan" rows={2} maxLength={1000} value={ulasan} onChange={(e) => setUlasan(e.target.value)} className="block w-full rounded-xl border-[var(--color-border)]" />
+                                    <button type="submit" disabled={processing} className="rounded-full bg-[var(--color-accent)] px-5 py-2 text-sm font-semibold text-white disabled:opacity-60">Kirim Penilaian</button>
+                                </form>
+                            )
+                        )}
+                    </section>
+                )}
+                {p.pickup?.handed_over_at && <section className="mt-5 space-y-2 rounded-xl border p-4 text-sm"><h2 className="font-bold">Bukti serah terima</h2><p>Pengambil: {p.pickup.collector_name}</p><p>Kontak: {p.pickup.collector_contact}</p><p>{p.pickup.handed_over_at}</p><img src={p.pickup.photo_url} alt="Pengambil bersama barang saat serah terima" className="max-h-96 rounded-xl" /></section>}
                 {/* Single Column Content */}
                 <div className="mt-8 space-y-8">
                     {/* 1) Status Timeline: vertical rail with thin line and small dots */}
                     <div className="rounded-2xl border border-[var(--color-border)] bg-[var(--color-bg)] p-5 shadow-[var(--shadow-card)] sm:p-6">
                         <div className="mb-5 rounded-2xl bg-[var(--color-accent-tint)] p-4" role="status">
                             <p className="text-xs font-semibold uppercase tracking-wide text-[var(--color-accent)]">Posisi pesanan saat ini</p>
-                            <h2 className="mt-1 font-display text-lg font-bold text-[var(--color-ink)]">{stepLabel(p.status)}</h2>
-                            <p className="mt-2 text-sm leading-relaxed text-[var(--color-muted)]">{STATUS_HINT[p.status]}</p>
-                            {isPickup && <p className="mt-2 text-sm font-semibold text-[var(--color-accent)]">Jam pengambilan PNJ: 08.00–16.00 WIB. Tunggu pemberitahuan barang siap sebelum datang.</p>}
+                            <h2 className="mt-1 font-display text-lg font-bold text-[var(--color-ink)]">{stepLabel(currentStatus)}</h2>
+                            <p className="mt-2 text-sm leading-relaxed text-[var(--color-muted)]">{p.pickup?.ready && p.status === 'Diproses' ? 'Barang siap diambil di PNJ pada pukul 08.00–16.00 WIB.' : STATUS_HINT[p.status]}</p>
+                            {isPickup && <p className="mt-2 text-sm font-semibold text-[var(--color-accent)]">Jam pengambilan PNJ: 08.00–16.00 WIB. {p.pickup?.ready ? 'Barang telah ditandai siap diambil.' : 'Tunggu pemberitahuan barang siap sebelum datang.'}</p>}
                         </div>
                         <h2 className="text-sm font-semibold text-[var(--color-ink)]">Tahapan pesanan</h2>
                         <ol className="relative ml-2 mt-4 border-l border-[var(--color-border)] pl-5">
                             {flow.map((s, i) => {
-                                const isCurrent = s === p.status;
-                                const isDone = flowIdx >= 0 ? i <= flowIdx : false;
+                                const isCurrent = s === currentStatus;
+                                const isDone = s === 'Siap Diambil' ? Boolean(p.pickup?.ready) : (flowIdx >= 0 ? i <= flowIdx : false);
                                 const isFuture = flowIdx >= 0 ? i > flowIdx : true;
                                 const h = historyList.find((x) => x.status === s);
 
@@ -154,7 +257,7 @@ export default function PengajuanShow({ auth, item }) {
                                             {/* Explanation sentence under current active step */}
                                             {isCurrent && STATUS_HINT[p.status] && (
                                                 <p className="mt-1 text-xs text-[var(--color-muted)] leading-relaxed">
-                                                    {STATUS_HINT[p.status]}
+                                                    {p.pickup?.ready && p.status === 'Diproses' ? 'Barang siap diambil di PNJ pada pukul 08.00–16.00 WIB.' : STATUS_HINT[p.status]}
                                                 </p>
                                             )}
 
@@ -178,7 +281,7 @@ export default function PengajuanShow({ auth, item }) {
                         </div>
                     )}
 
-                    {p.invoice && <section className="rounded-2xl border border-[var(--color-border)] bg-[var(--color-surface)] p-5">
+                    {p.invoice && ['issued', 'paid'].includes(p.invoice.status) && <section className="rounded-2xl border border-[var(--color-border)] bg-[var(--color-surface)] p-5">
                         <h2 className="font-display text-lg font-bold">Invoice pembayaran penuh</h2>
                         <p className="mt-2 text-sm text-[var(--color-muted)]">{p.invoice.invoice_number} · {p.invoice.status}</p>
                         <p className="mt-2 text-xl font-bold text-[var(--color-accent)]">Rp {Number(p.invoice.total).toLocaleString('id-ID')}</p>
@@ -225,7 +328,7 @@ export default function PengajuanShow({ auth, item }) {
                                     Bayar
                                 </a>
                             )}
-                            {canUbahLayanan(p.status) && (
+                            {canUbahLayanan(p.status) && !p.invoice_locked && (
                                 <Link
                                     href={navHref('customer.pengajuan.edit', { id: p.id }, role)}
                                     className="rounded-xl border border-[var(--color-border)] bg-white px-4 py-2 text-sm font-medium text-[var(--color-ink)] transition hover:bg-[var(--color-surface)] hover:text-[var(--color-ink)]"
@@ -248,6 +351,55 @@ export default function PengajuanShow({ auth, item }) {
                 </div>
 
                 {/* Cancel Confirmation Modal */}
+                <ConfirmModal
+                    open={receiptOpen}
+                    title="Konfirmasi barang sudah diterima?"
+                    desc="Pastikan paket sudah sampai dan isinya sesuai pesanan. Setelah dikonfirmasi, pesanan ditandai selesai dan tidak dapat dibatalkan."
+                    confirmLabel="Ya, barang sudah diterima"
+                    processing={processing}
+                    onConfirm={() => {
+                        setProcessing(true);
+                        router.patch(route('customer.pengajuan.confirm-receipt', p.id), {}, {
+                            onSuccess: () => setReceiptOpen(false),
+                            onFinish: () => { setProcessing(false); setReceiptOpen(false); },
+                        });
+                    }}
+                    onClose={() => setReceiptOpen(false)}
+                />
+                <ConfirmModal
+                    open={confirmJasaOpen}
+                    title="Terima hasil pengerjaan?"
+                    desc="Pesanan ditandai selesai setelah dikonfirmasi. Pastikan berkas hasil sudah diunduh dan diperiksa."
+                    confirmLabel="Ya, selesaikan pesanan"
+                    processing={processing}
+                    onConfirm={() => {
+                        setProcessing(true);
+                        router.patch(route('customer.pengajuan.jasa.confirm', p.id), {}, {
+                            preserveScroll: true,
+                            onFinish: () => { setProcessing(false); setConfirmJasaOpen(false); },
+                        });
+                    }}
+                    onClose={() => setConfirmJasaOpen(false)}
+                />
+                <ConfirmModal
+                    open={revisionOpen}
+                    title={`Minta revisi ke-${p.jasa?.revision_count + 1}?`}
+                    desc={`Sisa revisi setelah ini: ${(p.jasa?.revision_left ?? 0) - 1} dari 2.`}
+                    confirmLabel="Kirim permintaan revisi"
+                    processing={processing}
+                    onConfirm={() => {
+                        if (revisionNote.trim().length < 5) return;
+                        setProcessing(true);
+                        router.patch(route('customer.pengajuan.jasa.revision', p.id), { catatan: revisionNote }, {
+                            preserveScroll: true,
+                            onFinish: () => { setProcessing(false); setRevisionOpen(false); setRevisionNote(''); },
+                        });
+                    }}
+                    onClose={() => setRevisionOpen(false)}
+                >
+                    <label htmlFor="revision-note" className="block text-sm font-medium">Bagian yang perlu direvisi</label>
+                    <textarea id="revision-note" rows={3} maxLength={1000} required value={revisionNote} onChange={(e) => setRevisionNote(e.target.value)} className="mt-2 block w-full rounded-xl border-[var(--color-border)] text-sm" />
+                </ConfirmModal>
                 <ConfirmModal
                     open={cancelOpen}
                     title="Batalkan pengajuan ini?"

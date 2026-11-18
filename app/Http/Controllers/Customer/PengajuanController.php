@@ -8,14 +8,19 @@ use App\Models\Order;
 use App\Models\PaymentProof;
 use App\Models\Pengajuan;
 use App\Models\Product;
+use App\Services\ConfirmPaidPengajuan;
+use App\Services\ManualPreorderPayment;
 use App\Services\MidtransService;
+use App\Services\PengajuanWorkflow;
 use App\Services\PricingService;
+use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Arr;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Validation\Rule;
+use Illuminate\Validation\ValidationException;
 use Illuminate\Validation\Rules\Exists;
 use Inertia\Inertia;
 use Inertia\Response;
@@ -49,6 +54,7 @@ class PengajuanController extends Controller
             'jumlah' => $p->jumlah,
             'need' => $p->keperluan,
             'keperluan' => $p->keperluan,
+            'kebutuhan_detail' => $p->kebutuhan_detail,
             'tanggal' => optional($p->tanggal)->format('Y-m-d'),
             'peserta' => $p->peserta,
             'jam_mulai' => $p->jam_mulai,
@@ -58,6 +64,11 @@ class PengajuanController extends Controller
             'total' => $p->total,
             'note' => $p->catatan_peninjau,
             'history' => $p->history ?? [],
+            'pickup' => $p->pickupDetails(),
+            'shipment' => $p->shipmentDetails(),
+            'jasa' => $p->jasaDetails(),
+            'invoice_url' => in_array($p->latestInvoice?->status, ['issued', 'paid'], true) ? route('customer.pengajuan.invoice', $p) : null,
+            'invoice_locked' => in_array($p->latestInvoice?->status, ['draft', 'issued', 'paid'], true),
             'invoice' => $p->latestInvoice?->only(['invoice_number', 'total', 'status', 'due_at']),
             'payment_method' => $p->payments?->where('status', 'paid')->first()?->payment_type ?? $p->order?->paymentProofs?->where('verification_status', 'verified')->first()?->notes,
             'paid_at' => optional($p->payments?->where('status', 'paid')->first()?->paid_at ?? $p->order?->confirmed_at)->format('Y-m-d H:i'),
@@ -128,6 +139,7 @@ class PengajuanController extends Controller
                 'tipe' => $request->string('tipe')->toString() ?: null,
                 'name' => $selectedProduct?->name,
                 'price' => $selectedProduct?->final_price,
+                'thumbnail' => $selectedProduct?->thumbnail,
                 'satuan' => $selectedProduct?->layananSatuan(),
                 'weight' => $selectedProduct ? (int) ($selectedProduct->meta['weight'] ?? 1000) : null,
                 'opsi' => $selectedProduct ? $this->opsiPayload($selectedProduct) : [],
@@ -170,6 +182,7 @@ class PengajuanController extends Controller
             if ($product) {
                 // Throws a ValidationException (422 / redirect-back) when a
                 // selected addon is foreign, inactive, duplicated or out of range.
+                $product->assertAvailableQuantity($data['jumlah'] ?? null);
                 $quote = $this->pricing->quote($product, $this->selection($data));
             }
         }
@@ -184,9 +197,11 @@ class PengajuanController extends Controller
             ];
         }
 
-        $pengajuan = new Pengajuan(Arr::except($data, ['opsi']));
+        $pengajuan = new Pengajuan(Arr::except($data, ['opsi', 'renter_data']));
         $pengajuan->buyer_id = Auth::id();
         $pengajuan->dokumen = $docs;
+        $pengajuan->renter_data = $data['renter_data'] ?? null;
+        $pengajuan->kebutuhan_detail = $this->detailKebutuhan($data);
         if ($quote !== null) {
             $shippingExtra = 0;
             if (isset($data['metode_pengambilan']) && $data['metode_pengambilan'] === 'Diantar') {
@@ -201,11 +216,23 @@ class PengajuanController extends Controller
         }
         $pengajuan->code = 'PNJ-'.now()->format('Ymd').'-'.str_pad((string) (Pengajuan::max('id') + 1), 4, '0', STR_PAD_LEFT);
         $pengajuan->setStatus('Diajukan');
-        $pengajuan->save();
 
-        if ($quote !== null) {
-            $this->pricing->snapshot($pengajuan, $quote);
-        }
+        // Semua langkah save–reserve dibungkus dalam satu transaksi.
+        // Kalau reserve() gagal (bentrok), save() ikut di-rollback.
+        DB::transaction(function () use ($quote, $pengajuan) {
+            $pengajuan->save();
+            if ($quote !== null) {
+                $this->pricing->snapshot($pengajuan, $quote);
+            }
+            if ($pengajuan->isRental() && $pengajuan->product_id) {
+                app(\App\Services\RoomBookingService::class)->reserve(
+                    $pengajuan->product_id,
+                    $pengajuan->id,
+                    $pengajuan->rental_start,
+                    $pengajuan->rental_end,
+                );
+            }
+        });
 
         return redirect()->route('customer.pengajuan.show', $pengajuan)
             ->with('success', 'Pengajuan berhasil dikirim.');
@@ -265,11 +292,17 @@ class PengajuanController extends Controller
                 $product = Product::with('category')->find($value);
                 if ($product && $product->layananTipe() === 'produk'
                     && ($product->meta['availability_status'] ?? 'tersedia') === 'tersedia'
-                    && ($product->stock ?? 0) < 1) {
+                    && $product->availableStock() < 1) {
                     $fail('Produk ini tidak memiliki stok ready stock. Silakan pilih produk lain.');
                 }
             }],
             'keperluan' => 'nullable|string|max:2000',
+            'kebutuhan_detail' => 'nullable|array',
+            'kebutuhan_detail.jenis_pengujian' => 'nullable|string|max:255',
+            'kebutuhan_detail.metode_standar' => 'nullable|string|max:255',
+            'kebutuhan_detail.jumlah_sampel' => 'nullable|integer|min:1|max:100000',
+            'kebutuhan_detail.uraian_kebutuhan' => 'nullable|string|max:4000',
+            'kebutuhan_detail.konsultasi_biaya' => 'nullable|string|max:1000',
             'jumlah' => 'nullable|string|max:100',
             'tanggal' => 'nullable|date|after_or_equal:today',
             'jam_mulai' => 'nullable|date_format:H:i',
@@ -282,6 +315,15 @@ class PengajuanController extends Controller
             'opsi' => 'nullable|array',
             'opsi.*.id' => 'required|integer',
             'opsi.*.qty' => 'nullable|integer|min:1',
+            // Rental fields (only for tipe = ruangan / alat)
+            'rental_start' => 'nullable|required_if:tipe,ruangan,alat|date|after_or_equal:today',
+            'rental_end' => 'nullable|required_if:tipe,ruangan,alat|date|after:rental_start',
+            'renter_data' => 'nullable|array',
+            'renter_data.company_name' => 'nullable|string|max:255',
+            'renter_data.npwp' => 'nullable|string|max:30',
+            'renter_data.ktp_number' => 'nullable|string|size:16',
+            'renter_data.contact_person' => 'nullable|string|max:255',
+            'renter_data.contact_phone' => 'nullable|string|max:20',
         ];
     }
 
@@ -291,6 +333,20 @@ class PengajuanController extends Controller
      * @param  array<string, mixed>  $data
      * @return array<string, mixed>
      */
+    private function detailKebutuhan(array $data): ?array
+    {
+        if (($data['tipe'] ?? null) !== 'jasa' || empty($data['kebutuhan_detail']) || ! is_array($data['kebutuhan_detail'])) {
+            return null;
+        }
+
+        $clean = array_filter(
+            Arr::only($data['kebutuhan_detail'], ['jenis_pengujian', 'metode_standar', 'jumlah_sampel', 'uraian_kebutuhan', 'konsultasi_biaya']),
+            fn ($v) => $v !== null && $v !== ''
+        );
+
+        return $clean === [] ? null : $clean;
+    }
+
     private function selection(array $data): array
     {
         return [
@@ -315,6 +371,7 @@ class PengajuanController extends Controller
     {
         $this->own($pengajuan);
         abort_unless(in_array($pengajuan->status, ['Diajukan', 'Ditolak'], true), 403);
+        abort_if($pengajuan->invoices()->whereIn('status', ['draft', 'issued', 'paid'])->exists(), 403, 'Pengajuan terkunci karena invoice sudah disiapkan.');
         $pengajuan->load([
             'product.category',
             'product.opsi' => fn ($q) => $q->where('aktif', true)->urut(),
@@ -341,8 +398,21 @@ class PengajuanController extends Controller
         $this->own($pengajuan);
         abort_unless(in_array($pengajuan->status, ['Diajukan', 'Ditolak'], true), 403);
 
+        return DB::transaction(function () use ($request, $pengajuan) {
+        $pengajuan = Pengajuan::whereKey($pengajuan->id)->lockForUpdate()->firstOrFail();
+        abort_unless(in_array($pengajuan->status, ['Diajukan', 'Ditolak'], true), 403);
+        if ($pengajuan->invoices()->whereIn('status', ['draft', 'issued', 'paid'])->exists()) {
+            throw \Illuminate\Validation\ValidationException::withMessages(['invoice' => 'Pengajuan terkunci karena invoice sudah disiapkan. Hubungi RTPU untuk membatalkan draf.']);
+        }
+
         $data = $request->validate([
             'keperluan' => 'nullable|string|max:2000',
+            'kebutuhan_detail' => 'nullable|array',
+            'kebutuhan_detail.jenis_pengujian' => 'nullable|string|max:255',
+            'kebutuhan_detail.metode_standar' => 'nullable|string|max:255',
+            'kebutuhan_detail.jumlah_sampel' => 'nullable|integer|min:1|max:100000',
+            'kebutuhan_detail.uraian_kebutuhan' => 'nullable|string|max:4000',
+            'kebutuhan_detail.konsultasi_biaya' => 'nullable|string|max:1000',
             'jumlah' => 'nullable|string|max:100',
             'tanggal' => 'nullable|date|after_or_equal:today',
             'jam_mulai' => 'nullable|date_format:H:i',
@@ -355,7 +425,10 @@ class PengajuanController extends Controller
             'opsi.*.qty' => 'nullable|integer|min:1',
         ]);
 
+        $pengajuan->product?->assertAvailableQuantity($data['jumlah'] ?? $pengajuan->jumlah);
+        $data['tipe'] = $pengajuan->tipe; // kebutuhan_detail hanya untuk jasa
         $pengajuan->fill(Arr::except($data, ['opsi']));
+        $pengajuan->kebutuhan_detail = $this->detailKebutuhan($data);
         if ($pengajuan->status === 'Ditolak') {
             $pengajuan->setStatus('Diajukan', 'Diajukan ulang oleh pemohon.');
         }
@@ -393,6 +466,7 @@ class PengajuanController extends Controller
 
         return redirect()->route('customer.pengajuan.show', $pengajuan)
             ->with('success', 'Perubahan tersimpan.');
+        });
     }
 
     public function cancel(Request $request, Pengajuan $pengajuan)
@@ -402,6 +476,9 @@ class PengajuanController extends Controller
 
         $request->validate(['alasan' => 'nullable|string|max:500']);
 
+        DB::transaction(function () use ($request, $pengajuan) {
+        $pengajuan = Pengajuan::whereKey($pengajuan->id)->lockForUpdate()->firstOrFail();
+        abort_unless(in_array($pengajuan->status, ['Diajukan', 'Ditolak', 'Menunggu Pembayaran'], true), 403);
         $pengajuan->setStatus('Dibatalkan', $request->alasan ?? 'Dibatalkan oleh pemohon.');
         $pengajuan->save();
 
@@ -409,8 +486,98 @@ class PengajuanController extends Controller
             $pengajuan->order->update(['status' => 'dibatalkan']);
         }
 
+        // Sewa: lepas jadwal yang terkunci agar slot bisa dipesan pengguna lain.
+        app(\App\Services\RoomBookingService::class)->releaseForPengajuan($pengajuan->id);
+
+        });
+
         return redirect()->route('customer.pengajuan.index')
             ->with('success', 'Pengajuan dibatalkan.');
+    }
+
+    public function confirmReceipt(Request $request, Pengajuan $pengajuan): RedirectResponse
+    {
+        $this->authorize('confirmReceipt', $pengajuan);
+
+        app(PengajuanWorkflow::class)->transition(
+            $pengajuan,
+            'Selesai',
+            'Pesanan dikonfirmasi telah diterima oleh customer.',
+            $request->user()->name,
+        );
+
+        return back()->with('success', 'Terima kasih. Pesanan telah ditandai selesai.');
+    }
+
+    /** Jasa: Customer menerima hasil, pesanan selesai. */
+    public function confirmJasa(Request $request, Pengajuan $pengajuan): RedirectResponse
+    {
+        $this->authorize('confirmJasa', $pengajuan);
+
+        $pengajuan->forceFill(['selesai_confirmed_at' => now()])->save();
+        app(PengajuanWorkflow::class)->transition(
+            $pengajuan,
+            'Selesai',
+            'Hasil pengerjaan diterima dan dikonfirmasi oleh customer.',
+            $request->user()->name,
+        );
+
+        return back()->with('success', 'Terima kasih. Pesanan jasa ditandai selesai. Anda dapat memberi penilaian.');
+    }
+
+    /** Jasa: Customer meminta revisi (maksimal Pengajuan::MAX_REVISIONS kali). */
+    public function requestRevision(Request $request, Pengajuan $pengajuan): RedirectResponse
+    {
+        $this->authorize('requestRevision', $pengajuan);
+
+        $data = $request->validate([
+            'catatan' => 'required|string|min:5|max:1000',
+        ], [
+            'catatan.required' => 'Jelaskan bagian yang perlu direvisi.',
+            'catatan.min' => 'Penjelasan revisi minimal 5 karakter.',
+        ]);
+
+        DB::transaction(function () use ($pengajuan, $request, $data) {
+            $locked = Pengajuan::whereKey($pengajuan->id)->lockForUpdate()->firstOrFail();
+            if (! $locked->canRequestRevision()) {
+                throw ValidationException::withMessages(['catatan' => 'Batas revisi sudah tercapai atau status pesanan telah berubah.']);
+            }
+            $locked->revision_count = (int) $locked->revision_count + 1;
+            $locked->save();
+
+            app(PengajuanWorkflow::class)->transition(
+                $locked,
+                'Dikerjakan',
+                'Revisi ke-'.$locked->revision_count.' diminta customer: '.trim($data['catatan']),
+                $request->user()->name,
+            );
+        });
+
+        return back()->with('success', 'Permintaan revisi dikirim ke pemilik layanan.');
+    }
+
+    /** Jasa: Customer memberi penilaian 1–5 setelah pesanan selesai. Hanya sekali. */
+    public function rateJasa(Request $request, Pengajuan $pengajuan): RedirectResponse
+    {
+        $this->authorize('rateJasa', $pengajuan);
+
+        $data = $request->validate([
+            'rating' => 'required|integer|between:1,5',
+            'ulasan' => 'nullable|string|max:1000',
+        ], [
+            'rating.required' => 'Pilih penilaian 1 sampai 5 bintang.',
+            'rating.between' => 'Penilaian harus 1 sampai 5.',
+        ]);
+
+        // Guard atomik agar rating tidak tertimpa permintaan ganda.
+        $updated = Pengajuan::whereKey($pengajuan->id)->whereNull('rating')->update([
+            'rating' => $data['rating'],
+            'ulasan' => isset($data['ulasan']) ? trim($data['ulasan']) : null,
+            'rating_at' => now(),
+        ]);
+        abort_unless($updated, 403);
+
+        return back()->with('success', 'Terima kasih atas penilaian Anda.');
     }
 
     public function bayar(Pengajuan $pengajuan): Response
@@ -418,6 +585,7 @@ class PengajuanController extends Controller
         $this->own($pengajuan);
         $pengajuan->load(['order', 'opsi', 'payments']);
 
+        $manualInvoice = $pengajuan->isPreorder() ? $pengajuan->invoices()->whereIn('status', ['issued', 'paid'])->latest()->first() : null;
         $order = $pengajuan->order;
         $subtotal = (int) ($order?->subtotal ?? $pengajuan->total ?? 0);
         $ppn = (int) ($order?->tax_amount ?? 0);
@@ -436,13 +604,15 @@ class PengajuanController extends Controller
 
         return Inertia::render('Customer/Pembayaran', [
             'item' => $this->serialize($pengajuan),
+            'manualPreorder' => $pengajuan->isPreorder(),
+            'manualInvoice' => $manualInvoice?->load('lines'),
             'tagihan' => [
                 'subtotal' => $subtotal,
                 'ppn' => $ppn,
                 'total' => (int) ($order?->total ?? ($subtotal + $ppn)),
                 'items' => $items,
             ],
-            'clientKey' => $this->midtrans->getClientKey(),
+            'clientKey' => $pengajuan->isPreorder() ? '' : $this->midtrans->getClientKey(),
             'isProduction' => $this->midtrans->isProduction(),
             'snapScriptUrl' => $this->midtrans->getSnapScriptUrl(),
             'metode' => MetodePembayaran::where('aktif', true)
@@ -473,6 +643,7 @@ class PengajuanController extends Controller
     public function paymentStatus(Pengajuan $pengajuan)
     {
         $this->own($pengajuan);
+        abort_if($pengajuan->isPreorder(), 422, 'Pre-order menggunakan verifikasi transfer BLU manual.');
         $latestPayment = $pengajuan->payments()->latest()->first();
 
         // On localhost/dev, webhooks from Midtrans cannot reach localhost directly.
@@ -507,7 +678,7 @@ class PengajuanController extends Controller
                             'paid_at' => $settlementTime ? now()->parse($settlementTime) : now(),
                         ]);
 
-                        app(\App\Services\ConfirmPaidPengajuan::class)->handle($pengajuan);
+                        app(ConfirmPaidPengajuan::class)->handle($pengajuan);
                     });
 
                     $latestPayment->refresh();
@@ -533,10 +704,16 @@ class PengajuanController extends Controller
         abort_unless($pengajuan->status === 'Menunggu Pembayaran', 403);
 
         $request->validate([
-            'metode_id' => 'required|exists:metode_pembayaran,id',
+            'metode_id' => 'required|integer',
             'bukti' => 'required|file|mimes:jpg,jpeg,png,pdf|max:5120',
         ]);
 
+        if ($pengajuan->isPreorder()) {
+            app(ManualPreorderPayment::class)->upload($pengajuan, $request->user(), (int) $request->metode_id, $request->file('bukti'));
+
+            return redirect()->route('customer.pengajuan.show', $pengajuan)->with('success', 'Bukti transfer BLU dikirim, menunggu verifikasi RTPU.');
+        }
+        $request->validate(['metode_id' => 'exists:metode_pembayaran,id']);
         $order = $pengajuan->order()->where('status', 'menunggu_pembayaran')->first();
         if (! $order) {
             $order = $pengajuan->order()->create([

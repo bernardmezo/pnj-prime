@@ -5,6 +5,7 @@ namespace App\Services;
 use App\Models\RoomBooking;
 use Illuminate\Database\QueryException;
 use Illuminate\Support\Carbon;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
 
 class RoomBookingService
@@ -25,7 +26,14 @@ class RoomBookingService
             ]);
         }
 
-        // Application-level overlap check (guarantees consistency across both SQLite and PostgreSQL)
+        // Lock product row to serialize concurrent reservations for the same product.
+        // On SQLite (dev/test) this is a no-op; on PostgreSQL it holds the row lock
+        // until the enclosing transaction commits, preventing race conditions.
+        if (DB::getDriverName() === 'pgsql') {
+            DB::table('products')->where('id', $productId)->lockForUpdate()->first();
+        }
+
+        // Application-level overlap check
         $hasOverlap = RoomBooking::where('product_id', $productId)
             ->where('status', 'ACTIVE')
             ->whereNull('released_at')

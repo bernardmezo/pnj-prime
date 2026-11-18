@@ -5,6 +5,7 @@ namespace App\Services;
 use App\Models\Pengajuan;
 use App\Notifications\ProductPaymentReceived;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Validation\ValidationException;
 
 class ConfirmPaidPengajuan
 {
@@ -12,7 +13,10 @@ class ConfirmPaidPengajuan
     {
         DB::transaction(function () use ($pengajuan) {
             $locked = Pengajuan::whereKey($pengajuan->id)->lockForUpdate()->firstOrFail();
-            if (in_array($locked->status, ['Lunas', 'Diproses', 'Selesai', 'Dibatalkan', 'Ditolak'], true)) {
+            if ($locked->isPreorder()) {
+                throw ValidationException::withMessages(['payment' => 'Pre-order hanya dapat dilunasi melalui verifikasi transfer BLU oleh RTPU.']);
+            }
+            if (in_array($locked->status, ['Lunas', 'Diproses', 'Dikirim', 'Selesai', 'Dibatalkan', 'Ditolak'], true)) {
                 return;
             }
 

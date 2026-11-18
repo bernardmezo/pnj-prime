@@ -6,6 +6,7 @@ import { VisualPlaceholder } from '@/Components/Public/shared';
 import { href as navHref } from '@/lib/nav';
 import { calculateQuote } from '@/api/quote';
 import { resolveImageUrl } from '@/Components/Public/CatalogCard';
+import { usePengajuanDraft } from '@/lib/usePengajuanDraft';
 
 function typeFromSlug(slug) {
     const s = String(slug ?? '');
@@ -41,6 +42,15 @@ export default function CatalogShow({ auth, product, isPreview = false }) {
     const type = typeFromSlug(product.category?.slug);
     const rawPrice = Number(product.final_price ?? 0);
     const priceFormatted = `Rp ${rawPrice.toLocaleString('id-ID')}`;
+    const { saveDraft } = usePengajuanDraft();
+
+    const handleLoginBeforePengajuan = (e) => {
+        e.preventDefault();
+        // Save minimal data (product_id, tipe) sebagai fallback jika session server hilang
+        saveDraft({ product_id: product.id, tipe: type });
+        const checkoutUrl = route('customer.pengajuan.create', { product_id: product.id, tipe: type });
+        window.location.href = route('checkout.redirect-login', { redirect_to: checkoutUrl });
+    };
 
     // Collect all gallery photos
     const galleryPhotos = useMemo(() => {
@@ -360,7 +370,7 @@ export default function CatalogShow({ auth, product, isPreview = false }) {
                             {/* Action Buttons */}
                             <div className="mt-5 space-y-2.5">
                                 {isStaff ? (
-                                    user.role === 'pimpinan_rtpu' ? null : <Link
+                                    (user.role === 'pimpinan_rtpu' || user.role === 'super_admin') ? null : <Link
                                         href={route('rtpu.layanan')}
                                         className="inline-flex w-full items-center justify-center gap-1.5 rounded-full border border-[var(--color-border)] bg-white px-4 py-2.5 text-xs font-semibold text-[var(--color-ink)] transition hover:border-[var(--color-accent)] hover:bg-[var(--color-accent-tint)]"
                                     >
@@ -372,17 +382,17 @@ export default function CatalogShow({ auth, product, isPreview = false }) {
                                         href={navHref('customer.pengajuan.create', { product_id: product.id, tipe: type }, user.role)}
                                         className="inline-flex w-full items-center justify-center gap-2 rounded-full bg-[var(--color-accent)] px-5 py-3 text-sm font-semibold text-[var(--color-bg)] transition hover:bg-[var(--color-accent-hover)] active:scale-[0.99]"
                                     >
-                                        <span>Ajukan Layanan</span>
+                                        <span>Pesan Sekarang</span>
                                         <ArrowRight className="h-4 w-4" />
                                     </a>
                                 ) : (
-                                    <Link
-                                        href={route('login')}
+                                    <button
+                                        onClick={handleLoginBeforePengajuan}
                                         className="inline-flex w-full items-center justify-center gap-2 rounded-full bg-[var(--color-accent)] px-5 py-3 text-sm font-semibold text-[var(--color-bg)] transition hover:bg-[var(--color-accent-hover)] active:scale-[0.99]"
                                     >
-                                        <span>Masuk untuk Mengajukan</span>
+                                        <span>Masuk untuk Checkout</span>
                                         <ArrowRight className="h-4 w-4" />
-                                    </Link>
+                                    </button>
                                 )}
 
                                 <div className="text-xs pt-1">
@@ -499,17 +509,18 @@ export default function CatalogShow({ auth, product, isPreview = false }) {
                                 href={navHref('customer.pengajuan.create', { product_id: product.id, tipe: type }, user.role)}
                                 className="inline-flex items-center gap-1.5 rounded-full bg-[var(--color-accent)] px-4 py-2.5 text-xs font-semibold text-[var(--color-bg)] transition hover:bg-[var(--color-accent-hover)]"
                             >
-                                <span>Ajukan</span>
+                                <span>Checkout</span>
                                 <ArrowRight className="h-3.5 w-3.5" />
                             </a>
                         ) : (
-                            <Link
-                                href={route('login')}
+                            <a
+                                href={route('checkout.redirect-login', { redirect_to: route('customer.pengajuan.create', { product_id: product.id, tipe: type }) })}
+                                onClick={() => saveDraft({ product_id: product.id, tipe: type })}
                                 className="inline-flex items-center gap-1.5 rounded-full bg-[var(--color-accent)] px-4 py-2.5 text-xs font-semibold text-[var(--color-bg)] transition hover:bg-[var(--color-accent-hover)]"
                             >
-                                <span>Masuk & Ajukan</span>
+                                <span>Masuk & Checkout</span>
                                 <ArrowRight className="h-3.5 w-3.5" />
-                            </Link>
+                            </a>
                         )}
                     </div>
                 </div>

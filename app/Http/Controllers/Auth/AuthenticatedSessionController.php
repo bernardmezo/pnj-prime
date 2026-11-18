@@ -33,7 +33,36 @@ class AuthenticatedSessionController extends Controller
 
         $request->session()->regenerate();
 
+        // Check if there's a preserved intended URL (e.g., from pengajuan/create before login)
+        $intendedUrl = session()->pull('_intended_url');
+        
+        if ($intendedUrl && $this->isValidInternalUrl($intendedUrl)) {
+            return redirect($intendedUrl);
+        }
+
         return redirect()->intended(route('dashboard', absolute: false));
+    }
+
+    /**
+     * Validate that URL is internal (prevent open redirect).
+     */
+    private function isValidInternalUrl(?string $url): bool
+    {
+        if (!$url) {
+            return false;
+        }
+
+        // Parse URL and check if it's from our domain
+        $parsed = parse_url($url);
+        $currentHost = request()->getHost();
+
+        // If URL has host and it doesn't match current, it's external → reject
+        if (isset($parsed['host']) && $parsed['host'] !== $currentHost) {
+            return false;
+        }
+
+        // Allow URLs without host (relative paths) or same host
+        return true;
     }
 
     /**

@@ -3,10 +3,10 @@
 namespace App\Http\Controllers\Auth;
 
 use App\Http\Controllers\Controller;
+use App\Rules\StrongPassword;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
-use Illuminate\Validation\Rules\Password;
 
 class PasswordController extends Controller
 {
@@ -17,12 +17,12 @@ class PasswordController extends Controller
     {
         $validated = $request->validate([
             'current_password' => ['required', 'current_password'],
-            'password' => ['required', Password::min(8), 'confirmed'],
+            'password' => ['required', new StrongPassword(), 'confirmed'],
         ], [
             'current_password.required' => 'Kata sandi saat ini wajib diisi.',
             'current_password.current_password' => 'Kata sandi saat ini tidak sesuai.',
             'password.required' => 'Kata sandi baru wajib diisi.',
-            'password.min' => 'Kata sandi baru minimal 8 karakter.',
+            'password.strong_password' => 'Kata sandi minimal 8 karakter, harus mengandung huruf besar, huruf kecil, angka, dan simbol.',
             'password.confirmed' => 'Konfirmasi kata sandi baru tidak cocok.',
         ]);
 

@@ -144,9 +144,20 @@ class UseCaseTraceabilityTest extends TestCase
         $this->get(route('customer.pengajuan.create'))->assertOk();
 
         foreach (['jasa', 'ruangan', 'produk'] as $tipe) {
-            $this->post(route('customer.pengajuan.store'), [
-                'tipe' => $tipe, 'keperluan' => 'Butuh '.$tipe, 'jumlah' => '1',
-            ])->assertRedirect();
+            $product = $this->product($tipe);
+            if ($tipe === 'produk') {
+                $product->update(['stock' => 2]);
+            }
+            $start = now()->addWeek()->next('Monday')->setTime(9, 0);
+            $payload = [
+                'tipe' => $tipe, 'product_id' => $product->id, 'keperluan' => 'Butuh '.$tipe, 'jumlah' => '1',
+            ];
+            if ($tipe === 'ruangan') {
+                $payload['rental_start'] = $start->format('Y-m-d H:i:s');
+                $payload['rental_end'] = $start->copy()->addHour()->format('Y-m-d H:i:s');
+            }
+            $this->post(route('customer.pengajuan.store'), $payload)->assertRedirect()->assertSessionHasNoErrors();
+            $this->assertDatabaseHas('pengajuan', ['buyer_id' => $this->customer->id, 'product_id' => $product->id, 'tipe' => $tipe, 'status' => 'Diajukan']);
         }
 
         $this->assertSame(3, Pengajuan::where('buyer_id', $this->customer->id)->count());
@@ -178,17 +189,20 @@ class UseCaseTraceabilityTest extends TestCase
         $this->assertSame('Menunggu Verifikasi Pembayaran', $p->fresh()->status);
     }
 
-    #[TestDox('UC-13 Memantau Status Pengajuan — Direktur sees BOTH streams')]
+    #[TestDox('UC-13 Memantau penjualan dan penggunaan katalog — Direktur')]
     public function test_uc13_direktur_monitors_both(): void
     {
-        $this->pengajuan($this->customer, 'Diajukan');
-        $this->produkUnggulan($this->p3m, 'Diajukan');
+        $product = $this->product('produk');
+        $service = $this->product('jasa');
+        $this->pengajuan($this->customer, 'Lunas', 'produk')->update(['product_id' => $product->id, 'jumlah' => '3']);
+        $this->pengajuan($this->customer, 'Diproses', 'jasa')->update(['product_id' => $service->id]);
+        $this->pengajuan($this->customer, 'Diajukan', 'produk')->update(['product_id' => $product->id, 'jumlah' => '9']);
 
-        $this->actingAs($this->direktur);
-        $this->get(route('direktur.monitor'))->assertOk()->assertInertia(fn (Assert $p) => $p
-            ->has('produk', 1)
-            ->has('layanan', 1)
-        );
+        $rows = $this->actingAs($this->direktur)->get(route('direktur.monitor'))->assertOk()->inertiaProps('produk');
+        $this->assertCount(2, $rows);
+        $byId = collect($rows)->keyBy('id');
+        $this->assertSame(3, $byId[$product->id]['sold_count']);
+        $this->assertSame(1, $byId[$service->id]['usage_count']);
     }
 
     #[TestDox('UC-14 Memantau Pengajuan Layanan — Customer sees own in-progress only')]
@@ -285,17 +299,19 @@ class UseCaseTraceabilityTest extends TestCase
         $this->assertSame('Dibatalkan', $pu->fresh()->status);
     }
 
-    #[TestDox('UC-22 Melihat Riwayat — Direktur sees BOTH streams')]
+    #[TestDox('UC-22 Melihat riwayat transaksi — Direktur')]
     public function test_uc22_direktur_riwayat(): void
     {
-        $this->pengajuan($this->customer, 'Selesai');
-        $this->produkUnggulan($this->p3m, 'Disetujui');
+        $service = $this->pengajuan($this->customer, 'Selesai', 'jasa');
+        $product = $this->pengajuan($this->customer2, 'Lunas', 'produk');
 
-        $this->actingAs($this->direktur);
-        $this->get(route('direktur.riwayat'))->assertOk()->assertInertia(fn (Assert $p) => $p
-            ->has('produk', 1)
-            ->has('layanan', 1)
-        );
+        $rows = $this->actingAs($this->direktur)->get(route('direktur.riwayat'))->assertOk()->inertiaProps('riwayat');
+        $this->assertCount(2, $rows);
+        $byId = collect($rows)->keyBy('id');
+        $this->assertSame($service->code, $byId[$service->id]['code']);
+        $this->assertSame('Selesai', $byId[$service->id]['status']);
+        $this->assertSame($product->code, $byId[$product->id]['code']);
+        $this->assertSame('produk', $byId[$product->id]['type']);
     }
 
     #[TestDox('UC-23 Melihat Riwayat Transaksi Layanan — Customer own + Admin RTPU all')]
@@ -313,17 +329,18 @@ class UseCaseTraceabilityTest extends TestCase
             ->assertInertia(fn (Assert $p) => $p->has('riwayat', 2));
     }
 
-    #[TestDox('UC-24 Melihat Riwayat Produk Unggulan — Admin P3M own / Pimpinan all')]
+    #[TestDox('UC-24 Riwayat produk unggulan P3M dan riwayat transaksi Pimpinan')]
     public function test_uc24_riwayat_produk(): void
     {
-        $this->produkUnggulan($this->p3m, 'Disetujui');
+        $mine = $this->produkUnggulan($this->p3m, 'Disetujui');
         $this->produkUnggulan($this->p3m2, 'Disetujui');
+        $transaction = $this->pengajuan($this->customer, 'Selesai', 'produk');
 
         $this->actingAs($this->p3m);
-        $this->get(route('p3m.riwayat'))->assertOk()->assertInertia(fn (Assert $p) => $p->has('riwayat', 1));
+        $this->get(route('p3m.riwayat'))->assertOk()->assertInertia(fn (Assert $p) => $p->has('riwayat', 1)->where('riwayat.0.id', $mine->id));
 
         $this->actingAs($this->pimpinan);
-        $this->get(route('pimpinan.riwayat'))->assertOk()->assertInertia(fn (Assert $p) => $p->has('produk', 2));
+        $this->get(route('pimpinan.riwayat'))->assertOk()->assertInertia(fn (Assert $p) => $p->has('riwayat', 1)->where('riwayat.0.code', $transaction->code)->where('riwayat.0.type', 'produk'));
     }
 
     #[TestDox('UC-25/26/27 Memverifikasi Data — completeness (UI) + reject with note')]
@@ -382,14 +399,14 @@ class UseCaseTraceabilityTest extends TestCase
         $this->assertSame('Disetujui', $pu->fresh()->status);
     }
 
-    #[TestDox('UC-31 Memperbarui Status Layanan — Admin RTPU, forward only')]
+    #[TestDox('UC-31 Status Layanan RTPU untuk monitoring, bukan perubahan status')]
     public function test_uc31_status_layanan(): void
     {
         $p = $this->pengajuan($this->customer, 'Diproses');
         $this->actingAs($this->rtpu);
-        $this->get(route('rtpu.status'))->assertOk();
-        $this->patch(route('rtpu.status.update', $p), ['status' => 'Selesai'])->assertRedirect();
-        $this->assertSame('Selesai', $p->fresh()->status);
+        $this->get(route('rtpu.status'))->assertOk()->assertInertia(fn (Assert $page) => $page->has('daftar', 1)->where('daftar.0.code', $p->code)->where('daftar.0.status', 'Diproses'));
+        $this->patch(route('rtpu.status.update', $p), ['status' => 'Selesai'])->assertForbidden();
+        $this->assertSame('Diproses', $p->fresh()->status);
     }
 
     #[TestDox('UC-32/33 Mengelola Data Master — list every managed entity')]
@@ -418,7 +435,8 @@ class UseCaseTraceabilityTest extends TestCase
 
         $this->actingAs($this->superadmin);
         $this->post(route('superadmin.users.store'), [
-            'name' => 'Staf', 'email' => 'staf@uc.test', 'password' => 'password123', 'role' => 'admin_p3m',
+            'name' => 'Staf', 'email' => 'staf@uc.test', 'password' => 'password123',
+            'role' => 'admin_pengelola', 'pengelola_variant' => 'admin_p3m',
         ])->assertRedirect();
         $this->post(route('superadmin.fitur.store'), [
             'name' => 'Modul Uji', 'key' => 'modul-uji',
@@ -477,7 +495,9 @@ class UseCaseTraceabilityTest extends TestCase
             $this->get(route('rtpu.layanan.form', ['tipe' => $tipe]))->assertOk();
             $this->post(route('rtpu.layanan.store'), [
                 'tipe' => $tipe, 'name' => 'Kelola '.$tipe, 'price' => 10000,
-            ])->assertRedirect();
+                ...($tipe === 'ruangan' ? ['satuan' => 'hari'] : []),
+            ])->assertRedirect()->assertSessionHasNoErrors();
+            $this->assertDatabaseHas('products', ['name' => 'Kelola '.$tipe, 'owner_id' => $this->rtpu->id]);
         }
         $this->assertSame(3, Product::where('name', 'like', 'Kelola %')->count());
     }
@@ -488,7 +508,7 @@ class UseCaseTraceabilityTest extends TestCase
         $this->actingAs($this->superadmin);
         $this->get(route('superadmin.users'))->assertOk();
         $this->post(route('superadmin.users.store'), [
-            'name' => 'Baru', 'email' => 'baru@uc.test', 'password' => 'password123', 'role' => 'customer',
+            'name' => 'Baru', 'email' => 'baru@uc.test', 'password' => 'Password123!', 'role' => 'customer',
         ])->assertRedirect();
         $u = User::where('email', 'baru@uc.test')->firstOrFail();
         $this->patch(route('superadmin.users.update', $u), [

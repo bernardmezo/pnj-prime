@@ -5,6 +5,9 @@ namespace App\Http\Controllers\Auth;
 use App\Enums\Role;
 use App\Http\Controllers\Controller;
 use App\Models\User;
+use App\Rules\IndonesianPhone;
+use App\Rules\NumericOnly;
+use App\Rules\StrongPassword;
 use Illuminate\Auth\Events\Registered;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -60,14 +63,14 @@ class RegisteredUserController extends Controller
         $validated = $request->validate([
             'name' => 'required|string|max:255',
             'email' => 'required|string|lowercase|email|max:255|unique:'.User::class,
-            'password' => ['required', 'confirmed', Rules\Password::defaults()],
-            'phone' => 'nullable|string|max:20',
+            'password' => ['required', 'confirmed', new StrongPassword()],
+            'phone' => ['nullable', new IndonesianPhone()],
             'institution' => 'nullable|string|max:255',
             'user_type' => 'nullable|string|max:64',
-            'nik_npwp' => 'nullable|string|max:32',
+            'nik_npwp' => ['nullable', 'string', 'max:32', new NumericOnly()],
             'terms' => 'required|accepted',
             // Field khusus Industri/Perusahaan
-            'npwp_perusahaan' => 'nullable|string|max:32',
+            'npwp_perusahaan' => ['nullable', 'string', 'max:32', new NumericOnly()],
             'penanggung_jawab' => 'nullable|string|max:255',
             'bidang_usaha' => 'nullable|string|max:255',
             // Field khusus Mitra kerja sama
@@ -78,11 +81,11 @@ class RegisteredUserController extends Controller
 
         // Siapkan meta berdasarkan user_type
         $meta = [];
-        if ($validated['user_type'] === 'Industri/Perusahaan') {
+        if (($validated['user_type'] ?? null) === 'Industri/Perusahaan') {
             if (!empty($validated['npwp_perusahaan'])) $meta['npwp_perusahaan'] = $validated['npwp_perusahaan'];
             if (!empty($validated['penanggung_jawab'])) $meta['penanggung_jawab'] = $validated['penanggung_jawab'];
             if (!empty($validated['bidang_usaha'])) $meta['bidang_usaha'] = $validated['bidang_usaha'];
-        } elseif ($validated['user_type'] === 'Mitra kerja sama') {
+        } elseif (($validated['user_type'] ?? null) === 'Mitra kerja sama') {
             if (!empty($validated['nomor_mou_pks'])) $meta['nomor_mou_pks'] = $validated['nomor_mou_pks'];
             if (!empty($validated['contact_person'])) $meta['contact_person'] = $validated['contact_person'];
             if (!empty($validated['periode_kerja_sama'])) $meta['periode_kerja_sama'] = $validated['periode_kerja_sama'];
@@ -146,12 +149,12 @@ class RegisteredUserController extends Controller
         $request->validate([
             'name' => 'required|string|max:255',
             'email' => 'required|string|lowercase|email|max:255|unique:'.User::class,
-            'password' => ['required', 'confirmed', Rules\Password::defaults()],
+            'password' => ['required', 'confirmed', new StrongPassword()],
             'role' => ['required', 'string', 'in:'.implode(',', self::INTERNAL_ROLES)],
-            'nip' => 'required|string|max:30',
+            'nip' => ['required', 'string', 'max:30', new NumericOnly()],
             'jurusan' => 'required|string|max:100',
             'prodi' => 'required|string|max:100',
-            'phone' => 'required|string|max:20',
+            'phone' => ['required', new IndonesianPhone()],
             'terms' => 'required|accepted',
         ]);
 

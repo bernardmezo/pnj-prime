@@ -3,6 +3,9 @@
 namespace App\Http\Requests;
 
 use App\Models\User;
+use App\Rules\IndonesianPhone;
+use App\Rules\NumericOnly;
+use App\Rules\StrongPassword;
 use Illuminate\Contracts\Validation\ValidationRule;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
@@ -91,7 +94,7 @@ class ProfileUpdateRequest extends FormRequest
                 'max:255',
                 Rule::unique(User::class)->ignore($user->id),
             ],
-            'phone' => ['required', 'string', 'regex:/^(?:\+62|62|0)8[0-9]{7,12}$/'],
+            'phone' => ['required', 'string', new IndonesianPhone()],
         ];
 
         // Alamat dan kode pos: Customer dan unit pengelola.
@@ -104,10 +107,16 @@ class ProfileUpdateRequest extends FormRequest
             $rules['institution'] = ['nullable', 'string', 'max:255'];
             $rules['unit_name'] = ['nullable', 'string', 'max:150'];
             $rules['jurusan'] = ['nullable', 'string', 'max:100'];
+            $rules['nik_npwp'] = ['nullable', 'string', 'max:32', new NumericOnly()];
+            $rules['nip'] = ['nullable', 'string', 'max:30', new NumericOnly()];
         }
 
         foreach ($this->customerExtraFields() as $field => $required) {
-            $rules[$field] = [$required ? 'required' : 'nullable', 'string', 'max:255'];
+            $rule = [$required ? 'required' : 'nullable', 'string', 'max:255'];
+            if (in_array($field, ['nik_npwp', 'npwp_perusahaan', 'nip'], true)) {
+                $rule[] = new NumericOnly();
+            }
+            $rules[$field] = $rule;
         }
 
         return $rules;
@@ -117,7 +126,7 @@ class ProfileUpdateRequest extends FormRequest
     {
         return [
             'phone.required' => 'Nomor telepon wajib diisi.',
-            'phone.regex' => 'Gunakan nomor telepon Indonesia, misalnya 081234567890 atau +6281234567890.',
+            'phone.indonesian_phone' => 'Gunakan nomor telepon Indonesia yang valid (contoh: 081234567890 atau +6281234567890), maksimal 13 digit.',
             'postal_code.regex' => 'Kode pos harus terdiri dari 5 digit angka.',
             'email.unique' => 'Alamat email sudah digunakan akun lain.',
             'institution.required' => 'Nama instansi/perusahaan wajib diisi.',

@@ -31,6 +31,12 @@ class InvoiceController extends Controller
 
             return back()->with('success', 'Draf invoice BLU disiapkan. Periksa rincian sebelum menyetujui pengajuan.');
         }
+        if (in_array($pengajuan->tipe, ['ruangan', 'alat', 'jasa'], true)) {
+            $form = app(PreparePreorderInvoiceRequest::class);
+            $this->invoiceService->prepareRental($pengajuan, $request->user(), $form->validated());
+
+            return back()->with('success', 'Draf invoice BLU sewa disiapkan. Periksa rincian sebelum menyetujui pengajuan.');
+        }
         $request->validate([
             'notes' => 'nullable|string|max:1000',
             'due_date' => 'nullable|date|after_or_equal:today',

@@ -18,10 +18,23 @@ use Illuminate\Support\Facades\Storage;
 use Illuminate\Validation\ValidationException;
 use Tests\TestCase;
 
-/** Run only against a separately migrated PostgreSQL test database; never rebuilds schema. */
+/** Uses an isolated SQLite memory database or a separately migrated test database. */
 class PreorderBluInvoiceTest extends TestCase
 {
     use DatabaseTransactions;
+
+    public function createApplication()
+    {
+        $app = parent::createApplication();
+        $connection = $app['config']->get('database.default');
+        $config = $app['config']->get("database.connections.{$connection}", []);
+
+        if (($config['driver'] ?? null) === 'sqlite' && ($config['database'] ?? null) === ':memory:' && empty($config['url'])) {
+            \Illuminate\Support\Facades\Artisan::call('migrate', ['--database' => $connection, '--force' => true]);
+        }
+
+        return $app;
+    }
 
     protected function setUp(): void
     {
@@ -41,13 +54,13 @@ class PreorderBluInvoiceTest extends TestCase
             'base_price' => 500, 'final_price' => 500, 'meta' => ['availability_status' => 'preorder', 'weight' => 500]]);
         $request = Pengajuan::create(['code' => 'TEST-'.bin2hex(random_bytes(6)), 'buyer_id' => $buyer->id,
             'product_id' => $product->id, 'tipe' => 'produk', 'jumlah' => 2, 'total' => 1000,
-            'metode_pengambilan' => $fulfillment, 'catatan' => 'Alamat: TEST | Kota: 152 | Kurir: JNE', 'status' => 'Diajukan']);
+            'metode_pengambilan' => $fulfillment, 'catatan' => 'Alamat: TEST | Kota: 25979 | Kurir: JNE | Layanan: REG | Ongkir: Rp 25.000', 'status' => 'Diajukan']);
         // Explicit test fixture only; not a production bank or seeded configuration.
         $bank = MetodePembayaran::create(['nama' => 'TEST ONLY BLU', 'tipe' => 'BLU', 'rekening' => 'TEST-ACCOUNT', 'holder' => 'TEST ONLY', 'aktif' => true]);
         // Explicit provider test double; never used by production.
         config(['services.rajaongkir.key' => 'test-only', 'services.rajaongkir.type' => 'starter']);
         \Illuminate\Support\Facades\Http::preventStrayRequests();
-        \Illuminate\Support\Facades\Http::fake(['*/cost' => \Illuminate\Support\Facades\Http::response(['rajaongkir' => ['results' => [['code' => 'jne', 'costs' => [['service' => 'REG', 'cost' => [['value' => 25000, 'etd' => '2-3']]]]]]]])]);
+        \Illuminate\Support\Facades\Http::fake(['*/calculate/domestic-cost' => \Illuminate\Support\Facades\Http::response(['data' => [['service' => 'REG', 'description' => 'Layanan Reguler', 'cost' => 25000, 'etd' => '2-3 day']]])]);
         $data = ['shipping_courier' => 'jne', 'shipping_service' => 'REG', 'unit_price' => 105, 'shipping_amount' => 25000, 'tax_rate' => '10.00',
             'bank_id' => $bank->id, 'due_date' => now()->addDays(3)->toDateString()];
 
@@ -82,12 +95,20 @@ class PreorderBluInvoiceTest extends TestCase
         $this->assertSame('cancelled', $invoice->fresh()->status);
     }
 
-    public function test_direct_status_cancellation_releases_draft(): void
+    public function test_monitoring_cannot_cancel_draft_but_customer_can_release_it(): void
     {
-        [$request, $actor, , , , $data] = $this->requestFixture();
+        [$request, $actor, $buyer, , , $data] = $this->requestFixture();
         $invoice = app(InvoiceService::class)->preparePreorder($request, $actor, $data);
-        $this->actingAs($actor)->patch(route('rtpu.status.update', $request), ['status' => 'Dibatalkan'])->assertRedirect();
+        $this->actingAs($actor)->patch(route('rtpu.status.update', $request), ['status' => 'Dibatalkan'])->assertForbidden();
+        $this->assertSame('draft', $invoice->fresh()->status);
+        $this->assertSame('Diajukan', $request->fresh()->status);
+
+        $this->actingAs($buyer)->patch(route('customer.pengajuan.cancel', $request))->assertRedirect()->assertSessionHasNoErrors();
         $this->assertSame('cancelled', $invoice->fresh()->status);
+        $this->assertSame('Dibatalkan', $request->fresh()->status);
+        [$other, $otherActor, , , , $otherData] = $this->requestFixture();
+        $replacement = app(InvoiceService::class)->preparePreorder($other, $otherActor, $otherData);
+        $this->assertSame($invoice->total, $replacement->total);
     }
 
     public function test_cancelling_issued_request_releases_total(): void

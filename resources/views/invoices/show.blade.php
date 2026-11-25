@@ -183,6 +183,9 @@
                 <p><strong>Tanggal Terbit:</strong> {{ optional($invoice->issued_at)->format('d F Y H:i') ?? '-' }}</p>
                 <p><strong>Jatuh Tempo:</strong> {{ optional($invoice->due_at)->format('d F Y') ?? '-' }}</p>
                 <p><strong>Nomor Pengajuan:</strong> {{ $invoice->pengajuan?->code ?? '-' }}</p>
+                @if($duration = $invoice->pengajuan?->rentalDurationLabel())
+                    <p><strong>Durasi Sewa:</strong> {{ $duration }}</p>
+                @endif
                 @if($invoice->paid_at)
                     <p><strong>Dibayar Pada:</strong> {{ optional($invoice->paid_at)->format('d F Y H:i') }}</p>
                 @endif

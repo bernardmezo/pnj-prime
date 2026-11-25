@@ -5,6 +5,7 @@ namespace App\Services;
 use App\Models\Payment;
 use App\Models\Pengajuan;
 use Exception;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Validation\ValidationException;
@@ -24,7 +25,7 @@ class MidtransService
         $this->serverKey = (string) config('services.midtrans.server_key', '');
         $this->clientKey = (string) config('services.midtrans.client_key', '');
         $this->isProduction = (bool) config('services.midtrans.is_production', false);
-        $this->sslVerify = (bool) config('services.midtrans.ssl_verify', false);
+        $this->sslVerify = (bool) config('services.midtrans.ssl_verify', true);
     }
 
     public function getClientKey(): string
@@ -65,25 +66,117 @@ class MidtransService
      */
     public function createSnapPayment(Pengajuan $pengajuan): Payment
     {
-        if ($pengajuan->isPreorder()) {
-            throw ValidationException::withMessages(['payment' => 'Pre-order wajib dibayar melalui transfer rekening BLU sesuai invoice.']);
+        // A nested commit is only a savepoint: process death could roll back the
+        // reservation after Midtrans has accepted the external request.
+        if (DB::transactionLevel() !== 0) {
+            throw new \LogicException('Snap payment cannot be created inside an existing transaction.');
         }
-        // 1. Check if a valid unexpired pending payment token already exists for this request
-        $existing = $pengajuan->payments()
+
+        if ($pengajuan->tipe !== 'produk' || $pengajuan->isPreorder()) {
+            throw ValidationException::withMessages(['payment' => 'Pembayaran Midtrans hanya tersedia untuk produk ready stock.']);
+        }
+
+        // Phase A (short transaction): validate under lock, reuse a live token, or list stale pending attempts.
+        $phaseA = DB::transaction(function () use ($pengajuan) {
+            $locked = $this->lockEligibleRequest($pengajuan);
+            $existing = $this->reusablePayment($locked);
+
+            return [$existing, $existing ? [] : $locked->payments()->where('status', 'pending')->pluck('order_id', 'id')->all()];
+        });
+        if ($phaseA[0]) {
+            return $phaseA[0];
+        }
+
+        // Phase B (no lock, no transaction): ask the gateway about earlier attempts.
+        $remoteByPayment = [];
+        foreach ($phaseA[1] as $paymentId => $staleOrderId) {
+            try {
+                $remoteByPayment[$paymentId] = $this->getTransactionStatus($staleOrderId);
+            } catch (Exception $e) {
+                throw ValidationException::withMessages(['payment' => 'Status pembayaran sebelumnya belum dapat dipastikan. Coba lagi nanti.']);
+            }
+        }
+
+        // Phase C (short transaction): re-validate, apply reconciliation, then COMMIT the reservation before any HTTP.
+        [$payment, $payload] = DB::transaction(function () use ($pengajuan, $remoteByPayment) {
+            $locked = $this->lockEligibleRequest($pengajuan);
+            if ($existing = $this->reusablePayment($locked)) {
+                return [$existing, null];
+            }
+            foreach ($locked->payments()->where('status', 'pending')->lockForUpdate()->get() as $stale) {
+                $remote = $remoteByPayment[$stale->id] ?? null;
+                $remoteStatus = $remote['transaction_status'] ?? '';
+                if ($remote !== null && in_array($remoteStatus, ['expire', 'cancel', 'deny', 'failure'], true)) {
+                    $stale->update(['status' => $remoteStatus === 'expire' ? 'expired' : 'failed', 'raw_response' => $remote]);
+
+                    continue;
+                }
+                throw ValidationException::withMessages(['payment' => 'Masih ada pembayaran Midtrans sebelumnya yang belum final. Periksa status pembayaran terlebih dahulu.']);
+            }
+
+            return $this->reserveSnapPayment($locked);
+        });
+        if ($payload === null) {
+            return $payment;
+        }
+
+        // Phase D (outside any transaction): the reservation row is already durable, so a crash here leaves a reconcilable pending attempt.
+        try {
+            $response = Http::withOptions(['verify' => $this->sslVerify])
+                ->timeout(15)->connectTimeout(5)
+                ->withBasicAuth($this->serverKey, '')
+                ->acceptJson()
+                ->post($this->getSnapBaseUrl().'/transactions', $payload);
+        } catch (\Throwable $e) {
+            throw $e; // Keep the pending row: the gateway may have accepted the request.
+        }
+        if (! $response->successful()) {
+            throw new Exception('Status pembuatan pembayaran belum dapat dipastikan. Hubungi RTPU.');
+        }
+        $resData = $response->json();
+        $snapToken = $resData['token'] ?? null;
+        if (! $snapToken) {
+            throw new Exception('Token pembayaran tidak ditemukan; status transaksi perlu diperiksa.');
+        }
+
+        // Phase E: persist the token, only on a still-pending row.
+        Payment::whereKey($payment->id)->where('status', 'pending')->update(['snap_token' => $snapToken, 'raw_response' => json_encode($resData)]);
+
+        return $payment->refresh();
+    }
+
+    private function lockEligibleRequest(Pengajuan $pengajuan): Pengajuan
+    {
+        // SQLite ignores FOR UPDATE; reserve the writer before reading state.
+        if (DB::getDriverName() === 'sqlite') {
+            DB::table('pengajuan')->where('id', $pengajuan->id)->update(['id' => DB::raw('id')]);
+        }
+        $locked = Pengajuan::whereKey($pengajuan->id)->lockForUpdate()->firstOrFail();
+        if ($locked->tipe !== 'produk' || $locked->isPreorder() || $locked->status !== 'Menunggu Pembayaran') {
+            throw ValidationException::withMessages(['payment' => 'Pembayaran Midtrans tidak tersedia untuk pesanan ini.']);
+        }
+
+        return $locked;
+    }
+
+    private function reusablePayment(Pengajuan $pengajuan): ?Payment
+    {
+        return $pengajuan->payments()
             ->where('status', 'pending')
             ->whereNotNull('snap_token')
             ->where('created_at', '>=', now()->subHours(24))
             ->latest()
             ->first();
+    }
 
-        if ($existing) {
-            return $existing;
-        }
-
+    /** @return array{0: Payment, 1: array} reserved pending payment and the gateway payload */
+    private function reserveSnapPayment(Pengajuan $pengajuan): array
+    {
         // 2. Compute gross_amount from server-stored order / items
         $order = $pengajuan->order;
         $subtotal = (int) ($order?->subtotal ?? $pengajuan->total ?? 0);
         $tax = (int) ($order?->tax_amount ?? 0);
+        $shipping = (int) ($order?->shipping_amount ?? 0);
         $grossAmount = (int) ($order?->total ?? ($subtotal + $tax));
 
         if ($grossAmount <= 0) {
@@ -141,6 +234,15 @@ class MidtransService
             ];
         }
 
+        if ($shipping > 0) {
+            $items[] = [
+                'id' => 'SHIPPING-'.($order->shipping_snapshot['service'] ?? 'ONGKIR'),
+                'price' => $shipping,
+                'quantity' => 1,
+                'name' => substr('Ongkir '.strtoupper($order->shipping_snapshot['courier'] ?? '').' '.($order->shipping_snapshot['service'] ?? ''), 0, 50),
+            ];
+        }
+
         // Midtrans rejects item_details with price = 0 (e.g. Garansi 0 rupiah).
         // Exclude any line items with price <= 0.
         $items = array_values(array_filter($items, fn ($it) => (int) ($it['price'] ?? 0) > 0));
@@ -185,35 +287,12 @@ class MidtransService
             ],
         ];
 
-        $response = Http::withOptions(['verify' => $this->sslVerify])
-            ->withBasicAuth($this->serverKey, '')
-            ->acceptJson()
-            ->post($this->getSnapBaseUrl().'/transactions', $payload);
-
-        if (! $response->successful()) {
-            Log::error('Midtrans Snap Token Creation Failed', [
-                'status' => $response->status(),
-                'body' => $response->body(),
-                'order_id' => $orderId,
-            ]);
-            throw new Exception('Gagal menghubungi gateway pembayaran: '.($response->json('error_messages.0') ?? $response->body()));
-        }
-
-        $resData = $response->json();
-        $snapToken = $resData['token'] ?? null;
-
-        if (! $snapToken) {
-            throw new Exception('Token pembayaran tidak ditemukan dalam respon Midtrans.');
-        }
-
-        return Payment::create([
-            'request_id' => $pengajuan->id,
-            'order_id' => $orderId,
-            'gross_amount' => $grossAmount,
-            'snap_token' => $snapToken,
-            'status' => 'pending',
-            'raw_response' => $resData,
+        $payment = Payment::create([
+            'request_id' => $pengajuan->id, 'order_id' => $orderId,
+            'gross_amount' => $grossAmount, 'status' => 'pending',
         ]);
+
+        return [$payment, $payload];
     }
 
     /**
@@ -240,7 +319,6 @@ class MidtransService
             Log::error('Midtrans Status Check Failed', [
                 'order_id' => $orderId,
                 'status' => $response->status(),
-                'body' => $response->body(),
             ]);
             throw new Exception('Gagal memeriksa status ke Midtrans API.');
         }

@@ -13,8 +13,10 @@ class PreparePreorderInvoiceRequest extends FormRequest
 
     public function rules(): array
     {
+        $unitPriceRule = $this->route('pengajuan')?->isPreorder() ? 'required' : 'nullable';
+
         return [
-            'unit_price' => 'required|integer|min:1|max:1000000000',
+            'unit_price' => $unitPriceRule.'|integer|min:1|max:1000000000',
             'shipping_amount' => 'nullable|integer|min:0|max:1000000000',
             'shipping_courier' => 'nullable|string|max:20',
             'shipping_service' => 'nullable|string|max:100',

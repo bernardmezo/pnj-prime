@@ -6,6 +6,7 @@ use App\Models\Invoice;
 use App\Models\MetodePembayaran;
 use App\Models\Pengajuan;
 use App\Models\User;
+use App\Notifications\NonPreorderInvoiceIssued;
 use App\Notifications\PreorderInvoiceIssued;
 use Carbon\Carbon;
 use Illuminate\Support\Facades\DB;
@@ -80,6 +81,156 @@ class InvoiceService
 
             return $invoice;
         }, attempts: 5);
+    }
+
+    public function prepareRental(Pengajuan $pengajuan, User $issuer, array $data): Invoice
+    {
+        abort_unless(in_array($issuer->role, ['admin_rtpu', 'super_admin'], true), 403);
+
+        return DB::transaction(function () use ($pengajuan, $issuer, $data) {
+            $pengajuan = Pengajuan::whereKey($pengajuan->id)->lockForUpdate()->firstOrFail();
+            abort_unless(in_array($pengajuan->tipe, ['ruangan', 'alat', 'jasa'], true), 422);
+            abort_unless($pengajuan->status === 'Menunggu Invoice', 422);
+            if ($pengajuan->invoices()->whereIn('status', ['draft', 'issued', 'paid'])->exists()) {
+                throw ValidationException::withMessages(['invoice' => 'Invoice sudah disiapkan. Batalkan draf sebelum menyusun ulang.']);
+            }
+
+            $bank = MetodePembayaran::whereKey($data['bank_id'])->lockForUpdate()->firstOrFail();
+            if (! $bank->aktif || strtoupper(trim($bank->tipe)) !== 'BLU' || ! trim($bank->rekening) || ! trim($bank->holder)) {
+                throw ValidationException::withMessages(['bank_id' => 'Pilih rekening resmi aktif dengan tipe BLU melalui menu Metode Pembayaran.']);
+            }
+
+            // Older submissions do not snapshot their billing unit. Represent the
+            // frozen base as one aggregate, not as a guessed hourly/daily rate.
+            $options = $pengajuan->opsi()->get();
+            $optionTotal = (int) $options->sum('subtotal');
+            $subtotal = $pengajuan->total;
+            $baseAmount = (int) $subtotal - $optionTotal;
+            if ($subtotal === null || $baseAmount < 0 || $options->contains(fn ($option) => $option->subtotal === null || $option->subtotal < 0)) {
+                throw ValidationException::withMessages(['invoice' => 'Harga sewa dari pengajuan tidak dapat direkonstruksi secara tepat.']);
+            }
+            $quantity = 1;
+            $unitPrice = $baseAmount;
+            if ($pengajuan->tipe === 'jasa') {
+                $serviceQuantity = PricingService::parseQty($pengajuan->jumlah);
+                if ($baseAmount % $serviceQuantity === 0) {
+                    $quantity = $serviceQuantity;
+                    $unitPrice = intdiv($baseAmount, $quantity);
+                }
+            }
+            $rate = (string) ($data['tax_rate'] ?? '');
+            if (! preg_match('/^\d{1,3}(?:\.\d{1,2})?$/D', $rate) || (float) $rate > 100) {
+                throw ValidationException::withMessages(['tax_rate' => 'Masukkan persentase pajak antara 0 dan 100.']);
+            }
+            [$whole, $fraction] = array_pad(explode('.', $rate), 2, '');
+            $basisPoints = (int) $whole * 100 + (int) str_pad($fraction, 2, '0');
+            $tax = (int) round((int) $subtotal * $basisPoints / 10000, 0, PHP_ROUND_HALF_UP);
+            $taxCalc = ['subtotal' => (int) $subtotal, 'tax_rate_snapshot' => $rate, 'tax_amount' => $tax, 'total' => (int) $subtotal + $tax];
+
+            $invoice = Invoice::create([
+                'invoice_number' => $this->generateInvoiceNumber($pengajuan),
+                'pengajuan_id' => $pengajuan->id,
+                'issued_by' => $issuer->id,
+                'issued_at' => now(),
+                'due_at' => Carbon::parse($data['due_date'])->endOfDay(),
+                'subtotal' => $taxCalc['subtotal'],
+                'tax_rate_snapshot' => $taxCalc['tax_rate_snapshot'],
+                'tax_amount' => $taxCalc['tax_amount'],
+                'shipping_amount' => 0,
+                'unique_amount' => 0,
+                'total' => $taxCalc['total'],
+                'status' => 'draft',
+                'notes' => $data['notes'] ?? null,
+                'bank_snapshot' => ['id' => $bank->id, 'name' => $bank->nama, 'account' => $bank->rekening, 'holder' => $bank->holder, 'instructions' => $bank->instruksi],
+                'request_snapshot' => $this->rentalRequestSnapshot($pengajuan),
+            ]);
+
+            $invoice->lines()->create([
+                'item_type' => 'product',
+                'item_id' => $pengajuan->product_id,
+                'description' => $pengajuan->product?->name ?? 'Sewa '.ucfirst($pengajuan->tipe),
+                'quantity' => $quantity,
+                'unit_price' => $unitPrice,
+                'amount' => $baseAmount,
+            ]);
+
+            foreach ($options as $option) {
+                if ((int) $option->subtotal === 0) {
+                    continue;
+                }
+                $invoice->lines()->create([
+                    'item_type' => 'custom',
+                    'item_id' => null,
+                    'description' => $option->nama,
+                    'quantity' => 1,
+                    'unit_price' => (int) $option->subtotal,
+                    'amount' => (int) $option->subtotal,
+                ]);
+            }
+
+            $pengajuan->pushHistory('Menunggu Invoice', 'Draf invoice BLU sewa disiapkan: '.$invoice->invoice_number, $issuer->name);
+            $pengajuan->save();
+
+            return $invoice;
+        }, attempts: 5);
+    }
+
+    public function approveRental(Pengajuan $pengajuan, User $issuer): void
+    {
+        abort_unless(in_array($issuer->role, ['admin_rtpu', 'super_admin'], true), 403);
+
+        DB::transaction(function () use ($pengajuan, $issuer) {
+            $pengajuan = Pengajuan::whereKey($pengajuan->id)->lockForUpdate()->firstOrFail();
+            abort_unless(in_array($pengajuan->tipe, ['ruangan', 'alat', 'jasa'], true), 422);
+            abort_unless($pengajuan->status === 'Menunggu Invoice', 422);
+
+            $invoice = $pengajuan->invoices()->where('status', 'draft')->lockForUpdate()->first();
+            if (! $invoice || ! $invoice->bank_snapshot || $invoice->due_at?->isPast()) {
+                throw ValidationException::withMessages(['invoice' => 'Siapkan invoice BLU dengan jatuh tempo yang berlaku sebelum menyetujui sewa.']);
+            }
+            if ($invoice->request_snapshot != $this->rentalRequestSnapshot($pengajuan)) {
+                throw ValidationException::withMessages(['invoice' => 'Data pengajuan berubah. Batalkan draf dan siapkan invoice baru.']);
+            }
+
+            $this->workflow->transition($pengajuan, 'Menunggu Pembayaran', 'Invoice BLU sewa diterbitkan: '.$invoice->invoice_number, $issuer->name);
+            $pengajuan->refresh();
+            $order = $pengajuan->order;
+            $order->update(['subtotal' => $invoice->subtotal, 'tax_rate_id' => null,
+                'tax_rate_snapshot' => $invoice->tax_rate_snapshot, 'tax_name_snapshot' => 'Pajak barang',
+                'tax_amount' => $invoice->tax_amount, 'total' => $invoice->total]);
+            $lines = $invoice->lines()->orderBy('id')->get();
+            if ($lines->isEmpty() || (int) $lines->sum('amount') !== (int) $invoice->subtotal) {
+                throw ValidationException::withMessages(['invoice' => 'Rincian invoice tidak sesuai subtotal.']);
+            }
+            $order->items()->delete();
+            foreach ($lines as $line) {
+                $order->items()->create([
+                    'product_id' => $pengajuan->product_id,
+                    'product_name' => $line->description,
+                    'unit_price' => $line->unit_price,
+                    'quantity' => $line->quantity,
+                    'subtotal' => $line->amount,
+                ]);
+            }
+            $pengajuan->update(['total' => $invoice->total]);
+            $invoice->update(['order_id' => $order->id, 'status' => 'issued', 'issued_at' => now()]);
+            $pengajuan->buyer->notify(new NonPreorderInvoiceIssued($invoice));
+        });
+    }
+
+    private function rentalRequestSnapshot(Pengajuan $pengajuan): array
+    {
+        return [
+            'product_id' => (int) $pengajuan->product_id,
+            'buyer_id' => (int) $pengajuan->buyer_id,
+            'quantity' => (int) ($pengajuan->jumlah ?: 1),
+            'rental_start' => $pengajuan->rental_start?->format('Y-m-d H:i'),
+            'rental_end' => $pengajuan->rental_end?->format('Y-m-d H:i'),
+            'renter_data' => $pengajuan->renter_data ?? [],
+            'need' => $pengajuan->keperluan,
+            'subtotal' => $pengajuan->total,
+            'options' => $pengajuan->opsi()->orderBy('id')->get(['id', 'nama', 'subtotal'])->toArray(),
+        ];
     }
 
     public function approvePreorder(Pengajuan $pengajuan, User $issuer): void
@@ -244,6 +395,9 @@ class InvoiceService
                 $this->workflow->transition($pengajuan, 'Menunggu Pembayaran', 'Invoice diterbitkan', $issuer->name);
             }
 
+            // Notify customer about invoice issuance (C3.3 gap)
+            $pengajuan->buyer?->notify(new NonPreorderInvoiceIssued($invoice));
+
             return $invoice->load(['lines', 'pengajuan', 'order', 'issuer']);
         });
     }
@@ -304,6 +458,12 @@ class InvoiceService
 
             $product = $pengajuan->product;
             $taxCalc = $this->taxService->calculate($subtotal, $product?->taxRate, $pengajuan->tipe);
+            // Order adalah sumber kebenaran untuk pembayaran yang sudah terjadi.
+            // Jangan menghitung ulang harga/pajak dari katalog pada kwitansi selesai.
+            $subtotal = $order ? (int) $order->subtotal : $taxCalc['subtotal'];
+            $taxAmount = $order ? (int) $order->tax_amount : $taxCalc['tax_amount'];
+            $shippingAmount = (int) ($order?->shipping_amount ?? 0);
+            $total = $order ? (int) $order->total : $taxCalc['total'] + $shippingAmount;
 
             $invoice = Invoice::create([
                 'invoice_number' => $this->generateInvoiceNumber($pengajuan),
@@ -312,10 +472,11 @@ class InvoiceService
                 'issued_by' => null, // dibuat otomatis oleh sistem
                 'issued_at' => now(),
                 'due_at' => null, // sudah lunas, tidak ada jatuh tempo
-                'subtotal' => $taxCalc['subtotal'],
-                'tax_rate_snapshot' => $taxCalc['tax_rate_snapshot'],
-                'tax_amount' => $taxCalc['tax_amount'],
-                'total' => $taxCalc['total'],
+                'subtotal' => $subtotal,
+                'tax_rate_snapshot' => $order?->tax_rate_snapshot ?? $taxCalc['tax_rate_snapshot'],
+                'tax_amount' => $taxAmount,
+                'shipping_amount' => $shippingAmount,
+                'total' => $total,
                 'status' => 'paid', // langsung paid karena sudah dikonfirmasi Midtrans
                 'notes' => 'Kwitansi pembayaran otomatis — Ready Stock (Midtrans). Nomor pesanan: '.$pengajuan->code,
             ]);

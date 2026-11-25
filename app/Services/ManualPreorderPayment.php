@@ -5,6 +5,7 @@ namespace App\Services;
 use App\Models\PaymentProof;
 use App\Models\Pengajuan;
 use App\Models\User;
+use App\Notifications\CustomerPaymentConfirmed;
 use App\Notifications\ProductPaymentReceived;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\DB;
@@ -18,9 +19,15 @@ class ManualPreorderPayment
         $path = null;
         try {
             DB::transaction(function () use ($request, $buyer, $bankId, $file, &$path) {
+                if (DB::getDriverName() === 'sqlite') {
+                    DB::table('pengajuan')->where('id', $request->id)->update(['id' => DB::raw('id')]);
+                }
                 $request = Pengajuan::whereKey($request->id)->lockForUpdate()->firstOrFail();
                 abort_unless($request->buyer_id === $buyer->id, 403);
-                abort_unless($request->status === 'Menunggu Pembayaran' && $request->isPreorder(), 422);
+                abort_unless($request->status === 'Menunggu Pembayaran' && ($request->isPreorder() || in_array($request->tipe, ['ruangan', 'alat', 'jasa'], true)), 422);
+                if ($request->payments()->whereIn('status', ['pending', 'paid'])->exists()) {
+                    throw ValidationException::withMessages(['payment' => 'Pembayaran Midtrans sebelumnya belum diselesaikan. Hubungi RTPU sebelum transfer manual.']);
+                }
                 $invoice = $request->invoices()->where('status', 'issued')->lockForUpdate()->first();
                 if (! $invoice || ! $invoice->bank_snapshot || (int) $invoice->bank_snapshot['id'] !== $bankId || $invoice->due_at->isPast()
                     || $request->order?->id !== $invoice->order_id || (int) $request->order->total !== $invoice->total) {
@@ -46,13 +53,21 @@ class ManualPreorderPayment
     {
         abort_unless(in_array($actor->role, ['admin_rtpu', 'super_admin'], true), 403);
         DB::transaction(function () use ($proof, $actor, $rejection) {
+            if (DB::getDriverName() === 'sqlite') {
+                DB::table('pengajuan')->where('id', $proof->order->pengajuan_id)->update(['id' => DB::raw('id')]);
+            }
             $request = Pengajuan::whereKey($proof->order->pengajuan_id)->lockForUpdate()->firstOrFail();
             $proof = PaymentProof::whereKey($proof->id)->lockForUpdate()->firstOrFail();
             $invoice = $request->invoices()->where('status', 'issued')->lockForUpdate()->first();
             abort_unless($proof->verification_status === 'pending' && $request->status === 'Menunggu Verifikasi Pembayaran', 422);
-            abort_unless($invoice && $invoice->bank_snapshot && $invoice->order_id === $proof->order_id
-                && $proof->notes === 'BLU invoice '.$invoice->id.'; bank '.$invoice->bank_snapshot['id']
-                && $invoice->total === (int) $proof->order->total, 422);
+            if ($request->payments()->whereIn('status', ['pending', 'paid'])->exists()) {
+                throw ValidationException::withMessages(['payment' => 'Pembayaran Midtrans sebelumnya belum diselesaikan. Periksa dan rekonsiliasi sebelum verifikasi manual.']);
+            }
+            if ($rejection === null) {
+                abort_unless($invoice && $invoice->bank_snapshot && $invoice->order_id === $proof->order_id
+                    && $proof->notes === 'BLU invoice '.$invoice->id.'; bank '.$invoice->bank_snapshot['id']
+                    && $invoice->total === (int) $proof->order->total, 422);
+            }
             $proof->update(['verification_status' => $rejection === null ? 'verified' : 'rejected',
                 'verified_by' => $actor->id, 'verified_at' => now(), 'rejection_reason' => $rejection]);
             $request->setStatus($rejection === null ? 'Lunas' : 'Menunggu Pembayaran', $rejection ?? 'Transfer BLU diverifikasi RTPU.', $actor->name);
@@ -62,6 +77,8 @@ class ManualPreorderPayment
                 $invoice->update(['status' => 'paid']);
                 $request->loadMissing('product.owner');
                 $request->product?->owner?->notify((new ProductPaymentReceived($request))->afterCommit());
+                // Notify customer about payment confirmation (C2.4 gap)
+                $request->buyer?->notify((new CustomerPaymentConfirmed($request))->afterCommit());
             }
         });
     }

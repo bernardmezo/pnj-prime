@@ -8,15 +8,13 @@ use App\Models\Product;
 use App\Models\ProductCategory;
 use App\Models\User;
 use Database\Seeders\UsecaseSeeder;
-use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Config;
 use Illuminate\Support\Facades\Http;
 use Tests\TestCase;
 
 class MidtransPaymentTest extends TestCase
 {
-    use RefreshDatabase;
-
     private User $customer;
 
     private User $otherUser;
@@ -28,6 +26,14 @@ class MidtransPaymentTest extends TestCase
     protected function setUp(): void
     {
         parent::setUp();
+
+        $connection = config('database.default');
+        $database = config("database.connections.{$connection}");
+        if (($database['driver'] ?? null) !== 'sqlite' || ($database['database'] ?? null) !== ':memory:' || ! empty($database['url'])) {
+            throw new \LogicException('This destructive test requires isolated in-memory SQLite.');
+        }
+        $this->artisan('migrate:fresh')->assertExitCode(0);
+        $this->assertSame(0, DB::transactionLevel());
 
         Config::set('services.midtrans.server_key', $this->serverKey);
         Config::set('services.midtrans.client_key', 'test-client-key');
@@ -54,7 +60,7 @@ class MidtransPaymentTest extends TestCase
             'code' => 'PNJ-20261028-0001',
             'buyer_id' => $this->customer->id,
             'product_id' => $product->id,
-            'tipe' => 'jasa',
+            'tipe' => 'produk',
             'keperluan' => 'Pengujian',
             'total' => 500000,
             'status' => 'Menunggu Pembayaran',
@@ -111,6 +117,42 @@ class MidtransPaymentTest extends TestCase
             ->postJson(route('customer.pengajuan.pembayaran.create', $this->pengajuan));
 
         $response->assertForbidden();
+    }
+
+    public function test_webhook_settles_a_legacy_jasa_payment(): void
+    {
+        $this->pengajuan->update(['tipe' => 'jasa']);
+        $orderId = 'legacy-jasa';
+        $payment = Payment::create(['request_id' => $this->pengajuan->id, 'order_id' => $orderId, 'gross_amount' => 560000, 'status' => 'pending']);
+        Http::fake(['*' => Http::response(['order_id' => $payment->order_id, 'transaction_status' => 'settlement', 'gross_amount' => '560000.00'], 200)]);
+        $response = $this->postJson(route('api.midtrans.notification'), [
+            'order_id' => $orderId, 'status_code' => '200', 'gross_amount' => '560000.00',
+            'signature_key' => hash('sha512', $orderId.'200'.'560000.00'.$this->serverKey),
+        ]);
+        $response->assertOk();
+        $this->assertSame('paid', $payment->fresh()->status);
+        $this->assertSame('Lunas', $this->pengajuan->fresh()->status);
+    }
+
+    public function test_legacy_rental_polling_settles_existing_payment(): void
+    {
+        $this->pengajuan->update(['tipe' => 'alat']);
+        $payment = Payment::create(['request_id' => $this->pengajuan->id, 'order_id' => 'legacy-alat', 'gross_amount' => 560000, 'status' => 'pending']);
+        Http::fake(['*' => Http::response(['order_id' => $payment->order_id, 'transaction_status' => 'settlement', 'gross_amount' => '560000.00'], 200)]);
+        $this->actingAs($this->customer)->getJson(route('customer.pengajuan.pembayaran.status', $this->pengajuan))->assertOk()->assertJson(['payment_status' => 'paid', 'status' => 'Lunas']);
+        $this->assertSame('paid', $payment->fresh()->status);
+    }
+
+    public function test_manual_upload_is_blocked_while_legacy_gateway_payment_is_pending(): void
+    {
+        $this->pengajuan->update(['tipe' => 'ruangan']);
+        Payment::create(['request_id' => $this->pengajuan->id, 'order_id' => 'legacy-rental', 'gross_amount' => 560000, 'status' => 'pending']);
+        try {
+            app(\App\Services\ManualPreorderPayment::class)->upload($this->pengajuan, $this->customer, 1, \Illuminate\Http\UploadedFile::fake()->image('proof.jpg'));
+            $this->fail('Pending gateway must block manual payment.');
+        } catch (\Illuminate\Validation\ValidationException $e) {
+            $this->assertArrayHasKey('payment', $e->errors());
+        }
     }
 
     public function test_webhook_rejects_invalid_signature_with_403(): void
@@ -205,6 +247,33 @@ class MidtransPaymentTest extends TestCase
 
         $response->assertOk()
             ->assertJson(['message' => 'Payment already paid.']);
+    }
+
+    public function test_challenged_capture_remains_pending(): void
+    {
+        $payment = Payment::create(['request_id' => $this->pengajuan->id, 'order_id' => 'challenge', 'gross_amount' => 560000, 'status' => 'pending']);
+        Http::fake(['*' => Http::response(['order_id' => 'challenge', 'transaction_status' => 'capture', 'fraud_status' => 'challenge', 'gross_amount' => '560000.00'])]);
+        $this->postJson(route('api.midtrans.notification'), ['order_id' => 'challenge', 'status_code' => '200', 'gross_amount' => '560000.00', 'signature_key' => hash('sha512', 'challenge200560000.00'.$this->serverKey)])->assertOk();
+        $this->assertSame('pending', $payment->fresh()->status);
+    }
+
+    public function test_polling_persists_expired_status(): void
+    {
+        $payment = Payment::create(['request_id' => $this->pengajuan->id, 'order_id' => 'expired-test', 'gross_amount' => 560000, 'status' => 'pending']);
+        Http::fake(['*' => Http::response(['order_id' => 'expired-test', 'transaction_status' => 'expire', 'gross_amount' => '560000.00'])]);
+        $this->actingAs($this->customer)->getJson(route('customer.pengajuan.pembayaran.status', $this->pengajuan))->assertOk()->assertJson(['payment_status' => 'expired']);
+        $this->assertSame('expired', $payment->fresh()->status);
+    }
+
+    public function test_webhook_rejects_fractional_or_wrong_order_response(): void
+    {
+        $payment = Payment::create(['request_id' => $this->pengajuan->id, 'order_id' => 'identity-test', 'gross_amount' => 560000, 'status' => 'pending']);
+        $body = ['order_id' => 'identity-test', 'status_code' => '200', 'gross_amount' => '560000.00', 'signature_key' => hash('sha512', 'identity-test200560000.00'.$this->serverKey)];
+        Http::fake(['*' => Http::response(['order_id' => 'identity-test', 'transaction_status' => 'settlement', 'gross_amount' => '560000.01'])]);
+        $this->postJson(route('api.midtrans.notification'), $body)->assertStatus(400);
+        Http::fake(['*' => Http::response(['order_id' => 'different', 'transaction_status' => 'settlement', 'gross_amount' => '560000.00'])]);
+        $this->postJson(route('api.midtrans.notification'), $body)->assertStatus(400);
+        $this->assertSame('pending', $payment->fresh()->status);
     }
 
     public function test_webhook_rejects_amount_mismatch(): void

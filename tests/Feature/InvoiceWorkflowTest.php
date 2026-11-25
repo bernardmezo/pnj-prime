@@ -3,6 +3,7 @@
 namespace Tests\Feature;
 
 use App\Models\Invoice;
+use App\Models\MetodePembayaran;
 use App\Models\Pengajuan;
 use App\Models\Product;
 use App\Models\ProductCategory;
@@ -26,6 +27,8 @@ class InvoiceWorkflowTest extends TestCase
 
     protected Product $product;
 
+    protected MetodePembayaran $bank;
+
     protected function setUp(): void
     {
         parent::setUp();
@@ -38,6 +41,7 @@ class InvoiceWorkflowTest extends TestCase
         $this->customer = User::factory()->create(['role' => 'customer']);
         $this->otherCustomer = User::factory()->create(['role' => 'customer']);
         $this->adminRtpu = User::factory()->create(['role' => 'admin_rtpu']);
+        $this->bank = MetodePembayaran::create(['nama' => 'Test BLU', 'tipe' => 'BLU', 'rekening' => 'TEST', 'holder' => 'TEST', 'aktif' => true]);
 
         $category = ProductCategory::first() ?? ProductCategory::create(['name' => 'Uji Lab', 'slug' => 'uji-lab']);
         $this->product = Product::create([
@@ -50,6 +54,22 @@ class InvoiceWorkflowTest extends TestCase
             'is_active' => true,
             'curation_status' => 'approved',
         ]);
+    }
+
+    private function invoiceData(): array
+    {
+        return ['bank_id' => $this->bank->id, 'due_date' => now()->addDays(3)->toDateString(), 'tax_rate' => '12'];
+    }
+
+    private function issueInvoice(Pengajuan $pengajuan): void
+    {
+        $this->actingAs($this->adminRtpu)
+            ->post(route('rtpu.invoice.store', $pengajuan), $this->invoiceData())
+            ->assertRedirect()->assertSessionHasNoErrors();
+        $this->assertSame('draft', $pengajuan->invoices()->firstOrFail()->status);
+        $this->actingAs($this->adminRtpu)
+            ->patch(route('rtpu.verify.layanan.approve', $pengajuan->id))
+            ->assertRedirect()->assertSessionHasNoErrors();
     }
 
     public function test_rtpu_can_issue_official_invoice_for_pengajuan_in_menunggu_invoice(): void
@@ -73,10 +93,8 @@ class InvoiceWorkflowTest extends TestCase
             'status' => 'menunggu_invoice',
         ]);
 
-        $response = $this->actingAs($this->adminRtpu)
-            ->post(route('rtpu.invoice.store', $pengajuan));
+        $this->issueInvoice($pengajuan);
 
-        $response->assertRedirect();
         $this->assertEquals('Menunggu Pembayaran', $pengajuan->fresh()->status);
 
         $invoice = Invoice::where('pengajuan_id', $pengajuan->id)->first();
@@ -101,7 +119,7 @@ class InvoiceWorkflowTest extends TestCase
         ]);
 
         $response = $this->actingAs($this->adminRtpu)
-            ->post(route('rtpu.invoice.store', $pengajuan));
+            ->post(route('rtpu.invoice.store', $pengajuan), $this->invoiceData());
 
         $response->assertStatus(422);
     }
@@ -118,9 +136,8 @@ class InvoiceWorkflowTest extends TestCase
             'status' => 'Menunggu Invoice',
         ]);
 
-        // Issue invoice
-        $this->actingAs($this->adminRtpu)
-            ->post(route('rtpu.invoice.store', $pengajuan));
+        // Prepare the BLU draft and approve it before customer access.
+        $this->issueInvoice($pengajuan);
 
         // Customer views invoice
         $showRes = $this->actingAs($this->customer)
@@ -146,8 +163,7 @@ class InvoiceWorkflowTest extends TestCase
             'status' => 'Menunggu Invoice',
         ]);
 
-        $this->actingAs($this->adminRtpu)
-            ->post(route('rtpu.invoice.store', $pengajuan));
+        $this->issueInvoice($pengajuan);
 
         $res = $this->actingAs($this->otherCustomer)
             ->get(route('customer.pengajuan.invoice', $pengajuan));
@@ -164,14 +180,14 @@ class InvoiceWorkflowTest extends TestCase
             'code' => 'PNJ-20261106-0005',
             'buyer_id' => $this->customer->id,
             'product_id' => $this->product->id,
-            'tipe' => 'jasa',
+            'tipe' => 'produk',
             'keperluan' => 'Pengujian',
             'total' => 1000000,
             'status' => 'Menunggu Invoice',
         ]);
 
         $this->actingAs($this->adminRtpu)
-            ->post(route('rtpu.invoice.store', $pengajuan));
+            ->post(route('rtpu.invoice.store', $pengajuan))->assertRedirect()->assertSessionHasNoErrors();
 
         $invoice = Invoice::where('pengajuan_id', $pengajuan->id)->first();
 

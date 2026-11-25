@@ -18,10 +18,14 @@ export default function Pembayaran({
     const proof = useForm({ metode_id: manualInvoice?.bank_snapshot?.id ?? '', bukti: null });
     const role = auth?.user?.role;
     const p = item;
+    const isRental = ['ruangan', 'alat'].includes(p?.type);
+    const isManual = manualPreorder || isRental || p?.type === 'jasa';
 
     const subtotal = Number(tagihan.subtotal ?? p?.total ?? 0);
     const ppn = Number(tagihan.ppn ?? 0);
-    const total = Number(tagihan.total ?? subtotal + ppn);
+    const ongkir = Number(tagihan.ongkir ?? 0);
+    const ongkirDetail = tagihan.ongkir_detail ?? null;
+    const total = Number(tagihan.total ?? subtotal + ppn + ongkir);
     const items = tagihan.items ?? [];
     const fmt = (n) => `Rp ${Number(n).toLocaleString('id-ID')}`;
 
@@ -33,7 +37,7 @@ export default function Pembayaran({
     const pollIntervalRef = useRef(null);
     const pollTimeoutRef = useRef(null);
 
-    const isPaid = currentStatus === 'Diproses' || currentStatus === 'Selesai' || paymentRecord?.status === 'paid';
+    const isPaid = ['Lunas', 'Diproses', 'Selesai'].includes(currentStatus) || paymentRecord?.status === 'paid';
     const isExpired = paymentRecord?.status === 'expired';
 
     // Load Snap.js dynamically
@@ -68,7 +72,7 @@ export default function Pembayaran({
 
     // Preload snap.js on mount
     useEffect(() => {
-        if (!manualPreorder && !isPaid && clientKey) {
+        if (!isManual && p?.type === 'produk' && !isPaid && clientKey) {
             loadSnapScript().catch((err) => console.warn('Preload snap.js:', err));
         }
     }, [clientKey, isPaid]);
@@ -191,13 +195,13 @@ export default function Pembayaran({
         }
     };
 
-    if (manualPreorder && p) {
+    if (isManual && p) {
         const invoice = manualInvoice;
         const bank = invoice?.bank_snapshot;
         return <PublicLayout auth={auth}><Head title={`Invoice BLU ${p.code}`} />
             <main className="mx-auto max-w-2xl space-y-5 px-4 py-10">
                 <Link href={route('customer.pengajuan.show', p.id)} className="text-sm underline">Kembali ke pengajuan</Link>
-                <h1 className="font-display text-3xl font-bold">Pembayaran pre-order · BLU</h1>
+                <h1 className="font-display text-3xl font-bold">{isRental ? 'Pembayaran sewa · BLU' : p.type === 'jasa' ? 'Pembayaran jasa · BLU' : 'Pembayaran pre-order · BLU'}</h1>
                 {!invoice || !bank ? <p>Invoice resmi belum diterbitkan. Hubungi Admin RTPU.</p> : <section className="space-y-4 rounded-2xl border border-[var(--color-border)] bg-[var(--color-surface)] p-6">
                     <p>{invoice.invoice_number} · {p.status}</p>
                     <dl className="space-y-2 text-sm">{[['Subtotal barang', invoice.subtotal], [`Pajak barang (${invoice.tax_rate_snapshot}%)`, invoice.tax_amount], ['Ongkir (bebas pajak)', invoice.shipping_amount], ['Nominal unik tambahan (bebas pajak)', invoice.unique_amount], ['Total transfer tepat', invoice.total]].map(([label, amount]) => <div key={label} className="flex justify-between gap-4"><dt>{label}</dt><dd className="font-semibold">{fmt(amount)}</dd></div>)}</dl>
@@ -209,7 +213,7 @@ export default function Pembayaran({
                     {p.status === 'Menunggu Pembayaran' && invoice.status === 'issued' ? <form className="space-y-3" onSubmit={(event) => { event.preventDefault(); proof.post(route('customer.pengajuan.proof', p.id), { forceFormData: true }); }}>
                         <label className="block text-sm">Bukti transfer ke rekening di atas (JPG, PNG, PDF; maksimal 5 MB)<input required type="file" accept="image/jpeg,image/png,application/pdf" className="mt-2 block w-full" onChange={(event) => proof.setData('bukti', event.target.files[0])} /></label>
                         {Object.values(proof.errors).map((error) => <p role="alert" key={error} className="text-sm text-red-700">{error}</p>)}
-                        <button disabled={proof.processing} className="rounded-full bg-[var(--color-accent)] px-5 py-3 text-sm font-semibold text-white disabled:opacity-40">Kirim bukti transfer BLU</button>
+                        <button disabled={proof.processing} className="rounded-full bg-[var(--color-accent)] px-5 py-3 text-sm font-semibold text-white disabled:opacity-40">{isRental ? 'Kirim bukti transfer sewa' : 'Kirim bukti transfer BLU'}</button>
                     </form> : <p className="font-semibold">{p.status === 'Menunggu Verifikasi Pembayaran' ? 'Bukti diterima, menunggu verifikasi RTPU.' : p.status}</p>}
                 </section>}
             </main>
@@ -296,8 +300,14 @@ export default function Pembayaran({
                             ))}
                             {ppn > 0 && (
                                 <div className="flex justify-between text-[var(--color-muted)]">
-                                    <span>PPN (12%)</span>
+                                    <span>PPN{tagihan.ppn_rate ? ` (${tagihan.ppn_rate}%)` : ''}</span>
                                     <span className="tabular-nums">{fmt(ppn)}</span>
+                                </div>
+                            )}
+                            {ongkir > 0 && (
+                                <div className="flex justify-between text-[var(--color-muted)]">
+                                    <span>Ongkir{ongkirDetail?.courier ? ` (${String(ongkirDetail.courier).toUpperCase()}${ongkirDetail.service ? ` · ${ongkirDetail.service}` : ''})` : ''}</span>
+                                    <span className="tabular-nums">{fmt(ongkir)}</span>
                                 </div>
                             )}
                             <div className="flex justify-between font-semibold text-[var(--color-ink)] pt-1 border-t border-[var(--color-border)]">

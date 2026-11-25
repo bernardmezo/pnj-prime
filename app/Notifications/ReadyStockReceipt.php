@@ -24,7 +24,7 @@ class ReadyStockReceipt extends Notification implements ShouldQueue
 
     public function via(object $notifiable): array
     {
-        return ['mail'];
+        return ['mail', 'database'];
     }
 
     public function toMail(object $notifiable): MailMessage
@@ -43,5 +43,15 @@ class ReadyStockReceipt extends Notification implements ShouldQueue
         }
 
         return $msg->action('Lihat invoice', route('customer.pengajuan.invoice', $p->id));
+    }
+
+    public function toArray(object $notifiable): array
+    {
+        return [
+            'title' => 'Kwitansi pembelian',
+            'message' => 'Pesanan '.$this->invoice->pengajuan->code.' selesai. Kwitansi '.$this->invoice->invoice_number.' terbit.',
+            'url' => route('customer.pengajuan.invoice', $this->invoice->pengajuan_id),
+            'invoice_number' => $this->invoice->invoice_number,
+        ];
     }
 }

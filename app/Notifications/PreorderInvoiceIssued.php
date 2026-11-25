@@ -19,7 +19,7 @@ class PreorderInvoiceIssued extends Notification implements ShouldQueue
 
     public function via(object $notifiable): array
     {
-        return ['mail'];
+        return ['mail', 'database'];
     }
 
     public function toMail(object $notifiable): MailMessage
@@ -32,5 +32,15 @@ class PreorderInvoiceIssued extends Notification implements ShouldQueue
             ->line('Bank: '.$bank['name'].'; rekening: '.$bank['account'].'; atas nama: '.$bank['holder'])
             ->line('Total sudah termasuk nominal unik tambahan bebas pajak. Unggah bukti transfer untuk verifikasi RTPU.')
             ->action('Lihat invoice', route('customer.pengajuan.invoice', $this->invoice->pengajuan_id));
+    }
+
+    public function toArray(object $notifiable): array
+    {
+        return [
+            'title' => 'Invoice pre-order diterbitkan',
+            'message' => 'Invoice '.$this->invoice->invoice_number.' siap dibayar. Total: Rp '.number_format($this->invoice->total, 0, ',', '.'),
+            'url' => route('customer.pengajuan.invoice', $this->invoice->pengajuan_id),
+            'invoice_number' => $this->invoice->invoice_number,
+        ];
     }
 }

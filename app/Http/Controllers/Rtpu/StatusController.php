@@ -13,7 +13,7 @@ class StatusController extends Controller
 {
     public function index(): Response
     {
-        $rows = Pengajuan::with(['product', 'buyer:id,name'])
+        $rows = Pengajuan::with(['product.owner:id,name', 'buyer:id,name', 'order:id,pengajuan_id,order_number'])
             /** @phpstan-ignore-next-line */
             ->whereNotIn('status', Pengajuan::CLOSED)
             ->latest()
@@ -21,7 +21,11 @@ class StatusController extends Controller
             ->map(fn ($p) => [
                 'id' => $p->id,
                 'code' => $p->code,
+                'order_number' => $p->order?->order_number,
+                'owner' => $p->product?->owner?->name,
                 'type' => $p->tipe,
+                'fulfillment' => $p->metode_pengambilan,
+                'pickup_ready' => (bool) ($p->pickupDetails()['ready'] ?? false),
                 'layanan' => $p->product?->name ?? ucfirst($p->tipe),
                 'customer' => $p->buyer?->name,
                 'date' => optional($p->created_at)->format('Y-m-d'),
@@ -34,44 +38,6 @@ class StatusController extends Controller
 
     public function update(Request $request, Pengajuan $pengajuan)
     {
-        $allowed = Pengajuan::NEXT[$pengajuan->status] ?? [];
-
-        $data = $request->validate([
-            'status' => 'required|string|in:'.implode(',', $allowed),
-            'catatan' => 'nullable|string|max:1000',
-        ]);
-
-        if ($pengajuan->isPreorder()) {
-            if ($pengajuan->status === 'Diajukan' && $data['status'] === 'Menunggu Pembayaran') {
-                app(\App\Services\InvoiceService::class)->approvePreorder($pengajuan, $request->user());
-            } else {
-                abort_unless(in_array($data['status'], ['Ditolak', 'Dibatalkan', 'Diproses', 'Selesai'], true), 422, 'Pembayaran BLU wajib melalui verifikasi bukti transfer.');
-                app(\App\Services\PengajuanWorkflow::class)->transition($pengajuan, $data['status'], $data['catatan'] ?? null, $request->user()->name);
-            }
-
-            return back()->with('success', 'Status diperbarui.');
-        }
-
-        $pengajuan->setStatus($data['status'], $data['catatan'] ?? null, Auth::user()->name);
-        $pengajuan->save();
-
-        if ($pengajuan->order) {
-            $map = [
-                'Lunas' => 'lunas',
-                'Diproses' => 'diproses',
-                'Selesai' => 'selesai',
-                'Dibatalkan' => 'dibatalkan',
-                'Menunggu Pembayaran' => 'menunggu_pembayaran',
-            ];
-            if (isset($map[$data['status']])) {
-                $attrs = ['status' => $map[$data['status']]];
-                if ($data['status'] === 'Selesai') {
-                    $attrs['completed_at'] = now();
-                }
-                $pengajuan->order->update($attrs);
-            }
-        }
-
-        return back()->with('success', 'Status diperbarui.');
+        abort(403, 'Halaman Status Layanan hanya untuk monitoring.');
     }
 }

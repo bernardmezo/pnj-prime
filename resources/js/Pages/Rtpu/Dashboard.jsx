@@ -31,6 +31,7 @@ function formatDateId(dateStr) {
 export default function RtpuDashboard({
     auth,
     stats = {},
+    verificationQueues = [],
     recentPengajuan = [],
 }) {
     const role = auth?.user?.role;
@@ -101,14 +102,14 @@ export default function RtpuDashboard({
 
     const statItems = [
         {
-            label: 'Perlu verifikasi',
+            label: 'Antrean layanan & katalog',
             value: pendingLayanan,
             needsAction: true,
             highlightBar: true,
             helper: pendingLayanan > 0 ? 'menunggu Anda' : null,
         },
         {
-            label: 'Perlu cek pembayaran',
+            label: 'Pengajuan menunggu verifikasi pembayaran',
             value: pendingBayar,
             helper: pendingBayar > 0 ? 'menunggu konfirmasi' : null,
         },
@@ -135,6 +136,20 @@ export default function RtpuDashboard({
                     <StatRow stats={statItems} />
                 </Panel>
 
+
+                <Panel>
+                    <h2 className="text-base font-semibold text-[var(--color-ink)]">Ringkasan antrean verifikasi</h2>
+                    <div className="mt-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+                        {verificationQueues.map((queue) => (
+                            <a key={queue.key} href={queue.url} className="rounded-xl border border-[var(--color-border)] p-4 hover:border-[var(--color-accent)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-[var(--color-accent)]">
+                                <span className="block text-sm font-medium text-[var(--color-ink)]">{queue.label}</span>
+                                <span className="mt-2 block text-2xl font-semibold tabular-nums text-[var(--color-accent)]">{queue.count}</span>
+                                {queue.description && <span className="mt-1 block text-xs text-[var(--color-muted)]">{queue.description}</span>}
+                                <span className="mt-2 block text-xs text-[var(--color-accent)]">Lihat antrean →</span>
+                            </a>
+                        ))}
+                    </div>
+                </Panel>
 
                 {/* 3. Queue: Dedicated white panel (12px radius, 1px border) */}
                 <div className="rounded-2xl border border-[var(--color-border)] bg-white shadow-card p-6 sm:p-8 space-y-5">

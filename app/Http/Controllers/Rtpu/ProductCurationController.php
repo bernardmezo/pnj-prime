@@ -3,7 +3,8 @@
 namespace App\Http\Controllers\Rtpu;
 
 use App\Http\Controllers\Controller;
-use App\Models\Product;
+use App\Models\ProdukUnggulan;
+use App\Services\PengajuanWorkflow;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -13,28 +14,31 @@ use Inertia\Response;
 class ProductCurationController extends Controller
 {
     /**
-     * Display a listing of products requiring curation by Admin RTPU.
+     * Display a listing of Produk Unggulan proposals from P3M awaiting RTPU verification.
      */
     public function index(): Response
     {
-        $products = Product::with(['category', 'owner:id,name,institution,unit_name'])
-            ->whereIn('curation_status', ['pending', 'verified'])
+        $products = ProdukUnggulan::with(['owner:id,name,email,phone,nip,jurusan,institution,unit_name'])
+            ->where('status', 'Diajukan')
             ->latest()
             ->get()
-            ->map(fn (Product $p) => [
+            ->map(fn (ProdukUnggulan $p) => [
                 'id' => $p->id,
+                'code' => $p->code,
                 'name' => $p->name,
-                'slug' => $p->slug,
-                'category' => $p->category?->name,
-                'target_audience' => $p->target_audience ?? 'publik',
+                'description' => $p->description,
+                'researcher' => $p->researcher,
+                'team' => $p->team,
+                'category' => $p->category,
+                'price' => $p->price,
                 'owner' => $p->owner?->name,
                 'unit' => $p->owner?->unit_name ?? $p->owner?->institution,
-                'base_price' => $p->base_price,
-                'final_price' => $p->final_price,
-                'curation_status' => $p->curation_status,
-                'rejection_reason' => $p->rejection_reason,
+                'phone' => $p->owner?->phone,
+                'nip' => $p->owner?->nip,
+                'jurusan' => $p->owner?->jurusan,
+                'status' => $p->status,
+                'documents' => $p->documents ?? [],
                 'created_at' => optional($p->created_at)->format('Y-m-d H:i'),
-                'meta' => $p->meta ?? [],
             ]);
 
         return Inertia::render('Rtpu/Verifikasi/Produk', [
@@ -43,59 +47,24 @@ class ProductCurationController extends Controller
     }
 
     /**
-     * Show detailed product view for Admin RTPU verification (dedicated page).
+     * Admin RTPU approves Produk Unggulan proposal from P3M.
      */
-    public function show(Product $product): Response
+    public function verify(Request $request, ProdukUnggulan $produk): RedirectResponse
     {
-        // Load owner full data for verification
-        $product->load(['category', 'owner:id,name,email,phone,institution,unit_name,nip,jurusan']);
+        $produk->setStatus(
+            'Disetujui',
+            'Disetujui oleh Admin RTPU untuk diteruskan ke Pimpinan RTPU.',
+            Auth::user()->name
+        );
+        $produk->save();
 
-        $data = [
-            'id' => $product->id,
-            'name' => $product->name,
-            'slug' => $product->slug,
-            'description' => $product->description,
-            'category' => $product->category?->name,
-            'category_slug' => $product->category?->slug,
-            'target_audience' => $product->target_audience ?? 'publik',
-            'base_price' => $product->base_price,
-            'final_price' => $product->final_price,
-            'curation_status' => $product->curation_status,
-            'rejection_reason' => $product->rejection_reason,
-            'photos' => $product->photos ?? [],
-            'documents' => $product->documents ?? [],
-            'meta' => $product->meta ?? [],
-            'created_at' => optional($product->created_at)->format('d M Y, H:i'),
-            'owner_detail' => [
-                'name' => $product->owner?->name,
-                'email' => $product->owner?->email,
-                'phone' => $product->owner?->phone,
-                'institution' => $product->owner?->institution,
-                'unit_name' => $product->owner?->unit_name,
-                'nip' => $product->owner?->nip,
-                'jurusan' => $product->owner?->jurusan,
-            ],
-        ];
-
-        return Inertia::render('Rtpu/Verifikasi/ProdukDetail', [
-            'product' => $data,
-        ]);
+        return back()->with('success', 'Produk unggulan disetujui dan diteruskan ke Pimpinan RTPU.');
     }
 
     /**
-     * Step 1: Admin RTPU verifies product catalog from unit/P3M.
+     * Admin RTPU rejects Produk Unggulan proposal from P3M.
      */
-    public function verify(Request $request, Product $product): RedirectResponse
-    {
-        app(\App\Services\ApproveCatalogProduct::class)->handle($product, $request->user());
-
-        return back()->with('success', 'Produk disetujui dan langsung aktif di katalog PNJ PRIME.');
-    }
-
-    /**
-     * Admin RTPU rejects the submitted product catalog.
-     */
-    public function reject(Request $request, Product $product): RedirectResponse
+    public function reject(Request $request, ProdukUnggulan $produk): RedirectResponse
     {
         $data = $request->validate([
             'catatan' => 'nullable|string|max:1000',
@@ -107,14 +76,14 @@ class ProductCurationController extends Controller
             return back()->withErrors(['catatan' => 'Alasan atau catatan penolakan wajib diisi.']);
         }
 
-        if (! in_array($product->curation_status, ['pending', 'verified'], true)) {
-            abort(422, 'Produk ini tidak dalam status yang dapat ditolak oleh RTPU.');
+        if ($produk->status !== 'Diajukan') {
+            abort(422, 'Produk unggulan ini tidak dalam status yang dapat ditolak oleh RTPU.');
         }
 
-        // Use transitionTo() for audit trail
-        $product->rejection_reason = $catatan;
-        $product->transitionTo('rejected', Auth::user(), $catatan);
+        $produk->catatan = $catatan;
+        $produk->setStatus('Ditolak', $catatan, Auth::user()->name);
+        $produk->save();
 
-        return back()->with('success', 'Produk ditolak dengan catatan.');
+        return back()->with('success', 'Produk unggulan ditolak dengan catatan.');
     }
 }

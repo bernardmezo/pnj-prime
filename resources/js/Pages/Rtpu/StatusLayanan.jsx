@@ -1,97 +1,75 @@
-import { Head, router } from '@inertiajs/react';
-import { useState } from 'react';
+import { Head } from '@inertiajs/react';
+import { Check, ClipboardList } from 'lucide-react';
 import DashboardLayout from '@/Layouts/DashboardLayout';
-import StatusTimeline from '@/Components/StatusTimeline';
-import Select from '@/Components/ui/Select';
-import { Card, FadeIn, Field, PageHeader, PrimaryButton, StatusBadge, inputClass, inputStyleProps } from '@/Components/ui';
-import { LAYANAN_FLOW, NEXT_STATUS } from '@/lib/statuses';
+import { Card, EmptyState, FadeIn, PageHeader, StatusBadge } from '@/Components/ui';
 
 export default function StatusLayanan({ auth, daftar = [] }) {
-    const rows = daftar;
-    const [selId, setSelId] = useState(rows[0]?.id ?? null);
-    const [next, setNext] = useState('');
-    const [note, setNote] = useState('');
-    const [processing, setProcessing] = useState(false);
-    const sel = rows.find((r) => r.id === selId) ?? null;
-    const options = sel ? NEXT_STATUS[sel.status] ?? [] : [];
+    const isDirektur = auth?.user?.role === 'direktur';
+    const title = isDirektur ? 'Monitoring Pesanan' : 'Status Layanan';
+    const role = isDirektur ? 'Direktur' : 'Admin RTPU';
 
     return (
-        <DashboardLayout title="Status Layanan" breadcrumb="Admin RTPU / Status Layanan" activeKey="status">
-            <Head title="Status Layanan · PNJ Prime" />
+        <DashboardLayout title={title} breadcrumb={`${role} / ${title}`} activeKey={isDirektur ? 'monitoring-pesanan' : 'status'}>
+            <Head title={`${title} · PNJ Prime`} />
             <FadeIn>
-                <PageHeader
-                    eyebrow="Admin RTPU"
-                    title="Perbarui Status Layanan"
-                    desc="Pilih pengajuan aktif, lalu majukan ke status berikutnya yang valid."
-                />
-                <div className="grid gap-5 lg:grid-cols-2">
-                    <Card className="p-6">
-                        <h2 className="mb-3 text-sm font-semibold" style={{ color: 'var(--color-muted)' }}>
-                            Pengajuan aktif ({rows.length})
-                        </h2>
-                        <div className="space-y-2">
-                            {rows.map((p) => (
-                                <button
-                                    key={p.id}
-                                    type="button"
-                                    onClick={() => { setSelId(p.id); setNext(''); setNote(''); }}
-                                    aria-pressed={sel?.id === p.id}
-                                    className="flex w-full items-center justify-between gap-3 rounded-2xl border px-4 py-3 text-left transition"
-                                    style={
-                                        sel?.id === p.id
-                                            ? { borderColor: 'var(--color-accent)', background: 'var(--color-accent-tint)' }
-                                            : { borderColor: 'var(--color-border)', background: 'var(--color-bg)' }
-                                    }
-                                >
-                                    <span className="min-w-0">
-                                        <span className="block truncate text-sm font-bold" style={{ color: 'var(--color-ink)' }}>{p.layanan}</span>
-                                        <span className="block font-mono text-xs" style={{ color: 'var(--color-muted)' }}>{p.code} · {p.customer}</span>
-                                    </span>
-                                    <StatusBadge status={p.status} label={p.status} />
-                                </button>
-                            ))}
-                        </div>
-                    </Card>
-                    <Card className="p-6">
-                        {!sel ? (
-                            <p className="py-10 text-center text-sm" style={{ color: 'var(--color-muted)' }}>
-                                Pilih pengajuan untuk melihat alur statusnya.
-                            </p>
-                        ) : (
-                            <>
-                                <h2 className="font-display text-base font-bold" style={{ color: 'var(--color-ink)' }}>
-                                    {sel.code}
-                                </h2>
-                                <div className="mt-4">
-                                    <StatusTimeline flow={LAYANAN_FLOW} history={sel.history ?? []} current={sel.status} />
-                                </div>
-                                <div className="mt-5 space-y-3 border-t pt-5" style={{ borderColor: 'var(--color-border)' }}>
-                                    <Select
-                                        label="Status berikutnya"
-                                        value={next}
-                                        onChange={setNext}
-                                        options={options.map((s) => ({ value: s, label: s }))}
-                                        placeholder="Pilih status…"
-                                    />
-                                    <Field label="Catatan (opsional)">
-                                        <textarea value={note} onChange={(e) => setNote(e.target.value)} rows={2} placeholder="Catatan untuk pemohon…" className={inputClass} {...inputStyleProps()} />
-                                    </Field>
-                                    <PrimaryButton
-                                        disabled={!next || processing}
-                                        onClick={() => {
-                                            setProcessing(true);
-                                            router.patch(route('rtpu.status.update', sel.id), { status: next, catatan: note || null }, {
-                                                onFinish: () => setProcessing(false),
-                                            });
-                                        }}
-                                    >
-                                        {processing ? 'Menyimpan…' : 'Perbarui Status'}
-                                    </PrimaryButton>
-                                </div>
-                            </>
-                        )}
-                    </Card>
-                </div>
+                <PageHeader eyebrow={role} title={isDirektur ? title : 'Monitoring Status Layanan'} desc="Pantau status dan riwayat pengajuan aktif. Halaman ini hanya untuk monitoring." />
+                {daftar.length === 0 ? (
+                    <EmptyState icon={ClipboardList} title="Tidak ada pengajuan aktif" desc="Pengajuan aktif akan tampil di sini." />
+                ) : (
+                    <div className="space-y-4">
+                        <p className="text-sm font-semibold text-[var(--color-muted)]">Pengajuan aktif ({daftar.length})</p>
+                        {daftar.map((item) => {
+                            const history = Array.isArray(item.history) ? item.history.filter((entry) => entry?.status) : [];
+                            const rental = ['ruangan', 'alat'].includes(item.type);
+                            const stages = ['Diajukan', ...(item.status === 'Menunggu Persetujuan Pimpinan' || history.some((h) => h.status === 'Menunggu Persetujuan Pimpinan') ? ['Menunggu Persetujuan Pimpinan'] : []), ...(item.status === 'Menunggu Invoice' || history.some((h) => h.status === 'Menunggu Invoice') ? ['Menunggu Invoice'] : []), 'Menunggu Pembayaran', ...(item.status === 'Menunggu Verifikasi Pembayaran' || history.some((h) => h.status === 'Menunggu Verifikasi Pembayaran') ? ['Menunggu Verifikasi Pembayaran'] : []), 'Lunas', ...(rental ? ['Berjalan'] : item.type === 'jasa' ? ['Diproses', 'Dijadwalkan', 'Dikerjakan', 'Hasil Diunggah'] : ['Diproses', ...(/ambil/i.test(item.fulfillment || '') ? ['Siap Diambil'] : ['kurir', 'Diantar'].includes(item.fulfillment) ? ['Dikirim'] : [])]), 'Selesai'];
+                            const currentStatus = item.status === 'Diproses' && item.pickup_ready ? 'Siap Diambil' : item.status;
+                            if (!stages.includes(currentStatus)) stages.splice(stages.length - 1, 0, currentStatus);
+                            const currentIndex = stages.indexOf(currentStatus);
+                            return (
+                                <Card key={item.id} className="p-5 sm:p-6">
+                                    <div className="flex flex-wrap items-start justify-between gap-4">
+                                        <div className="min-w-0">
+                                            <p className="text-xs font-medium text-[var(--color-muted)]">{item.type === 'jasa' ? 'Jasa' : ['ruangan', 'alat'].includes(item.type) ? 'Sewa fasilitas' : 'Produk'}</p>
+                                            <h2 className="mt-1 break-words font-display text-lg font-bold text-[var(--color-ink)]">{item.layanan}</h2>
+                                        </div>
+                                        <StatusBadge status={item.status} />
+                                    </div>
+                                    <dl className="mt-5 grid gap-x-6 gap-y-3 border-t border-[var(--color-border)] pt-4 text-sm sm:grid-cols-2 xl:grid-cols-4">
+                                        <div><dt className="text-xs text-[var(--color-muted)]">ID pesanan</dt><dd className="mt-1 break-words font-semibold text-[var(--color-ink)]">{item.order_number || 'Belum tersedia'}</dd></div>
+                                        <div><dt className="text-xs text-[var(--color-muted)]">ID pengajuan</dt><dd className="mt-1 break-words font-semibold text-[var(--color-ink)]">{item.code}</dd></div>
+                                        <div><dt className="text-xs text-[var(--color-muted)]">Pemesan</dt><dd className="mt-1 break-words font-semibold text-[var(--color-ink)]">{item.customer || 'Tidak tersedia'}</dd></div>
+                                        <div><dt className="text-xs text-[var(--color-muted)]">Pemilik produk / layanan</dt><dd className="mt-1 break-words font-semibold text-[var(--color-ink)]">{item.owner || 'Tidak tersedia'}</dd></div>
+                                    </dl>
+                                    <div className="mt-5 border-t border-[var(--color-border)] pt-4">
+                                        <div className="flex flex-wrap items-baseline justify-between gap-2">
+                                            <h3 className="text-sm font-semibold text-[var(--color-ink)]">Progres pesanan</h3>
+                                            <p className="text-xs text-[var(--color-muted)]">Tahapan dari awal hingga selesai · geser untuk melihat seluruhnya</p>
+                                        </div>
+                                        <div className="mt-4 overflow-x-auto pb-2 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-accent)]" tabIndex={0} aria-label={`Riwayat progres ${item.code}`}>
+                                            <ol className="flex min-w-max">
+                                                {stages.map((status, index) => {
+                                                    const current = index === currentIndex;
+                                                    const done = index < currentIndex;
+                                                    const step = [...history].reverse().find((entry) => entry.status === status) ?? { status };
+                                                    return (
+                                                        <li key={`${index}-${step.status}`} aria-current={current ? 'step' : undefined} className="relative w-44 shrink-0 pr-5 last:pr-0">
+                                                            {index < stages.length - 1 && <span aria-hidden="true" className={`absolute left-7 right-0 top-3 h-0.5 ${done ? 'bg-[var(--color-accent)]' : 'bg-[var(--color-border)]'}`} />}
+                                                            <span className={`relative flex h-6 w-6 items-center justify-center rounded-full ${current ? 'bg-[var(--color-gold)] text-white' : done ? 'bg-[var(--color-accent)] text-white' : 'border-2 border-[var(--color-border)] bg-white'}`} aria-hidden="true">{done && <Check className="h-3.5 w-3.5" />}</span>
+                                                            <p className="mt-2 break-words text-sm font-semibold text-[var(--color-ink)]">{step.status}</p>
+                                                            <p className="mt-1 text-xs text-[var(--color-muted)]">{current ? 'Status saat ini' : done ? 'Sudah dilalui' : 'Belum dimulai'}</p>
+                                                            {step.at && <p className="mt-1 text-xs text-[var(--color-muted)]">{step.at}{step.by ? ` · ${step.by}` : ''}</p>}
+                                                            {step.note && <p className="mt-1 break-words text-xs leading-relaxed text-[var(--color-muted)]">{step.note}</p>}
+                                                        </li>
+                                                    );
+                                                })}
+                                            </ol>
+                                        </div>
+                                    </div>
+                                </Card>
+                            );
+                        })}
+                    </div>
+                )}
             </FadeIn>
         </DashboardLayout>
     );

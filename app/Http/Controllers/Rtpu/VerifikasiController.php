@@ -16,6 +16,7 @@ use App\Services\ManualPreorderPayment;
 use App\Services\PengajuanWorkflow;
 use App\Services\SettingService;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Auth;
 use Inertia\Inertia;
 use Inertia\Response;
@@ -30,6 +31,7 @@ class VerifikasiController extends Controller
             'id' => $p->id,
             'code' => $p->code,
             'type' => $p->tipe,
+            'is_rental' => in_array($p->tipe, ['ruangan', 'alat'], true),
             'layanan' => $p->product?->name ?? ucfirst($p->tipe),
             'customer' => $p->buyer?->name,
             'phone' => $p->buyer?->phone,
@@ -51,16 +53,46 @@ class VerifikasiController extends Controller
                 'thumbnail', 'images', 'short_description', 'description',
                 'base_price', 'final_price', 'stock', 'meta',
             ]),
+            'rental_start' => optional($p->rental_start)?->format('d/m/Y H:i'),
+            'rental_end' => optional($p->rental_end)?->format('d/m/Y H:i'),
+            'renter_data' => $p->renter_data,
+            'rental_options' => $p->opsi->map(fn ($option) => $option->only(['id', 'jenis', 'nama', 'harga', 'satuan', 'qty', 'subtotal']))->values(),
+            'customer_shipping' => $this->parseCustomerShipping($p->catatan),
         ];
+    }
+
+    /**
+     * Baca pilihan alamat/kurir/layanan JNE yang sudah ditentukan Customer saat checkout,
+     * dari catatan pengajuan (format "Alamat: ... | Kota: <id> | Kurir: JNE | Layanan: <service> | Ongkir: Rp ...").
+     */
+    private function parseCustomerShipping(?string $catatan): ?array
+    {
+        if (! $catatan) {
+            return null;
+        }
+        $result = [];
+        if (preg_match('/Kota:\s*(\d+)/i', $catatan, $m)) {
+            $result['city_id'] = $m[1];
+        }
+        if (preg_match('/Kurir:\s*([A-Za-z]+)/i', $catatan, $m)) {
+            $result['courier'] = strtolower(trim($m[1]));
+        }
+        if (preg_match('/Layanan:\s*([A-Za-z0-9<>\- ]+?)\s*\|/i', $catatan, $m)) {
+            $result['service'] = trim($m[1]);
+        }
+        if (preg_match('/Alamat:\s*(.+?)\s*\|\s*Kota:/i', $catatan, $m)) {
+            $result['address'] = trim($m[1]);
+        }
+        return $result ?: null;
     }
 
     // ---- Verifikasi Pengajuan Layanan ----
 
     public function layanan(?string $id = null): Response
     {
-        $pengajuanRows = Pengajuan::with(['product.owner:id,name,email,phone,nip,jurusan,institution,unit_name', 'latestInvoice', 'buyer:id,name,phone,nip,jurusan'])
+        $pengajuanRows = Pengajuan::with(['product.owner:id,name,email,phone,nip,jurusan,institution,unit_name', 'latestInvoice.lines', 'opsi', 'buyer:id,name,phone,nip,jurusan'])
             ->when($id !== null, fn ($query) => $query->whereKey(str_starts_with($id, 'prod-') ? 0 : $id))
-            ->where('status', 'Diajukan')
+            ->whereIn('status', ['Diajukan', 'Menunggu Invoice'])
             ->latest()
             ->get()
             ->map(fn ($p) => $this->serializePengajuan($p));
@@ -103,6 +135,7 @@ class VerifikasiController extends Controller
         return Inertia::render('Rtpu/Verifikasi/Layanan', [
             'bluBanks' => MetodePembayaran::where('aktif', true)->whereRaw("UPPER(TRIM(tipe)) = 'BLU'")->get(['id', 'nama', 'rekening', 'holder']),
             'shippingCouriers' => app(\App\Services\ShippingService::class)->supportedCouriers(),
+            'rentalNeedsPimpinan' => Setting::where('key', 'sewa_perlu_persetujuan_pimpinan')->value('value') === '1',
             'antrean' => $rows,
             'selected' => $id !== null ? $rows->first() : null,
         ]);
@@ -110,7 +143,7 @@ class VerifikasiController extends Controller
 
     public function shippingRates(Request $request, Pengajuan $pengajuan)
     {
-        abort_unless($pengajuan->status === 'Diajukan' && $pengajuan->isPreorder(), 422);
+        abort_unless($pengajuan->status === 'Diajukan' && $pengajuan->tipe === 'produk', 422);
         abort_unless(in_array($pengajuan->metode_pengambilan, ['kurir', 'Diantar'], true), 422);
         $data = $request->validate(['courier' => 'required|string|max:20']);
         return response()->json(['rates' => app(\App\Services\ShippingService::class)->preorderRates($pengajuan, $data['courier'])]);
@@ -127,12 +160,53 @@ class VerifikasiController extends Controller
         }
 
         $pengajuan = Pengajuan::findOrFail($id);
-        abort_unless($pengajuan->status === 'Diajukan', 403);
+        abort_unless(in_array($pengajuan->status, ['Diajukan', 'Menunggu Invoice'], true), 403);
 
         if ($pengajuan->isPreorder()) {
             app(InvoiceService::class)->approvePreorder($pengajuan, $request->user());
 
             return redirect()->route('rtpu.verify.layanan')->with('success', 'Pre-order disetujui dan invoice BLU diterbitkan.');
+        }
+        if (in_array($pengajuan->tipe, ['ruangan', 'alat', 'jasa'], true)
+            && ($pengajuan->tipe === 'jasa' || $pengajuan->status === 'Menunggu Invoice' || Setting::where('key', 'sewa_perlu_persetujuan_pimpinan')->value('value') !== '1')) {
+            $invoiceService = app(InvoiceService::class);
+            $hasDraft = $pengajuan->invoices()->where('status', 'draft')->exists();
+            $data = [];
+            if (! $hasDraft) {
+                abort_unless($request->user()->canDo('pembayaran', 'Tambah'), 403);
+                $fitur = \App\Models\Fitur::where('key', 'pembayaran')->first();
+                abort_if($fitur && ! $fitur->aktif, 403);
+                $data = $request->validate((new \App\Http\Requests\PreparePreorderInvoiceRequest)->rules());
+            }
+
+            $tarifJasa = $pengajuan->tipe === 'jasa' && ! $hasDraft
+                ? ($request->validate(['tarif_jasa' => 'nullable|integer|min:1|max:1000000000'])['tarif_jasa'] ?? null)
+                : null;
+            \Illuminate\Support\Facades\DB::transaction(function () use ($pengajuan, $workflow, $invoiceService, $request, $hasDraft, $data, $tarifJasa) {
+                $locked = Pengajuan::whereKey($pengajuan->id)->lockForUpdate()->firstOrFail();
+                abort_unless(in_array($locked->status, ['Diajukan', 'Menunggu Invoice'], true), 403);
+                if ($tarifJasa !== null) {
+                    $locked->total = $tarifJasa * \App\Services\PricingService::parseQty($locked->jumlah);
+                    $locked->save();
+                }
+                if ($locked->status === 'Diajukan') {
+                    $note = 'Diverifikasi oleh Admin RTPU, menyiapkan invoice BLU.';
+                    if ($tarifJasa !== null) {
+                        $note .= ' Tarif ditetapkan Admin RTPU: Rp '.number_format($tarifJasa, 0, ',', '.').' x '.\App\Services\PricingService::parseQty($locked->jumlah).'.';
+                    }
+                    $workflow->transition($locked, 'Menunggu Invoice', $note, $request->user()->name);
+                    $locked->refresh();
+                } elseif ($tarifJasa !== null) {
+                    $locked->pushHistory('Menunggu Invoice', 'Tarif ditetapkan Admin RTPU: Rp '.number_format($tarifJasa, 0, ',', '.').' x '.\App\Services\PricingService::parseQty($locked->jumlah).'.', $request->user()->name);
+                    $locked->save();
+                }
+                if (! $hasDraft) {
+                    $invoiceService->prepareRental($locked, $request->user(), $data);
+                }
+                $invoiceService->approveRental($locked, $request->user());
+            });
+
+            return redirect()->route('rtpu.verify.layanan')->with('success', 'Sewa disetujui dan invoice BLU diterbitkan.');
         }
 
         // Konsultasi biaya: untuk jasa/sewa, Admin RTPU boleh menetapkan tarif per satuan
@@ -151,10 +225,14 @@ class VerifikasiController extends Controller
         $isRental = in_array($pengajuan->tipe, ['ruangan', 'alat'], true);
         $needsPimpinanApproval = $isRental && Setting::where('key', 'sewa_perlu_persetujuan_pimpinan')->value('value') === '1';
 
-        $targetStatus = $needsPimpinanApproval ? 'Menunggu Persetujuan Pimpinan' : 'Menunggu Pembayaran';
+        $targetStatus = $needsPimpinanApproval
+            ? 'Menunggu Persetujuan Pimpinan'
+            : ($isRental ? 'Menunggu Invoice' : 'Menunggu Pembayaran');
         $note = $needsPimpinanApproval
             ? 'Diverifikasi berkas oleh Admin RTPU, diteruskan ke Pimpinan RTPU untuk persetujuan sewa.'
-            : 'Diverifikasi oleh Admin RTPU, menunggu pembayaran Customer.';
+            : ($isRental
+                ? 'Diverifikasi berkas oleh Admin RTPU, menunggu penyusunan invoice BLU.'
+                : 'Diverifikasi oleh Admin RTPU, menunggu pembayaran Customer.');
 
         if ($tarifJasa !== null) {
             $qty = \App\Services\PricingService::parseQty($pengajuan->jumlah);
@@ -163,11 +241,37 @@ class VerifikasiController extends Controller
             $note .= ' Tarif ditetapkan Admin RTPU: Rp '.number_format($tarifJasa, 0, ',', '.').' x '.$qty.'.';
         }
 
-        $workflow->transition($pengajuan, $targetStatus, $note, Auth::user()->name);
+        $shipping = null;
+        if ($pengajuan->isShipment() && ! $pengajuan->isPreorder()) {
+            $customerShipping = $this->parseCustomerShipping($pengajuan->catatan);
+            $hasCustomerService = $customerShipping && ($customerShipping['courier'] ?? null) === 'jne' && ! empty($customerShipping['service']);
+
+            if ($hasCustomerService) {
+                // Flow normal: layanan dipilih Customer saat checkout.
+                $shipping = ['courier' => 'jne', 'service' => $customerShipping['service']];
+            } else {
+                // Pesanan lama yang dibuat sebelum Customer memilih layanan di checkout:
+                // Admin RTPU melengkapi pilihan kurir/layanan dari tarif live. Nominal tetap
+                // divalidasi ulang server oleh PengajuanWorkflow (tarif live, bukan input manual).
+                $data = $request->validate([
+                    'shipping_courier' => 'required|in:jne',
+                    'shipping_service' => 'required|string|max:100',
+                ], [
+                    'shipping_courier.required' => 'Pilih ekspedisi JNE untuk melengkapi data pesanan lama.',
+                    'shipping_service.required' => 'Pilih layanan JNE dari tarif live sebelum verifikasi.',
+                ]);
+                $shipping = ['courier' => 'jne', 'service' => $data['shipping_service']];
+                $note .= ' Layanan pengiriman dilengkapi Admin RTPU karena pengajuan lama belum memiliki pilihan layanan dari Customer.';
+            }
+        }
+
+        $workflow->transition($pengajuan, $targetStatus, $note, Auth::user()->name, $shipping);
 
         $msg = $needsPimpinanApproval
             ? 'Pengajuan sewa diteruskan ke Pimpinan RTPU.'
-            : 'Pengajuan diverifikasi, menunggu pembayaran Customer.';
+            : ($isRental
+                ? 'Pengajuan diverifikasi, menunggu penyusunan invoice BLU.'
+                : 'Pengajuan diverifikasi, menunggu pembayaran Customer.');
 
         return redirect()->route('rtpu.verify.layanan')->with('success', $msg);
     }
@@ -204,6 +308,12 @@ class VerifikasiController extends Controller
     {
         // 1. Online Midtrans Payments
         $payments = Payment::with(['request.buyer:id,name,email,phone,institution', 'request.product:id,name,owner_id', 'request.product.owner:id,name,email,phone,nip,jurusan,institution,unit_name'])
+            ->where(function ($query) {
+                $query->where('status', 'pending')->orWhere(function ($query) {
+                    $query->where('status', 'paid')->whereHas('request', fn ($request) => $request->where('status', 'Menunggu Verifikasi Pembayaran'));
+                });
+            })
+            ->with(['request.order.paymentProofs' => fn ($query) => $query->where('verification_status', 'pending')])
             ->latest()
             ->get()
             ->map(fn ($p) => [
@@ -221,7 +331,9 @@ class VerifikasiController extends Controller
                 'method' => $p->payment_type ? strtoupper(str_replace('_', ' ', $p->payment_type)) : 'Midtrans',
                 'status' => $p->status === 'paid' ? 'Lunas' : ($p->status === 'pending' ? 'Menunggu Pembayaran' : ucfirst($p->status)),
                 'raw_status' => $p->status,
-                'can_verify' => $p->status === 'paid' && $p->request?->status === 'Menunggu Verifikasi Pembayaran',
+                'can_verify' => false,
+                'reconciliation_required' => $p->status === 'paid' && $p->request?->status === 'Menunggu Verifikasi Pembayaran',
+                'related_proof_id' => ($proofId = $p->request?->order?->paymentProofs?->first()?->id) ? (string) $proofId : null,
                 'fulfillment' => $p->request?->metode_pengambilan,
                 'request_status' => $p->request?->status,
                 'paid_at' => optional($p->paid_at)->format('Y-m-d H:i') ?? '-',
@@ -230,7 +342,8 @@ class VerifikasiController extends Controller
             ]);
 
         // 2. Legacy Manual Proofs (for compatibility and audit)
-        $proofs = PaymentProof::with(['order.buyer:id,name,email,phone,institution', 'order.pengajuan.product.owner:id,name,email,phone,nip,jurusan,institution,unit_name'])
+        $proofs = PaymentProof::with(['order.buyer:id,name,email,phone,institution', 'order.pengajuan.product.owner:id,name,email,phone,nip,jurusan,institution,unit_name', 'order.pengajuan.payments' => fn ($query) => $query->whereIn('status', ['pending', 'paid'])])
+            ->where('verification_status', 'pending')
             ->latest()
             ->get()
             ->map(fn ($pf) => [
@@ -251,45 +364,59 @@ class VerifikasiController extends Controller
                 'proof' => route('berkas.show', ['kind' => 'bukti', 'id' => $pf->id, 'index' => 0]),
                 'status' => $pf->verification_status === 'verified' ? 'Lunas' : ($pf->verification_status === 'pending' ? 'Menunggu Verifikasi Pembayaran' : 'Ditolak'),
                 'raw_status' => $pf->verification_status,
-                'can_verify' => $pf->verification_status === 'pending',
+                'can_verify' => $pf->verification_status === 'pending' && ! ($pf->order?->pengajuan?->payments?->isNotEmpty() ?? false),
+                'reconciliation_required' => $pf->order?->pengajuan?->payments?->isNotEmpty() ?? false,
+                'related_payment_id' => ($paymentId = $pf->order?->pengajuan?->payments?->first()?->id) ? 'midtrans-'.$paymentId : null,
                 'request_url' => $pf->order?->pengajuan_id ? route('customer.pengajuan.show', $pf->order->pengajuan_id) : null,
             ]);
 
         $combined = $payments->concat($proofs);
 
+        $id = request()->query('id');
+        $selected = $id === null ? null : $combined->first(fn ($item) => $item['id'] === $id);
+        abort_if($id !== null && ! $selected, 404);
+
         return Inertia::render('Rtpu/Verifikasi/Pembayaran', [
             'antrean' => $combined,
-            'selected' => $combined->first(),
+            'selected' => $selected,
         ]);
     }
 
     public function acceptBayar(PaymentProof $proof)
     {
-        if ($proof->order?->pengajuan?->isPreorder()) {
+        if ($proof->order?->pengajuan && ($proof->order->pengajuan->isPreorder() || in_array($proof->order->pengajuan->tipe, ['ruangan', 'alat', 'jasa'], true))) {
             app(ManualPreorderPayment::class)->verify($proof, Auth::user());
 
-            return back()->with('success', 'Transfer BLU diverifikasi. Pesanan Lunas dan pemilik produk diberi notifikasi.');
+            return redirect()->route('rtpu.verify.bayar')->with('success', 'Transfer BLU diverifikasi. Pesanan Lunas dan pemilik produk diberi notifikasi.');
         }
-        abort_unless($proof->verification_status === 'pending', 403);
+        DB::transaction(function () use ($proof) {
+            $requestId = $proof->order?->pengajuan_id;
+            $pengajuan = null;
+            if ($requestId) {
+                if (DB::getDriverName() === 'sqlite') {
+                    DB::table('pengajuan')->where('id', $requestId)->update(['id' => DB::raw('id')]);
+                }
+                $pengajuan = Pengajuan::whereKey($requestId)->lockForUpdate()->firstOrFail();
+            }
+            $proof = PaymentProof::whereKey($proof->id)->lockForUpdate()->firstOrFail();
+            abort_unless($proof->verification_status === 'pending', 403);
+            if ($pengajuan) {
+                abort_unless($pengajuan->status === 'Menunggu Verifikasi Pembayaran', 422);
+                if ($pengajuan->payments()->whereIn('status', ['pending', 'paid'])->exists()) {
+                    throw \Illuminate\Validation\ValidationException::withMessages(['payment' => 'Pembayaran Midtrans belum diselesaikan. Periksa dan rekonsiliasi sebelum verifikasi manual.']);
+                }
+            }
+            $proof->update(['verification_status' => 'verified', 'verified_by' => Auth::id(), 'verified_at' => now()]);
+            $proof->order->update(['status' => 'lunas', 'confirmed_at' => now()]);
+            if ($pengajuan) {
+                $pengajuan->setStatus('Lunas', 'Pembayaran diverifikasi oleh Admin RTPU.', Auth::user()->name);
+                $pengajuan->save();
+                $pengajuan->latestInvoice?->update(['status' => 'paid']);
+                $pengajuan->buyer?->notify((new \App\Notifications\CustomerPaymentConfirmed($pengajuan))->afterCommit());
+            }
+        });
 
-        $proof->update([
-            'verification_status' => 'verified',
-            'verified_by' => Auth::id(),
-            'verified_at' => now(),
-        ]);
-
-        $order = $proof->order;
-        $order->update(['status' => 'lunas', 'confirmed_at' => now()]);
-
-        if ($order->pengajuan_id) {
-            $pengajuan = Pengajuan::find($order->pengajuan_id);
-            $pengajuan?->setStatus('Lunas', 'Pembayaran diverifikasi oleh Admin RTPU.', Auth::user()->name);
-            $pengajuan?->save();
-
-            $pengajuan?->latestInvoice?->update(['status' => 'paid']);
-        }
-
-        return back()->with('success', 'Pembayaran diverifikasi dan dinyatakan Lunas.');
+        return redirect()->route('rtpu.verify.bayar')->with('success', 'Pembayaran diverifikasi dan dinyatakan Lunas.');
     }
 
     public function rejectBayar(Request $request, PaymentProof $proof)
@@ -297,32 +424,44 @@ class VerifikasiController extends Controller
         abort_unless($proof->verification_status === 'pending', 403);
 
         $request->validate(['catatan' => 'required|string|max:1000']);
-        if ($proof->order?->pengajuan?->isPreorder()) {
+        if ($proof->order?->pengajuan && ($proof->order->pengajuan->isPreorder() || in_array($proof->order->pengajuan->tipe, ['ruangan', 'alat', 'jasa'], true))) {
             app(ManualPreorderPayment::class)->verify($proof, Auth::user(), $request->catatan);
 
-            return back()->with('success', 'Bukti transfer BLU ditolak. Customer dapat mengunggah ulang.');
+            return redirect()->route('rtpu.verify.bayar')->with('success', 'Bukti transfer BLU ditolak. Customer dapat mengunggah ulang.');
         }
 
-        $proof->update([
-            'verification_status' => 'rejected',
-            'rejection_reason' => $request->catatan,
-            'verified_by' => Auth::id(),
-            'verified_at' => now(),
-        ]);
-
-        $order = $proof->order;
-        $order->update(['status' => 'menunggu_pembayaran']);
-
-        if ($order->pengajuan_id) {
-            $pengajuan = Pengajuan::find($order->pengajuan_id);
+        DB::transaction(function () use ($proof, $request) {
+            $requestId = $proof->order?->pengajuan_id;
+            $pengajuan = null;
+            if ($requestId) {
+                if (DB::getDriverName() === 'sqlite') {
+                    DB::table('pengajuan')->where('id', $requestId)->update(['id' => DB::raw('id')]);
+                }
+                $pengajuan = Pengajuan::whereKey($requestId)->lockForUpdate()->firstOrFail();
+            }
+            $proof = PaymentProof::whereKey($proof->id)->lockForUpdate()->firstOrFail();
+            abort_unless($proof->verification_status === 'pending', 403);
+            if ($pengajuan) {
+                abort_unless($pengajuan->status === 'Menunggu Verifikasi Pembayaran', 422);
+                if ($pengajuan->payments()->whereIn('status', ['pending', 'paid'])->exists()) {
+                    throw \Illuminate\Validation\ValidationException::withMessages(['payment' => 'Pembayaran Midtrans perlu direkonsiliasi sebelum bukti diproses.']);
+                }
+            }
+            $proof->update([
+                'verification_status' => 'rejected',
+                'rejection_reason' => $request->catatan,
+                'verified_by' => Auth::id(),
+                'verified_at' => now(),
+            ]);
+            $proof->order->update(['status' => 'menunggu_pembayaran']);
             if ($pengajuan) {
                 $pengajuan->catatan_peninjau = $request->catatan;
                 $pengajuan->setStatus('Menunggu Pembayaran', $request->catatan, Auth::user()->name);
                 $pengajuan->save();
             }
-        }
+        });
 
-        return back()->with('success', 'Bukti ditolak, pemohon diminta mengunggah ulang.');
+        return redirect()->route('rtpu.verify.bayar')->with('success', 'Bukti ditolak, pemohon diminta mengunggah ulang.');
     }
 
     private function orderNumber(Pengajuan $pengajuan): string

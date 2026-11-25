@@ -4,8 +4,12 @@ namespace App\Http\Controllers\Rtpu;
 
 use App\Http\Controllers\Controller;
 use App\Models\MetodePembayaran;
+use App\Models\Payment;
+use App\Models\PaymentProof;
 use App\Models\Pengajuan;
 use App\Models\Product;
+use App\Models\ProdukUnggulan;
+use App\Models\User;
 use Inertia\Inertia;
 use Inertia\Response;
 
@@ -15,8 +19,14 @@ class DashboardController extends Controller
     {
         $allPengajuan = Pengajuan::with(['product', 'buyer'])->get();
 
-        $pendingProductsCount = Product::where('curation_status', 'pending')->count();
-        $menungguVerifikasi = $allPengajuan->where('status', 'Diajukan')->count() + $pendingProductsCount;
+        $pendingProductsCount = Product::whereIn('curation_status', ['pending', 'verified'])->count();
+        $menungguVerifikasi = $allPengajuan->whereIn('status', ['Diajukan', 'Menunggu Invoice'])->count() + $pendingProductsCount;
+        $verificationQueues = collect([
+            ['key' => 'akun', 'label' => 'Verifikasi akun', 'count' => User::whereIn('role', ['admin_pengelola', 'admin_jurusan', 'admin_p3m'])->where('account_status', 'pending')->count(), 'route' => 'rtpu.verify.akun'],
+            ['key' => 'layanan', 'label' => 'Verifikasi layanan dan katalog', 'count' => $menungguVerifikasi, 'route' => 'rtpu.verify.layanan'],
+            ['key' => 'produk', 'label' => 'Verifikasi produk unggulan', 'count' => ProdukUnggulan::where('status', 'Diajukan')->count(), 'route' => 'rtpu.verify.produk'],
+            ['key' => 'pembayaran', 'label' => 'Verifikasi pembayaran', 'count' => Payment::where('status', 'pending')->count() + PaymentProof::where('verification_status', 'pending')->count(), 'route' => 'rtpu.verify.bayar', 'description' => 'Termasuk pembayaran Midtrans yang masih menunggu dan bukti transfer manual.'],
+        ])->map(fn ($queue) => [...$queue, 'url' => route($queue['route'])]);
         $menungguBayar = $allPengajuan->where('status', 'Menunggu Pembayaran')->count();
         $verifikasiBayar = $allPengajuan->where('status', 'Menunggu Verifikasi Pembayaran')->count();
         $diproses = $allPengajuan->where('status', 'Diproses')->count();
@@ -140,6 +150,7 @@ class DashboardController extends Controller
             });
 
         return Inertia::render('Rtpu/Dashboard', [
+            'verificationQueues' => $verificationQueues,
             'stats' => $stats,
             'stages' => $stages,
             'statusDistribution' => $statusDistribution,

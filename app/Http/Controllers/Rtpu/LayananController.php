@@ -48,9 +48,7 @@ class LayananController extends Controller
 
     private function serialize(Product $p): array
     {
-        $slug = $p->category?->slug ?? '';
-        $type = str_contains($slug, 'jasa') ? 'jasa'
-            : (str_contains($slug, 'sewa') || str_contains($slug, 'fasilitas') ? 'ruangan' : 'produk');
+        $type = $p->layananTipe();
 
         return [
             'id' => $p->id,
@@ -60,12 +58,28 @@ class LayananController extends Controller
             'price' => $p->final_price,
             'status' => $p->is_active ? 'Aktif' : 'Nonaktif',
             'dari_pu' => (bool) $p->produk_unggulan_id,
+            // Data lengkap untuk form edit
+            'desc' => $p->short_description,
+            'description' => $p->description,
+            'photo' => $p->thumbnail ?? ($p->meta['photo'] ?? null),
+            'images' => $p->images ?? [],
+            'video_url' => $p->video_url,
+            'video_path' => $p->video_path,
+            'location' => $p->meta['location'] ?? null,
+            'capacity' => $p->meta['capacity'] ?? null,
+            'facilities' => $p->meta['facilities'] ?? null,
+            'category' => $p->meta['category'] ?? null,
+            'stock' => $p->stock,
+            'specs' => $p->meta['specs'] ?? null,
+            'satuan' => $p->meta['satuan'] ?? 'hari',
+            'owner_id' => $p->owner_id,
+            'cost_price' => $p->cost_price,
         ];
     }
 
     public function index(): Response
     {
-        $rows = Product::with('category')->latest()->get()->map(fn ($p) => $this->serialize($p));
+        $rows = Product::with('category.parent')->latest()->get()->map(fn ($p) => $this->serialize($p));
 
         return Inertia::render('Rtpu/Layanan/Index', ['layanan' => $rows]);
     }
@@ -77,6 +91,7 @@ class LayananController extends Controller
         return Inertia::render('Rtpu/Layanan/Form', [
             'tipe' => $tipe,
             'initial' => null,
+            'categories' => $this->categories($tipe),
             'suggestions' => self::SUGGESTIONS[$tipe] ?? self::SUGGESTIONS['jasa'],
         ]);
     }
@@ -93,38 +108,47 @@ class LayananController extends Controller
             ]);
         }
 
-        $category = ProductCategory::where('slug', self::TIPE_CATEGORY[$data['tipe']])->firstOrFail();
+        $category = isset($data['category_id']) ? ProductCategory::findOrFail($data['category_id']) : ProductCategory::where('slug', self::TIPE_CATEGORY[$data['tipe']])->firstOrFail();
+        $this->assertCategoryType($category, $data['tipe']);
 
         DB::transaction(function () use ($data, $category, $request) {
+            $photo = $request->hasFile('photo') ? $request->file('photo')->store('products', 'public') : null;
+            $images = array_map(fn ($file) => $file->store('products', 'public'), $request->file('images', []));
+            $video = $request->hasFile('video_file') ? $request->file('video_file')->store('products/videos', 'public') : null;
             $product = Product::create([
                 'owner_id' => Auth::id(),
                 'category_id' => $category->id,
                 'name' => $data['name'],
                 'slug' => Str::slug($data['name']).'-'.Str::lower(Str::random(6)),
                 'short_description' => $data['desc'] ?? null,
-                'description' => $data['desc'] ?? null,
+                'description' => $data['description'] ?? $data['desc'] ?? null,
+                'target_audience' => $data['target_audience'] ?? 'publik',
                 'base_price' => $data['price'],
                 'final_price' => $data['price'],
+                'cost_price' => $data['cost_price'] ?? 0,
                 'stock' => $data['stock'] ?? null,
                 'is_active' => (bool) ($data['active'] ?? true),
                 'curation_status' => 'approved',
                 'approved_at' => now(),
                 'approved_by' => Auth::id(),
-                'thumbnail' => $data['photo'] ?? null,
-                'meta' => [
+                'thumbnail' => $photo,
+                'images' => $images,
+                'video_url' => $data['video_url'] ?? null,
+                'video_path' => $video,
+                'meta' => array_merge(array_intersect_key($data, array_flip(['availability_status', 'preorder_duration', 'weight', 'length', 'width', 'height', 'operational_days', 'operational_start', 'operational_end'])), [
                     'location' => $data['location'] ?? null,
                     'capacity' => $data['capacity'] ?? null,
                     'facilities' => $data['facilities'] ?? null,
                     'category' => $data['category'] ?? null,
                     'specs' => $data['specs'] ?? null,
-                    'photo' => $data['photo'] ?? null,
+                    'photo' => $photo,
                     'satuan' => $data['satuan'] ?? 'hari',
-                ],
+                ]),
             ]);
 
             // Only touch options when the form actually submits an `opsi` key,
             // so legacy/partial updates never wipe existing options.
-            if ($request->has('opsi')) {
+            if ($request->has('opsi') || $request->boolean('opsi_present')) {
                 $this->syncOpsi($product, $data['opsi'] ?? []);
             }
         });
@@ -134,11 +158,28 @@ class LayananController extends Controller
 
     public function edit(Product $product): Response
     {
-        $product->load('category');
+        $product->load('category.parent');
 
         return Inertia::render('Rtpu/Layanan/Form', [
             'tipe' => $this->serialize($product)['type'],
+            'categories' => $this->categories($product->layananTipe(), $product->category_id),
             'initial' => array_merge($this->serialize($product), [
+                'category_id' => $product->category_id,
+                'operational_days' => $product->meta['operational_days'] ?? null,
+                'operational_start' => $product->meta['operational_start'] ?? null,
+                'operational_end' => $product->meta['operational_end'] ?? null,
+                'owner_id' => $product->owner_id,
+                'cost_price' => $product->cost_price,
+                'category_name' => $product->category?->name,
+                'category_parent_name' => $product->category?->parent?->name,
+                'target_audience' => $product->target_audience,
+                'base_price' => $product->base_price,
+                'availability_status' => $product->meta['availability_status'] ?? null,
+                'preorder_duration' => $product->meta['preorder_duration'] ?? null,
+                'weight' => $product->meta['weight'] ?? null,
+                'length' => $product->meta['length'] ?? null,
+                'width' => $product->meta['width'] ?? null,
+                'height' => $product->meta['height'] ?? null,
                 'desc' => $product->short_description,
                 'location' => $product->meta['location'] ?? null,
                 'capacity' => $product->meta['capacity'] ?? null,
@@ -146,7 +187,7 @@ class LayananController extends Controller
                 'category' => $product->meta['category'] ?? null,
                 'stock' => $product->stock,
                 'specs' => $product->meta['specs'] ?? null,
-                'photo' => $product->meta['photo'] ?? null,
+                'photo' => $product->thumbnail ?? $product->meta['photo'] ?? null,
                 'satuan' => $product->meta['satuan'] ?? 'hari',
                 'opsi' => $product->opsi()->urut()->get()->map(fn (Opsi $o) => $this->opsiPayload($o))->values(),
             ]),
@@ -158,31 +199,62 @@ class LayananController extends Controller
     {
         $tipe = $product->layananTipe();
         $data = $request->validate($this->layananRules() + $this->opsiRules($tipe));
+        if ($data['tipe'] !== $tipe) {
+            throw ValidationException::withMessages(['tipe' => 'Tipe layanan tidak sesuai.']);
+        }
+        if (in_array($tipe, ['ruangan', 'alat'], true) && $request->exists('satuan')) {
+            $request->validate(['satuan' => 'required|in:hari,jam']);
+        }
+        if (isset($data['category_id'])) {
+            $this->assertCategoryType(ProductCategory::findOrFail($data['category_id']), $tipe);
+        }
+
+        if (isset($data['existing_images']) && array_diff($data['existing_images'], $product->images ?? [])) {
+            throw ValidationException::withMessages(['existing_images' => 'Foto galeri tidak sesuai dengan layanan ini.']);
+        }
 
         DB::transaction(function () use ($product, $data, $request) {
             $isActivating = ! empty($data['active']) && ! $product->is_active;
+            $metaFields = match ($product->layananTipe()) {
+                'jasa' => ['location', 'photo'],
+                'ruangan' => ['location', 'capacity', 'facilities', 'photo', 'satuan'],
+                default => ['category', 'specs', 'photo'],
+            };
+            $metaFields = array_merge($metaFields, ['availability_status', 'preorder_duration', 'weight', 'length', 'width', 'height', 'operational_days', 'operational_start', 'operational_end']);
+            $photo = $request->hasFile('photo') ? $request->file('photo')->store('products', 'public') : null;
+            if ($photo !== null) {
+                $data['photo'] = $photo;
+            } else {
+                unset($data['photo']);
+            }
+            $images = $data['existing_images'] ?? ($request->boolean('existing_images_present') ? [] : ($product->images ?? []));
+            foreach ($request->file('images', []) as $image) {
+                $images[] = $image->store('products', 'public');
+            }
+            $video = $request->hasFile('video_file') ? $request->file('video_file')->store('products/videos', 'public') : ($request->boolean('remove_video') ? null : $product->video_path);
             $updates = [
                 'name' => $data['name'],
-                'short_description' => $data['desc'] ?? null,
-                'description' => $data['desc'] ?? null,
-                'stock' => $data['stock'] ?? null,
-                'is_active' => (bool) ($data['active'] ?? true),
-                'meta' => [
-                    'location' => $data['location'] ?? null,
-                    'capacity' => $data['capacity'] ?? null,
-                    'facilities' => $data['facilities'] ?? null,
-                    'category' => $data['category'] ?? null,
-                    'specs' => $data['specs'] ?? null,
-                    'photo' => $data['photo'] ?? null,
-                    'satuan' => $data['satuan'] ?? 'hari',
-                ],
-                'thumbnail' => $data['photo'] ?? $product->thumbnail,
+                'category_id' => $data['category_id'] ?? $product->category_id,
+                'target_audience' => array_key_exists('target_audience', $data) ? $data['target_audience'] : $product->target_audience,
+                'description' => array_key_exists('description', $data) ? $data['description'] : $product->description,
+                'short_description' => array_key_exists('desc', $data) ? $data['desc'] : $product->short_description,
+                'stock' => array_key_exists('stock', $data) ? $data['stock'] : $product->stock,
+                'is_active' => array_key_exists('active', $data) ? (bool) $data['active'] : $product->is_active,
+                'meta' => array_merge($product->meta ?? [], array_intersect_key($data, array_flip($metaFields))),
+                'thumbnail' => $photo ?? $product->thumbnail,
+                'images' => $images,
+                'video_url' => array_key_exists('video_url', $data) ? $data['video_url'] : $product->video_url,
+                'video_path' => $video,
             ];
 
             // Only Admin RTPU can update price. Admin Pengelola can only update info.
             if (Auth::user()->role === 'admin_rtpu') {
-                $updates['base_price'] = $data['price'];
                 $updates['final_price'] = $data['price'];
+                // Harga modal hanya bisa diubah oleh pemilik produk (pengelola yang mengajukannya).
+                // Jika admin_rtpu ini bukan pemilik, biarkan cost_price tetap seperti sebelumnya.
+                if ($product->owner_id === Auth::id()) {
+                    $updates['cost_price'] = $data['cost_price'] ?? $product->cost_price;
+                }
             }
 
             // If this product was spawned from a Produk Unggulan and is now
@@ -196,7 +268,7 @@ class LayananController extends Controller
 
             $product->update($updates);
 
-            if ($request->has('opsi')) {
+            if ($request->has('opsi') || $request->boolean('opsi_present')) {
                 $this->syncOpsi($product, $data['opsi'] ?? []);
             }
         });
@@ -211,6 +283,25 @@ class LayananController extends Controller
         return redirect()->route('rtpu.layanan')->with('success', 'Layanan dihapus.');
     }
 
+    private function categories(string $tipe, ?int $currentId = null)
+    {
+        $slug = self::TIPE_CATEGORY[$tipe] ?? self::TIPE_CATEGORY['jasa'];
+
+        return ProductCategory::query()->with('parent')
+            ->where(fn ($q) => $q->where('is_active', true)->orWhere('id', $currentId))
+            ->where(fn ($q) => $q->where('slug', $slug)->orWhereHas('parent', fn ($parent) => $parent->where('slug', $slug)))
+            ->orderBy('name')->get()->map(fn ($category) => [
+                'id' => $category->id, 'name' => $category->name, 'parent_name' => $category->parent?->name,
+            ]);
+    }
+
+    private function assertCategoryType(ProductCategory $category, string $tipe): void
+    {
+        if (($category->parent?->slug ?? $category->slug) !== self::TIPE_CATEGORY[$tipe]) {
+            throw ValidationException::withMessages(['category_id' => 'Kategori tidak sesuai tipe layanan.']);
+        }
+    }
+
     /**
      * @return array<string, mixed>
      */
@@ -220,14 +311,36 @@ class LayananController extends Controller
             'tipe' => 'required|in:jasa,ruangan,produk',
             'name' => 'required|string|max:255',
             'desc' => 'nullable|string|max:5000',
+            'description' => 'nullable|string|max:5000',
+            'category_id' => 'sometimes|required|integer|exists:product_categories,id',
+            'target_audience' => 'nullable|in:publik,internal_pnj',
+            'availability_status' => 'nullable|in:tersedia,preorder',
+            'preorder_duration' => 'nullable|string|max:100',
+            'weight' => 'nullable|integer|min:1',
+            'length' => 'nullable|integer|min:1',
+            'width' => 'nullable|integer|min:1',
+            'height' => 'nullable|integer|min:1',
+            'operational_days' => 'sometimes|required|array|min:1|max:7',
+            'operational_days.*' => 'integer|between:1,7|distinct',
+            'operational_start' => 'sometimes|required|date_format:H:i',
+            'operational_end' => 'sometimes|required|date_format:H:i|after:operational_start',
             'price' => 'required|integer|min:0|max:10000000000',
+            'cost_price' => 'nullable|integer|min:0|max:10000000000',
             'location' => 'nullable|string|max:255',
             'capacity' => 'nullable|integer|min:0',
             'facilities' => 'nullable|string|max:2000',
             'category' => 'nullable|string|max:100',
             'stock' => 'nullable|integer|min:0',
             'specs' => 'nullable|string|max:5000',
-            'photo' => 'nullable|string|max:500',
+            'photo' => 'nullable|image|max:2048',
+            'images' => 'sometimes|array|max:20',
+            'images.*' => 'required|image|max:2048',
+            'existing_images' => 'sometimes|array|max:20',
+            'existing_images.*' => 'required|string',
+            'existing_images_present' => 'sometimes|boolean',
+            'video_url' => 'nullable|url:http,https|max:255',
+            'video_file' => 'nullable|mimes:mp4,mov,avi,wmv|max:51200',
+            'remove_video' => 'sometimes|boolean',
             'active' => 'nullable|boolean',
             'satuan' => 'nullable|in:hari,jam',
         ];
@@ -243,6 +356,7 @@ class LayananController extends Controller
         return [
             'opsi' => 'sometimes|array|max:40',
             'opsi.*.id' => 'nullable|integer',
+            'opsi.*.foto' => 'nullable|image|max:2048',
             'opsi.*.jenis' => 'required|in:'.implode(',', Opsi::JENIS),
             'opsi.*.nama' => 'required|string|max:255',
             'opsi.*.deskripsi' => 'nullable|string|max:2000',
@@ -309,7 +423,7 @@ class LayananController extends Controller
     {
         $jenis = $row['jenis'];
 
-        return [
+        $attributes = [
             'jenis' => $jenis,
             'nama' => $row['nama'],
             'deskripsi' => $row['deskripsi'] ?? null,
@@ -321,6 +435,11 @@ class LayananController extends Controller
             'aktif' => (bool) ($row['aktif'] ?? true),
             'urutan' => (int) ($row['urutan'] ?? 0),
         ];
+        if (($row['foto'] ?? null) instanceof \Illuminate\Http\UploadedFile) {
+            $attributes['foto'] = $row['foto']->store('products/opsi', 'public');
+        }
+
+        return $attributes;
     }
 
     /**
@@ -333,6 +452,7 @@ class LayananController extends Controller
             'jenis' => $o->jenis,
             'nama' => $o->nama,
             'deskripsi' => $o->deskripsi,
+            'foto' => $o->foto,
             'harga' => $o->harga,
             'satuan' => $o->satuan,
             'qty_min' => $o->qty_min,

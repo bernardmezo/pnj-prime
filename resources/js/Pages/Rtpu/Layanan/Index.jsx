@@ -71,7 +71,7 @@ export default function LayananIndex({ auth, layanan = [] }) {
                                     <Td><StatusBadge status={l.status} label={l.status} /></Td>
                                     <Td>
                                         <span className="flex gap-3">
-                                            <a href={navHref('rtpu.layanan.form', { id: l.id, tipe: tab }, role)} className="text-sm font-medium" style={{ color: 'var(--color-accent-hover)' }}>
+                                            <a href={navHref('rtpu.layanan.edit', { product: l.id, tipe: tab }, role)} className="text-sm font-medium" style={{ color: 'var(--color-accent-hover)' }}>
                                                 Ubah
                                             </a>
                                             <button type="button" onClick={() => setDel(l)} className="text-sm font-medium" style={{ color: 'var(--color-danger)' }}>

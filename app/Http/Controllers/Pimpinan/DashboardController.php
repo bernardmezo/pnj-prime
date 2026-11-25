@@ -3,8 +3,6 @@
 namespace App\Http\Controllers\Pimpinan;
 
 use App\Http\Controllers\Controller;
-use App\Models\Pengajuan;
-use App\Models\ProdukUnggulan;
 use App\Models\Product;
 use Inertia\Inertia;
 use Inertia\Response;
@@ -13,60 +11,21 @@ class DashboardController extends Controller
 {
     public function __invoke(): Response
     {
-        $all = ProdukUnggulan::all();
-        $allPengajuan = Pengajuan::with('product')->get();
-        $pendingAccountsCount = \App\Models\User::whereIn('role', ['admin_jurusan', 'admin_p3m'])
+        $catalogCounts = Product::with('category.parent')
+            ->where('is_active', true)
+            ->where('curation_status', 'approved')
+            ->get()
+            ->countBy(fn ($product) => $product->layananTipe());
+        $pendingAccountsCount = \App\Models\User::whereIn('role', ['admin_pengelola', 'admin_jurusan', 'admin_p3m'])
             ->where('account_status', 'pending')
             ->count();
-        $pendingProductsCount = \App\Models\Product::where('curation_status', 'verified')->count();
-
-        $completed = $allPengajuan->where('status', 'Selesai');
-        $totalPendapatan = (int) $completed->sum('total');
-
         $stats = [
-            'menunggu' => $all->where('status', 'Diajukan')->count() + $pendingAccountsCount + $pendingProductsCount,
+            'produk' => $catalogCounts->get('produk', 0),
+            'sewa' => ($catalogCounts->get('ruangan', 0)) + ($catalogCounts->get('alat', 0)),
+            'layanan' => $catalogCounts->get('jasa', 0),
             'akun_pending' => $pendingAccountsCount,
-            'produk_verified' => $pendingProductsCount,
-            'persetujuan_final_produk' => $pendingProductsCount,
-            'disetujui' => $all->where('status', 'Disetujui')->count(),
-            'ditolak' => $all->where('status', 'Ditolak')->count(),
-            'total_pengajuan' => $allPengajuan->count(),
-            'selesai' => $completed->count(),
-            'pendapatan' => $totalPendapatan,
         ];
-
-        // Monthly trends from actual requests (last 6 months)
-        $monthlyTrends = [];
-        for ($i = 5; $i >= 0; $i--) {
-            $monthDate = now()->subMonths($i);
-            $monthKey = $monthDate->format('M');
-            $yearMonth = $monthDate->format('Y-m');
-            $count = $allPengajuan->filter(function ($p) use ($yearMonth) {
-                return $p->created_at && $p->created_at->format('Y-m') === $yearMonth;
-            })->count();
-
-            $monthlyTrends[] = [
-                'month' => $monthKey,
-                'count' => $count,
-            ];
-        }
-
-        // Top services by count
-        $layananTerlaris = $allPengajuan
-            ->groupBy('product_id')
-            ->map(function ($items) {
-                $first = $items->first();
-
-                return [
-                    'id' => $first->product_id ?? 0,
-                    'name' => $first->product?->name ?? 'Layanan Umum',
-                    'count' => $items->count(),
-                    'total' => (int) $items->sum('total'),
-                ];
-            })
-            ->sortByDesc('count')
-            ->take(5)
-            ->values();
+        $stats['total_katalog'] = $stats['produk'] + $stats['sewa'] + $stats['layanan'];
 
         $antrean = Product::with('category', 'owner:id,name,phone,nip,jurusan,institution,unit_name')
             ->whereIn('curation_status', ['pending', 'verified'])
@@ -82,11 +41,23 @@ class DashboardController extends Controller
                 'status' => $p->curation_status,
             ]);
 
+        $antreanAkun = \App\Models\User::query()
+            ->whereIn('role', ['admin_pengelola', 'admin_jurusan', 'admin_p3m'])
+            ->where('account_status', 'pending')
+            ->latest()
+            ->limit(10)
+            ->get(['id', 'name', 'role', 'created_at'])
+            ->map(fn ($user) => [
+                'id' => $user->id,
+                'name' => $user->name,
+                'role' => \App\Enums\Role::from($user->role)->label(),
+                'date' => $user->created_at?->format('Y-m-d'),
+            ]);
+
         return Inertia::render('Pimpinan/Dashboard', [
             'stats' => $stats,
             'antrean' => $antrean,
-            'monthlyTrends' => $monthlyTrends,
-            'layananTerlaris' => $layananTerlaris,
+            'antreanAkun' => $antreanAkun,
         ]);
     }
 }

@@ -19,9 +19,10 @@ class ReportController extends Controller
 
         $summary = [
             'total_orders' => (clone $ordersQuery)->count(),
-            'total_revenue' => (clone $ordersQuery)->whereIn('status', ['diproses', 'selesai'])->sum('total'),
-            'total_tax' => (clone $ordersQuery)->whereIn('status', ['diproses', 'selesai'])->sum('tax_amount'),
+            'total_revenue' => (clone $ordersQuery)->whereIn('status', ['lunas', 'diproses', 'selesai'])->sum('total'),
+            'total_tax' => (clone $ordersQuery)->whereIn('status', ['lunas', 'diproses', 'selesai'])->sum('tax_amount'),
             'pending_payment' => (clone $ordersQuery)->where('status', 'menunggu_pembayaran')->count(),
+            'paid_unfulfilled' => (clone $ordersQuery)->where('status', 'lunas')->count(),
             'pending_verification' => (clone $ordersQuery)->where('status', 'menunggu_verifikasi')->count(),
             'completed' => (clone $ordersQuery)->where('status', 'selesai')->count(),
         ];
@@ -58,11 +59,34 @@ class ReportController extends Controller
                 'created_at' => optional($l->created_at)->format('Y-m-d H:i:s'),
             ]);
 
+        $topServices = \App\Models\Pengajuan::with('product:id,name')
+            ->whereBetween('created_at', [$startDate.' 00:00:00', $endDate.' 23:59:59'])
+            ->whereNotNull('product_id')
+            ->get(['id', 'product_id', 'total'])
+            ->groupBy('product_id')
+            ->map(fn ($items) => ['id' => $items->first()->product_id, 'name' => $items->first()->product?->name, 'count' => $items->count(), 'total' => (int) $items->sum('total')])
+            ->filter(fn ($item) => $item['name'] !== null)
+            ->sortByDesc('count')->take(5)->values();
+
+        $revenueBreakdown = (clone $ordersQuery)
+            ->whereIn('status', ['lunas', 'diproses', 'selesai'])
+            ->with('pengajuan.product:id,name')
+            ->get()
+            ->groupBy(fn ($order) => $order->pengajuan?->product_id ?? 'unlinked')
+            ->map(fn ($items) => [
+                'name' => $items->first()->pengajuan?->product?->name ?? 'Produk tidak tersedia',
+                'count' => $items->count(),
+                'total' => (int) $items->sum('total'),
+            ])
+            ->sortByDesc('total')->values();
+
         return Inertia::render('Reports/Index', [
             'filter' => [
                 'start_date' => $startDate,
                 'end_date' => $endDate,
             ],
+            'top_services' => $topServices,
+            'revenue_breakdown' => $revenueBreakdown,
             'summary' => $summary,
             'orders' => $recentOrders,
             'audit_logs' => $auditLogs,

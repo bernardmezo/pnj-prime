@@ -4,7 +4,6 @@ import { useState } from 'react';
 import ReviewPanel from '@/Components/ReviewPanel';
 import DashboardLayout from '@/Layouts/DashboardLayout';
 import { EmptyState, FadeIn, PageHeader, StatusBadge } from '@/Components/ui';
-import Modal from '@/Components/ui/Modal';
 
 const CHECKLIST = [
     'Kelengkapan data dan spesifikasi produk telah diperiksa',
@@ -27,16 +26,16 @@ export default function PimpinanVerifikasiProduk({ auth, products }) {
 
     const handleApprove = (catatan) => {
         if (!sel) return;
-        router.patch(route('verify.produk.approve', sel.id), { catatan }, { onSuccess: () => setSelId(null) });
+        router.patch(route('pimpinan.verify.produk.approve', sel.id), { catatan }, { onSuccess: () => setSelId(null) });
     };
 
     const handleReject = (catatan) => {
         if (!sel) return;
-        router.patch(route('verify.produk.reject', sel.id), { catatan }, { onSuccess: () => setSelId(null) });
+        router.patch(route('pimpinan.verify.produk.reject', sel.id), { catatan }, { onSuccess: () => setSelId(null) });
     };
 
     return (
-        <DashboardLayout title="Persetujuan Final Produk" breadcrumb="Pimpinan RTPU / Verifikasi Produk" activeKey="verify">
+        <DashboardLayout title="Persetujuan Final Produk" breadcrumb="Pimpinan RTPU / Verifikasi Produk" activeKey="verify-produk">
             <Head title="Persetujuan Produk · PNJ Prime" />
             <FadeIn>
                 <PageHeader
@@ -45,7 +44,7 @@ export default function PimpinanVerifikasiProduk({ auth, products }) {
                     desc="Persetujuan oleh Pimpinan RTPU atau Admin RTPU langsung mengaktifkan produk di katalog sesuai sasaran publikasinya."
                 />
 
-                {rows.length === 0 ? (
+                {!sel && (rows.length === 0 ? (
                     <EmptyState
                         icon={CheckCircle2}
                         title="Tidak Ada Produk Menunggu Persetujuan"
@@ -88,10 +87,11 @@ export default function PimpinanVerifikasiProduk({ auth, products }) {
                                 })}
                             </div>
                         </div>
-
-                        <Modal open={Boolean(sel)} onClose={() => setSelId(null)} title="Detail Persetujuan Final Katalog" size="2xl">
-                        {sel && (
-                            <div>
+                    </div>
+                ))}
+                {sel && (
+                            <div className="rounded-2xl border border-[var(--color-border)] bg-white p-6">
+                                <button type="button" onClick={() => setSelId(null)} className="mb-5 text-sm font-semibold text-[var(--color-accent)] underline">Kembali ke antrean</button>
                                 <h3 className="font-display text-xl font-bold text-[var(--color-ink)]">{sel.name}</h3>
                                 <StatusBadge status={sel.curation_status} />
                                 <section className="mt-5 space-y-3" aria-label="Foto pengajuan">
@@ -111,6 +111,7 @@ export default function PimpinanVerifikasiProduk({ auth, products }) {
                                 <div className="mt-5 grid grid-cols-2 gap-3">
                                     {[
                                         ['Harga dasar', rupiah(sel.base_price)],
+                                        ['Harga Modal (internal)', rupiah(sel.cost_price)],
                                         ['Berat per unit', display(meta.weight, ' gram')],
                                         ['Stok', display(detail?.stock)],
                                         ['Ketersediaan', meta.availability_status === 'tersedia' ? 'Tersedia' : meta.availability_status === 'preorder' ? 'Pre-order' : 'Belum diisi'],
@@ -167,9 +168,6 @@ export default function PimpinanVerifikasiProduk({ auth, products }) {
                                 </div>
                             </div>
                         )}
-                        </Modal>
-                    </div>
-                )}
             </FadeIn>
         </DashboardLayout>
     );

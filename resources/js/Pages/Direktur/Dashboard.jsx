@@ -50,12 +50,10 @@ export default function DirekturDashboard({ filters, summary }) {
             onStart: () => setBusy(true), onFinish: () => setBusy(false),
         });
 
-    const exportHref = route('direktur.dashboard.export', { from: filters.from, to: filters.to });
     const loading = !summary || busy;
     const sales = summary?.sales;
     const funnel = summary?.funnel;
     const accounts = summary?.accounts;
-    const nego = summary?.negotiation;
     const perDay = summary?.range?.granularity === 'day';
     const hasSales = (sales?.kpi?.transaksi ?? 0) > 0;
     const funnelEmpty = !funnel || (funnel.tahap.every((t) => t.jumlah === 0) && funnel.draft === 0);
@@ -99,9 +97,11 @@ export default function DirekturDashboard({ filters, summary }) {
                             Terapkan
                         </button>
                     </div>
-                    <a href={exportHref} className="inline-flex items-center justify-center gap-2 rounded-xl border border-[var(--color-border)] bg-white px-4 py-2 text-sm font-semibold text-[var(--color-ink)] transition hover:border-[var(--color-accent)] hover:text-[var(--color-accent)] focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-accent)]">
-                        <Download className="h-4 w-4" aria-hidden /> Unduh CSV
-                    </a>
+                    <div className="flex flex-wrap gap-2">
+                        <a href={route('direktur.dashboard.export', { from: filters.from, to: filters.to, format: 'xlsx' })} className="inline-flex items-center justify-center gap-2 rounded-xl bg-[var(--color-accent)] px-4 py-2 text-sm font-semibold text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-accent)]">
+                            <Download className="h-4 w-4" aria-hidden /> Unduh Excel
+                        </a>
+                    </div>
                 </form>
                 {(errors.from || errors.to || errors.preset) && (
                     <AlertBanner className="mt-4" type="error" message={errors.from || errors.to || errors.preset} />
@@ -116,7 +116,6 @@ export default function DirekturDashboard({ filters, summary }) {
                             { label: 'Omzet (total dibayar)', value: sales.kpi.omzet_total, formattedValue: formatRupiah(sales.kpi.omzet_total), helper: 'Termasuk pajak' },
                             { label: 'Omzet sebelum pajak', value: sales.kpi.omzet_subtotal, formattedValue: formatRupiah(sales.kpi.omzet_subtotal) },
                             { label: 'Transaksi selesai', value: sales.kpi.transaksi },
-                            { label: 'Negosiasi harga berjalan', value: nego.berjalan, helper: `${nego.menunggu_pengelola} menunggu Pengelola · ${nego.menunggu_rtpu} menunggu RTPU` },
                         ]} />
                     </Panel>
 
@@ -134,12 +133,12 @@ export default function DirekturDashboard({ filters, summary }) {
 
                         {/* Funnel */}
                         <Panel>
-                            <SectionTitle title="Alur produk" desc="Jumlah produk per tahap, berdasarkan status saat ini (produk yang dibuat pada periode)." />
+                            <SectionTitle title="Alur produk" desc="Status saat ini untuk produk yang dibuat pada periode; produk terjual dihitung dari pesanan selesai pada periode, tanpa batas tanggal pembuatan. Angka dapat tumpang tindih." />
                             {funnelEmpty ? <EmptyState message="Belum ada produk pada periode ini." /> : (
                                 <>
                                     <HorizontalBars
                                         ariaLabel="Jumlah produk per tahap alur"
-                                        items={funnel.tahap.map((t) => ({ key: t.key, label: t.label, value: t.jumlah, color: t.key === 'ditolak' ? 'var(--color-danger)' : t.key === 'revisi_harga' ? 'var(--color-gold)' : undefined }))}
+                                        items={funnel.tahap.map((t) => ({ key: t.key, label: t.label, value: t.jumlah, color: t.key === 'ditolak' ? 'var(--color-danger)' : undefined }))}
                                     />
                                     <p className="mt-4 text-xs text-[var(--color-muted)]">Draft belum diajukan: {funnel.draft}. Total produk: {funnel.total}.</p>
                                 </>
@@ -148,7 +147,7 @@ export default function DirekturDashboard({ filters, summary }) {
 
                         {/* Per kategori */}
                         <Panel>
-                            <SectionTitle title="Penjualan per kategori" desc="Nilai sebelum pajak dari pesanan selesai." />
+                            <SectionTitle title="Penjualan per kategori" desc="Nilai sebelum pajak dari pesanan selesai, termasuk produk, jasa, dan sewa menurut kategori saat ini." />
                             {sales.per_kategori.length === 0 ? <EmptyState message="Belum ada penjualan pada periode ini." /> : (
                                 <DonutChart
                                     slices={sales.per_kategori.map((k) => ({ label: k.kategori, value: k.total }))}

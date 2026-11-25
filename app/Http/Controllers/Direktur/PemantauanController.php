@@ -3,65 +3,19 @@
 namespace App\Http\Controllers\Direktur;
 
 use App\Http\Controllers\Controller;
-use App\Models\Pengajuan;
-use App\Models\ProdukUnggulan;
+use App\Services\MonitoringData;
 use Inertia\Inertia;
 use Inertia\Response;
 
 class PemantauanController extends Controller
 {
-    public function monitor(): Response
+    public function monitor(MonitoringData $data): Response
     {
-        $produk = ProdukUnggulan::latest()->get()->map(fn ($p) => [
-            'id' => $p->id,
-            'code' => $p->code,
-            'name' => $p->name,
-            'researcher' => $p->researcher,
-            'date' => optional($p->created_at)->format('Y-m-d'),
-            'status' => $p->status,
-        ]);
-
-        $layanan = Pengajuan::with(['product', 'buyer:id,name'])->latest()->get()->map(fn ($p) => [
-            'id' => $p->id,
-            'code' => $p->code,
-            'layanan' => $p->product?->name ?? ucfirst($p->tipe),
-            'customer' => $p->buyer?->name,
-            'date' => optional($p->created_at)->format('Y-m-d'),
-            'status' => $p->status,
-        ]);
-
-        return Inertia::render('Direktur/Pemantauan', [
-            'produk' => $produk,
-            'layanan' => $layanan,
-        ]);
+        return Inertia::render('Direktur/Pemantauan', ['produk' => $data->productSales()]);
     }
 
-    public function riwayat(): Response
+    public function riwayat(MonitoringData $data): Response
     {
-        $produk = ProdukUnggulan::latest()->get()->map(fn ($p) => [
-            'id' => $p->id,
-            'code' => $p->code,
-            'name' => $p->name,
-            'researcher' => $p->researcher,
-            'date' => optional($p->created_at)->format('Y-m-d'),
-            'status' => $p->status,
-        ]);
-
-        $layanan = Pengajuan::with(['product', 'buyer:id,name'])
-            ->latest()
-            ->get()
-            ->map(fn ($p) => [
-                'id' => $p->id,
-                'code' => $p->code,
-                'layanan' => $p->product?->name ?? ucfirst($p->tipe),
-                'customer' => $p->customer ?? $p->buyer?->name,
-                'date' => optional($p->created_at)->format('Y-m-d'),
-                'status' => $p->status,
-            ]);
-
-        return Inertia::render('Direktur/Riwayat', [
-            'produk' => $produk,
-            'layanan' => $layanan,
-        ]);
+        return Inertia::render('Direktur/Riwayat', ['riwayat' => $data->history()]);
     }
 }

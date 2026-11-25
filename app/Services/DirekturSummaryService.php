@@ -52,7 +52,6 @@ class DirekturSummaryService
             'sales' => $this->sales($from, $to, $granularity),
             'funnel' => $this->funnel($from, $to),
             'accounts' => $this->accounts($from, $to),
-            'negotiation' => $this->negotiation(),
         ];
     }
 
@@ -100,11 +99,23 @@ class DirekturSummaryService
             ->leftJoin('products', 'products.id', '=', 'order_items.product_id')
             ->leftJoin('product_categories as cat', 'cat.id', '=', 'products.category_id')
             ->leftJoin('product_categories as parent', 'parent.id', '=', 'cat.parent_id')
-            ->selectRaw("COALESCE(parent.name, cat.name, 'Tanpa kategori') as kategori, COALESCE(SUM(order_items.subtotal),0) as total, COALESCE(SUM(order_items.quantity),0) as qty")
+            ->selectRaw("COALESCE(cat.name, 'Tanpa kategori') as kategori, COALESCE(SUM(order_items.subtotal),0) as total, COALESCE(SUM(order_items.quantity),0) as qty")
             ->groupBy('kategori')
             ->orderByDesc('total')
             ->get()
             ->map(fn ($r) => ['kategori' => $r->kategori, 'total' => (int) $r->total, 'qty' => (int) $r->qty])
+            ->all();
+
+        $layananKategori = $itemBase()
+            ->join('products', 'products.id', '=', 'order_items.product_id')
+            ->join('product_categories as cat', 'cat.id', '=', 'products.category_id')
+            ->leftJoin('product_categories as parent', 'parent.id', '=', 'cat.parent_id')
+            ->whereIn(DB::raw('COALESCE(parent.slug, cat.slug)'), ['jasa-layanan', 'sewa-fasilitas'])
+            ->selectRaw('COALESCE(parent.slug, cat.slug) as jenis, cat.name as kategori, COALESCE(SUM(order_items.subtotal), 0) as total, COALESCE(SUM(order_items.quantity), 0) as qty')
+            ->groupBy('jenis', 'cat.name')
+            ->orderByDesc('total')
+            ->get()
+            ->map(fn ($r) => ['jenis' => $r->jenis, 'kategori' => $r->kategori, 'total' => (int) $r->total, 'qty' => (int) $r->qty])
             ->all();
 
         $terlaris = $itemBase()
@@ -125,6 +136,7 @@ class DirekturSummaryService
             ],
             'series' => $series,
             'per_kategori' => $perKategori,
+            'layanan_kategori' => $layananKategori,
             'terlaris' => $terlaris,
         ];
     }
@@ -162,10 +174,9 @@ class DirekturSummaryService
             'tahap' => [
                 ['key' => 'diajukan', 'label' => 'Diajukan (menunggu verifikasi)', 'jumlah' => $n('pending')],
                 ['key' => 'diverifikasi', 'label' => 'Diverifikasi RTPU', 'jumlah' => $n('verified')],
-                ['key' => 'revisi_harga', 'label' => 'Perlu revisi harga', 'jumlah' => $n('perlu_revisi_harga', 'counter_offer')],
                 ['key' => 'disetujui', 'label' => 'Disetujui final', 'jumlah' => $n('approved')],
                 ['key' => 'tayang', 'label' => 'Tayang di katalog', 'jumlah' => $tayang],
-                ['key' => 'transaksi', 'label' => 'Pernah bertransaksi (selesai)', 'jumlah' => (int) $transaksi],
+                ['key' => 'transaksi', 'label' => 'Produk terjual pada periode', 'jumlah' => (int) $transaksi],
                 ['key' => 'ditolak', 'label' => 'Ditolak', 'jumlah' => $n('rejected')],
             ],
             'draft' => $n('draft'),
@@ -202,28 +213,6 @@ class DirekturSummaryService
             'per_role' => collect($perRole)->map(fn ($n, $label) => ['label' => $label, 'jumlah' => $n])->values()->all(),
             'total' => array_sum($perRole),
             'pertumbuhan' => $growth,
-        ];
-    }
-
-    /**
-     * Negosiasi harga: hanya produk yang sedang berjalan. Riwayat putaran tidak
-     * disimpan di sistem, jadi rata-rata putaran sengaja tidak dihitung.
-     */
-    private function negotiation(): array
-    {
-        $rows = Product::query()
-            ->whereIn('curation_status', ['perlu_revisi_harga', 'counter_offer'])
-            ->selectRaw('curation_status, COUNT(*) as n')
-            ->groupBy('curation_status')
-            ->pluck('n', 'curation_status');
-
-        $revisi = (int) ($rows['perlu_revisi_harga'] ?? 0);
-        $counter = (int) ($rows['counter_offer'] ?? 0);
-
-        return [
-            'berjalan' => $revisi + $counter,
-            'menunggu_pengelola' => $revisi,
-            'menunggu_rtpu' => $counter,
         ];
     }
 

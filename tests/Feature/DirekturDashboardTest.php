@@ -166,6 +166,28 @@ class DirekturDashboardTest extends TestCase
         $this->assertSame(4, $data['sales']['terlaris'][0]['qty']);   // urut berdasarkan qty
     }
 
+    public function test_jasa_and_sewa_categories_follow_completed_order_items(): void
+    {
+        $jasa = ProductCategory::create(['slug' => 'jasa-layanan', 'name' => 'Jasa / Layanan', 'is_active' => true]);
+        $sewa = ProductCategory::create(['slug' => 'sewa-fasilitas', 'name' => 'Sewa Fasilitas', 'is_active' => true]);
+        $sub = ProductCategory::create(['slug' => 'laboratorium', 'name' => 'Laboratorium', 'parent_id' => $sewa->id, 'is_active' => true]);
+        $this->seedSale('selesai', '2026-11-10 10:00:00', 100000, 0, 2, $jasa);
+        $this->seedSale('selesai', '2026-11-11 10:00:00', 200000, 0, 2, $sub);
+        $this->seedSale('lunas', '2026-11-11 10:00:00', 300000, 0, 2, $jasa);
+        $this->seedSale('selesai', '2026-10-01 10:00:00', 400000, 0, 2, $sewa);
+
+        $data = app(\App\Services\DirekturSummaryService::class)->summary(\Carbon\Carbon::parse('2026-11-01'), \Carbon\Carbon::parse('2026-11-30'));
+        $categories = collect($data['sales']['layanan_kategori'])->keyBy('kategori');
+        $this->assertCount(2, $categories);
+        $this->assertSame(100000, $categories['Jasa / Layanan']['total']);
+        $this->assertSame(200000, $categories['Laboratorium']['total']);
+        $this->assertSame('sewa-fasilitas', $categories['Laboratorium']['jenis']);
+        $diagram = collect($data['sales']['per_kategori'])->pluck('total', 'kategori');
+        $this->assertSame(100000, $diagram['Jasa / Layanan']);
+        $this->assertSame(200000, $diagram['Laboratorium']);
+        $this->assertSame(300000, $diagram->sum());
+    }
+
     public function test_series_fills_empty_days_with_zero(): void
     {
         $this->seedSale('selesai', '2026-11-10 10:00:00');
@@ -204,14 +226,12 @@ class DirekturDashboardTest extends TestCase
 
         $this->assertSame(1, $tahap['diajukan']);
         $this->assertSame(1, $tahap['diverifikasi']);
-        $this->assertSame(2, $tahap['revisi_harga']);   // perlu_revisi_harga + counter_offer
+        $this->assertArrayNotHasKey('revisi_harga', $tahap);
         $this->assertSame(1, $tahap['disetujui']);
         $this->assertSame(1, $tahap['tayang']);
         $this->assertSame(1, $tahap['ditolak']);
         $this->assertSame(1, $data['funnel']['draft']);
-        $this->assertSame(2, $data['negotiation']['berjalan']);
-        $this->assertSame(1, $data['negotiation']['menunggu_pengelola']);
-        $this->assertSame(1, $data['negotiation']['menunggu_rtpu']);
+        $this->assertArrayNotHasKey('negotiation', $data);
     }
 
     public function test_accounts_are_aggregate_only_without_personal_data(): void
@@ -249,17 +269,32 @@ class DirekturDashboardTest extends TestCase
 
     // ---------- Ekspor ----------
 
-    public function test_csv_export_is_read_only_and_neutralizes_formulas(): void
+    public function test_excel_export_contains_typed_data_and_charts(): void
     {
-        $this->seedSale('selesai', now()->toDateTimeString());
-        Product::query()->update(['name' => '=HYPERLINK("http://jahat")']);
-        \DB::table('order_items')->update(['product_name' => '=HYPERLINK("http://jahat")']);
+        $this->seedSale('selesai', '2026-11-10 10:00:00');
+        \DB::table('order_items')->update(['product_name' => '=1+1']);
+        $response = $this->actingAs($this->direktur)->get('/direktur/dashboard/ekspor?from=2026-11-01&to=2026-11-30&format=xlsx')->assertOk();
+        $this->assertStringContainsString('spreadsheetml', $response->headers->get('Content-Type'));
+        $file = tempnam(sys_get_temp_dir(), 'xlsx');
+        try {
+            file_put_contents($file, $response->streamedContent());
+            $reader = new \PhpOffice\PhpSpreadsheet\Reader\Xlsx;
+            $reader->setIncludeCharts(true);
+            $book = $reader->load($file);
+            $this->assertSame(1, $book->getSheetByName('Ringkasan')->getCell('B5')->getValue());
+            $this->assertSame('=1+1', $book->getSheetByName('Produk Terlaris')->getCell('A2')->getValue());
+            $this->assertSame('s', $book->getSheetByName('Produk Terlaris')->getCell('A2')->getDataType());
+            $this->assertCount(1, $book->getSheetByName('Kategori')->getChartCollection());
+            $this->assertCount(1, $book->getSheetByName('Tren Penjualan')->getChartCollection());
+        } finally {
+            unlink($file);
+        }
+    }
 
-        $response = $this->actingAs($this->direktur)->get('/direktur/dashboard/ekspor?preset=30hari');
-        $response->assertOk();
-        $this->assertStringContainsString('text/csv', $response->headers->get('Content-Type'));
-        $csv = $response->streamedContent();
-        $this->assertStringContainsString("'=HYPERLINK", $csv);
-        $this->assertStringNotContainsString(',=HYPERLINK', $csv);
+    public function test_export_defaults_to_excel_without_format_parameter(): void
+    {
+        $response = $this->actingAs($this->direktur)->get('/direktur/dashboard/ekspor?preset=30hari')->assertOk();
+        $this->assertStringContainsString('spreadsheetml', $response->headers->get('Content-Type'));
+        $this->assertStringStartsWith('PK', $response->streamedContent());
     }
 }

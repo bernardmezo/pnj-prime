@@ -1,10 +1,14 @@
 import DashboardLayout from '@/Layouts/DashboardLayout';
 import { Head, router } from '@inertiajs/react';
-import { Check, X, ShieldAlert, Building2, Mail, Phone, UserCheck } from 'lucide-react';
+import { Check, X, Building2, Mail, Phone, UserCheck } from 'lucide-react';
+import { useState } from 'react';
 import { useConfirm } from '@/Components/ConfirmDialog';
 
 export default function VerifikasiAkun({ auth, pendingUsers = [] }) {
     const { confirm, ConfirmUI } = useConfirm();
+    const [selectedId, setSelectedId] = useState(null);
+    const selected = pendingUsers.find((user) => user.id === selectedId);
+    const approvalRoute = auth.user.role === 'admin_rtpu' ? 'rtpu.verify.akun' : 'pimpinan.verify.akun';
 
     const handleApprove = async (id) => {
         const ok = await confirm({
@@ -12,7 +16,7 @@ export default function VerifikasiAkun({ auth, pendingUsers = [] }) {
             message: 'Akun akan diaktifkan dan pengelola dapat mulai mengajukan produk.',
             confirmLabel: 'Ya, Setujui',
         });
-        if (ok) router.patch(route('pimpinan.verify.akun.approve', id));
+        if (ok) router.patch(route(`${approvalRoute}.approve`, id));
     };
 
     const handleReject = async (id) => {
@@ -22,7 +26,7 @@ export default function VerifikasiAkun({ auth, pendingUsers = [] }) {
             danger: true,
             confirmLabel: 'Ya, Tolak',
         });
-        if (ok) router.patch(route('pimpinan.verify.akun.reject', id));
+        if (ok) router.patch(route(`${approvalRoute}.reject`, id));
     };
 
     return (
@@ -42,6 +46,7 @@ export default function VerifikasiAkun({ auth, pendingUsers = [] }) {
                     </div>
                 </div>
 
+                {selected && <button type="button" onClick={() => setSelectedId(null)} className="mb-4 text-sm font-semibold text-[var(--color-accent)] underline">Kembali ke antrean</button>}
                 {pendingUsers.length === 0 ? (
                     <div className="rounded-2xl border bg-white p-12 text-center" style={{ borderColor: 'var(--color-border)' }}>
                         <UserCheck className="mx-auto h-12 w-12" style={{ color: 'var(--color-muted)' }} />
@@ -54,7 +59,7 @@ export default function VerifikasiAkun({ auth, pendingUsers = [] }) {
                     </div>
                 ) : (
                     <div className="grid gap-4">
-                        {pendingUsers.map((u) => (
+                        {(selected ? [selected] : pendingUsers).map((u) => (
                             <div key={u.id} className="rounded-2xl border bg-white p-6 shadow-sm transition hover:shadow" style={{ borderColor: 'var(--color-border)' }}>
                                 <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
                                     <div className="space-y-1">
@@ -75,7 +80,7 @@ export default function VerifikasiAkun({ auth, pendingUsers = [] }) {
                                             Jurusan: <span style={{ color: 'var(--color-muted)' }}>{u.jurusan}</span> &bull; Prodi: <span style={{ color: 'var(--color-muted)' }}>{u.prodi}</span>
                                         </div>
                                     </div>
-                                    <div className="flex items-center gap-3 self-end sm:self-center">
+                                    {!selected ? <button type="button" onClick={() => setSelectedId(u.id)} className="rounded-xl bg-[var(--color-accent)] px-4 py-2 text-sm font-semibold text-white">Lihat Detail &amp; Verifikasi</button> : <div className="flex items-center gap-3 self-end sm:self-center">
                                         <button
                                             type="button"
                                             onClick={() => handleReject(u.id)}
@@ -92,7 +97,7 @@ export default function VerifikasiAkun({ auth, pendingUsers = [] }) {
                                         >
                                             <Check className="h-4 w-4" /> Setujui (Acc)
                                         </button>
-                                    </div>
+                                    </div>}
                                 </div>
                             </div>
                         ))}

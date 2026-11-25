@@ -18,7 +18,7 @@ class VerifikasiAkunController extends Controller
     public function index(): Response
     {
         $pendingUsers = User::query()
-            ->whereIn('role', ['admin_jurusan', 'admin_p3m'])
+            ->whereIn('role', ['admin_pengelola', 'admin_jurusan', 'admin_p3m'])
             ->where('account_status', 'pending')
             ->latest()
             ->get()
@@ -45,7 +45,7 @@ class VerifikasiAkunController extends Controller
      */
     public function approve(User $user): RedirectResponse
     {
-        if ($user->account_status !== 'pending') {
+        if (! in_array($user->role, ['admin_pengelola', 'admin_jurusan', 'admin_p3m'], true) || $user->account_status !== 'pending') {
             abort(422, 'Hanya akun berstatus pending yang dapat disetujui.');
         }
 
@@ -62,7 +62,7 @@ class VerifikasiAkunController extends Controller
      */
     public function reject(Request $request, User $user): RedirectResponse
     {
-        if ($user->account_status !== 'pending') {
+        if (! in_array($user->role, ['admin_pengelola', 'admin_jurusan', 'admin_p3m'], true) || $user->account_status !== 'pending') {
             abort(422, 'Hanya akun berstatus pending yang dapat ditolak.');
         }
 

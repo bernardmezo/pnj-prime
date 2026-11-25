@@ -5,16 +5,19 @@
 - Dev server: `php artisan serve` (port 8000), `npm run dev` (Vite, port bisa 5174)
 
 ## Tugas
-Upgrade tampilan agar premium dan selaras dengan logo PRIME. Struktur layout, sidebar, menu per role, route, props, logika backend, dan data TIDAK diubah. Jangan mengarang konten atau data.
+Upgrade tampilan agar premium dan selaras dengan logo PRIME. Untuk tugas redesign, struktur layout, sidebar, menu per role, route, props, logika backend, dan data tidak diubah. Perbaikan CRUD mengikuti pengecualian pada bagian Batasan. Jangan mengarang konten atau data.
 
 ## Batasan
-- Hanya ubah visual (warna, spacing, shadow, typography, komponen UI).
-- Tidak boleh mengubah struktur layout, routing, atau logika bisnis.
+- Perubahan visual mencakup warna, spacing, shadow, typography, dan komponen UI; pengecualian untuk perbaikan CRUD dijelaskan di bawah.
+- Tidak boleh mengubah struktur layout, routing, atau alur bisnis tanpa persetujuan pengguna.
+- Perbaikan fitur CRUD yang diminta pengguna boleh mengubah frontend dan backend untuk menampilkan serta mempertahankan data yang sudah ada, tanpa mengubah alur bisnis atau tahapan persetujuan.
 - Tidak boleh mengarang data atau konten baru.
 
 ## Git Workflow
-- Commit LOKAL di branch `redesign-ui` boleh.
-- DILARANG: push, merge, rebase, reset, stash, checkout branch lain, atau commit file rahasia (.env, credentials).
+- Commit dan push ke branch `main` diizinkan atas permintaan eksplisit pengguna.
+- Bagi perubahan menjadi beberapa commit per fitur dengan pesan profesional (Conventional Commits).
+- Sebelum push: `npx vite build` dan tes terkait harus lulus.
+- DILARANG: force push, reset, rebase, stash, hapus branch, dan commit file rahasia (.env, credentials) atau file sementara.
 - Berhenti setelah setiap tugas dan tunggu persetujuan saya.
 
 ## Verifikasi

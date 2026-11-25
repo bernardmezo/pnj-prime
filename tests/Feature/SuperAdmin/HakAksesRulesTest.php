@@ -42,6 +42,74 @@ class HakAksesRulesTest extends TestCase
             ->value('allowed');
     }
 
+    public function test_unit_roles_are_available_and_editable(): void
+    {
+        foreach (['admin_pengelola', 'admin_jurusan'] as $role) {
+            $user = User::factory()->create(['role' => $role]);
+            $this->actingAs($this->superAdmin)->get(route('superadmin.hakakses'))->assertInertia(fn ($page) => $page
+                ->where("roleCounts.$role", 1)
+                ->where("bawaan.$role.katalog.Tambah", true));
+            $this->post(route('superadmin.hakakses.save'), [
+                'matriks' => [$role => ['katalog' => array_fill_keys(Permission::AKSI, false)]],
+            ])->assertRedirect();
+            $this->assertFalse($user->canDo('katalog', 'Lihat'));
+        }
+    }
+
+    public function test_invalid_later_entry_does_not_partially_save(): void
+    {
+        $this->actingAs($this->superAdmin)->post(route('superadmin.hakakses.save'), [
+            'matriks' => ['customer' => ['katalog' => ['Lihat' => false], 'unknown' => ['Lihat' => true]]],
+        ])->assertStatus(422);
+
+        $this->assertTrue($this->allowed('customer', 'katalog', 'Lihat'));
+    }
+
+    public function test_partial_update_preserves_lihat_when_stored_dependent_is_enabled(): void
+    {
+        Permission::updateOrCreate(
+            ['role' => 'customer', 'fitur_key' => 'katalog', 'aksi' => 'Tambah'],
+            ['allowed' => true]
+        );
+
+        $this->actingAs($this->superAdmin)->post(route('superadmin.hakakses.save'), [
+            'matriks' => ['customer' => ['katalog' => ['Lihat' => false]]],
+        ])->assertRedirect();
+
+        $this->assertTrue($this->allowed('customer', 'katalog', 'Lihat'));
+        $this->assertTrue($this->allowed('customer', 'katalog', 'Tambah'));
+    }
+
+    public function test_partial_update_can_disable_last_dependent_and_lihat_together(): void
+    {
+        Permission::updateOrCreate(
+            ['role' => 'customer', 'fitur_key' => 'katalog', 'aksi' => 'Tambah'],
+            ['allowed' => true]
+        );
+
+        $this->actingAs($this->superAdmin)->post(route('superadmin.hakakses.save'), [
+            'matriks' => ['customer' => ['katalog' => ['Lihat' => false, 'Tambah' => false]]],
+        ])->assertRedirect();
+
+        $this->assertFalse($this->allowed('customer', 'katalog', 'Lihat'));
+        $this->assertFalse($this->allowed('customer', 'katalog', 'Tambah'));
+    }
+
+    public function test_unavailable_stored_action_does_not_force_lihat(): void
+    {
+        Permission::updateOrCreate(
+            ['role' => 'customer', 'fitur_key' => 'katalog', 'aksi' => 'Tambah'],
+            ['allowed' => true]
+        );
+        Fitur::where('key', 'katalog')->firstOrFail()->update(['aksi_tersedia' => ['Lihat']]);
+
+        $this->actingAs($this->superAdmin)->post(route('superadmin.hakakses.save'), [
+            'matriks' => ['customer' => ['katalog' => ['Lihat' => false]]],
+        ])->assertRedirect();
+
+        $this->assertFalse($this->allowed('customer', 'katalog', 'Lihat'));
+    }
+
     public function test_dependent_action_auto_enables_likat(): void
     {
         $this->actingAs($this->superAdmin);

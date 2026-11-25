@@ -26,6 +26,7 @@ class CategoryController extends Controller
                 'children' => $p->children->map(fn($c) => [
                     'id'            => $c->id,
                     'name'          => $c->name,
+                    'parent_id'     => $c->parent_id,
                     'slug'          => $c->slug,
                     'is_active'     => $c->is_active,
                     'sort_order'    => $c->sort_order,
@@ -39,7 +40,7 @@ class CategoryController extends Controller
     public function store(Request $request): RedirectResponse
     {
         $data = $request->validate([
-            'name'      => 'required|string|max:100',
+            'name'      => ['required', 'string', 'max:100', $this->uniqueSlugRule()],
             'parent_id' => 'required|exists:product_categories,id',
             'sort_order'=> 'nullable|integer|min:0',
         ]);
@@ -69,13 +70,19 @@ class CategoryController extends Controller
         }
 
         $data = $request->validate([
-            'name'       => 'required|string|max:100',
+            'name'       => ['required', 'string', 'max:100', $this->uniqueSlugRule($category)],
+            'parent_id'  => 'sometimes|required|exists:product_categories,id',
             'is_active'  => 'required|boolean',
             'sort_order' => 'nullable|integer|min:0',
         ]);
 
+        if (isset($data['parent_id']) && ProductCategory::findOrFail($data['parent_id'])->parent_id !== null) {
+            return back()->withErrors(['parent_id' => 'Parent harus kategori level-1 (tipe).']);
+        }
+
         $category->update([
             'name'       => $data['name'],
+            'parent_id'  => $data['parent_id'] ?? $category->parent_id,
             'slug'       => Str::slug($data['name']),
             'is_active'  => $data['is_active'],
             'sort_order' => $data['sort_order'] ?? $category->sort_order,
@@ -93,5 +100,26 @@ class CategoryController extends Controller
         $category->update(['is_active' => ! $category->is_active]);
 
         return back()->with('success', $category->is_active ? 'Sub-kategori diaktifkan.' : 'Sub-kategori dinonaktifkan.');
+    }
+
+    private function uniqueSlugRule(?ProductCategory $ignore = null): \Closure
+    {
+        return function (string $attribute, mixed $value, \Closure $fail) use ($ignore): void {
+            $slug = Str::slug((string) $value);
+
+            if ($slug === '') {
+                $fail('Nama kategori harus mengandung huruf atau angka.');
+
+                return;
+            }
+
+            $exists = ProductCategory::where('slug', $slug)
+                ->when($ignore, fn ($q) => $q->whereKeyNot($ignore->getKey()))
+                ->exists();
+
+            if ($exists) {
+                $fail('Nama kategori sudah dipakai.');
+            }
+        };
     }
 }

@@ -15,8 +15,8 @@ use Inertia\Response;
 
 class HakAksesController extends Controller
 {
-    /** The six roles that can hold permissions. */
-    public const ROLES = ['customer', 'admin_rtpu', 'admin_p3m', 'pimpinan_rtpu', 'direktur', 'super_admin'];
+    /** The roles that can hold permissions. */
+    public const ROLES = ['customer', 'admin_rtpu', 'admin_p3m', 'admin_pengelola', 'admin_jurusan', 'pimpinan_rtpu', 'direktur', 'super_admin'];
 
     /** Actions that only make sense when the role can also see the fitur. */
     private const DEPENDENT_AKSI = ['Tambah', 'Ubah', 'Hapus', 'Verifikasi'];
@@ -78,55 +78,62 @@ class HakAksesController extends Controller
 
         $fiturs = Fitur::all()->keyBy('key');
 
-        foreach ($data['matriks'] as $role => $fiturRows) {
-            abort_unless(in_array($role, self::ROLES, true), 422, 'Peran tidak dikenal.');
+        DB::transaction(function () use ($data, $fiturs) {
+            foreach ($data['matriks'] as $role => $fiturRows) {
+                abort_unless(in_array($role, self::ROLES, true), 422, 'Peran tidak dikenal.');
 
-            // Super Admin is locked: ignore client changes; enforced below.
-            if ($role === 'super_admin') {
-                continue;
-            }
-
-            foreach ($fiturRows as $fiturKey => $aksis) {
-                abort_unless($fiturs->has($fiturKey), 422, 'Fitur tidak dikenal.');
-
-                /** @var Fitur $fitur */
-                $fitur = $fiturs[$fiturKey];
-                $tersedia = $fitur->actions();
-
-                $effective = [];
-                foreach ($aksis as $aksi => $allowed) {
-                    abort_unless(in_array($aksi, Permission::AKSI, true), 422, 'Aksi tidak dikenal.');
-                    abort_unless(
-                        in_array($aksi, $tersedia, true),
-                        422,
-                        "Aksi {$aksi} tidak tersedia untuk fitur {$fiturKey}."
-                    );
-                    $effective[$aksi] = (bool) $allowed;
+                // Super Admin is locked: ignore client changes; enforced below.
+                if ($role === 'super_admin') {
+                    continue;
                 }
 
-                // Dependency rule: Tambah/Ubah/Hapus/Verifikasi require Lihat on
-                // the same fitur. Policy: auto-set Lihat = true (never reject).
-                $anyDependent = false;
-                foreach (self::DEPENDENT_AKSI as $d) {
-                    if (! empty($effective[$d])) {
-                        $anyDependent = true;
-                        break;
+                foreach ($fiturRows as $fiturKey => $aksis) {
+                    abort_unless($fiturs->has($fiturKey), 422, 'Fitur tidak dikenal.');
+
+                    /** @var Fitur $fitur */
+                    $fitur = $fiturs[$fiturKey];
+                    $tersedia = $fitur->actions();
+
+                    $effective = [];
+                    foreach ($aksis as $aksi => $allowed) {
+                        abort_unless(in_array($aksi, Permission::AKSI, true), 422, 'Aksi tidak dikenal.');
+                        abort_unless(
+                            in_array($aksi, $tersedia, true),
+                            422,
+                            "Aksi {$aksi} tidak tersedia untuk fitur {$fiturKey}."
+                        );
+                        $effective[$aksi] = (bool) $allowed;
+                    }
+
+                    // Dependency rule: Tambah/Ubah/Hapus/Verifikasi require Lihat on
+                    // the same fitur. Policy: auto-set Lihat = true (never reject).
+                    $stored = Permission::query()
+                        ->where('role', $role)
+                        ->where('fitur_key', $fiturKey)
+                        ->whereIn('aksi', self::DEPENDENT_AKSI)
+                        ->pluck('allowed', 'aksi');
+                    $anyDependent = false;
+                    foreach (self::DEPENDENT_AKSI as $d) {
+                        if (in_array($d, $tersedia, true) && ($effective[$d] ?? (bool) ($stored[$d] ?? false))) {
+                            $anyDependent = true;
+                            break;
+                        }
+                    }
+                    if ($anyDependent && in_array('Lihat', $tersedia, true)) {
+                        $effective['Lihat'] = true;
+                    }
+
+                    foreach ($effective as $aksi => $allowed) {
+                        Permission::updateOrCreate(
+                            ['role' => $role, 'fitur_key' => $fiturKey, 'aksi' => $aksi],
+                            ['allowed' => $allowed]
+                        );
                     }
                 }
-                if ($anyDependent && in_array('Lihat', $tersedia, true)) {
-                    $effective['Lihat'] = true;
-                }
-
-                foreach ($effective as $aksi => $allowed) {
-                    Permission::updateOrCreate(
-                        ['role' => $role, 'fitur_key' => $fiturKey, 'aksi' => $aksi],
-                        ['allowed' => $allowed]
-                    );
-                }
             }
-        }
 
-        $this->enforceSuperAdmin($fiturs);
+            $this->enforceSuperAdmin($fiturs);
+        });
         User::flushPermissionCache();
 
         return back()->with('success', 'Hak akses tersimpan.');

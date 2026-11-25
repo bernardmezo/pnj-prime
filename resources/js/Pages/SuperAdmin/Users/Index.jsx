@@ -5,18 +5,54 @@ import { ConfirmModal, EmptyState, FadeIn, PageHeader, PrimaryButton, RoleBadge,
 import TextInput from '@/Components/ui/TextInput';
 import Select from '@/Components/ui/Select';
 import Switch from '@/Components/ui/Switch';
-import { ROLE_KEYS, roleLabel } from '@/lib/roles';
+import { roleLabel } from '@/lib/roles';
 
-const EMPTY = { name: '', email: '', password: '', role: 'customer', active: true };
+// Top-level role choices when creating/editing a user. Admin P3M and Admin
+// Jurusan are no longer offered directly here — they are variants selected
+// after picking "Admin Pengelola" (see PENGELOLA_VARIANTS below).
+const CREATABLE_ROLES = ['customer', 'admin_rtpu', 'admin_pengelola', 'pimpinan_rtpu', 'direktur', 'super_admin'];
+const PENGELOLA_VARIANTS = [
+    { value: 'admin_p3m', label: 'Admin Pengelola — P3M' },
+    { value: 'admin_jurusan', label: 'Admin Pengelola — Jurusan' },
+];
+
+const PROFILE_LABELS = {
+    phone: 'Nomor telepon / WhatsApp', institution: 'Instansi/organisasi', nik_npwp: 'NIK/NPWP',
+    nip: 'NIP', jurusan: 'Jurusan', prodi: 'Program Studi',
+    npwp_perusahaan: 'NPWP Perusahaan', penanggung_jawab: 'Nama Penanggung Jawab', bidang_usaha: 'Bidang Usaha',
+    nomor_mou_pks: 'Nomor MoU/PKS', contact_person: 'Nama Contact Person', periode_kerja_sama: 'Periode Kerja Sama',
+};
+const CUSTOMER_FIELDS = {
+    'Industri/Perusahaan': ['institution', 'npwp_perusahaan', 'penanggung_jawab', 'bidang_usaha'],
+    'Mitra kerja sama': ['institution', 'nomor_mou_pks', 'contact_person', 'periode_kerja_sama'],
+    'Perguruan tinggi/lembaga lain': ['institution'],
+};
+const USER_TYPES = ['Masyarakat umum', 'Industri/Perusahaan', 'Mitra kerja sama', 'Perguruan tinggi/lembaga lain'];
+const EMPTY = { name: '', email: '', password: '', role: 'customer', pengelola_variant: 'admin_p3m', active: true, user_type: '', ...Object.fromEntries(Object.keys(PROFILE_LABELS).map((field) => [field, ''])) };
 
 export default function UsersIndex({ auth, users = [] }) {
     const rows = users;
     const [editing, setEditing] = useState(null);
     const [del, setDel] = useState(null);
+    const editingUser = rows.find((u) => u.id === editing);
     const { data, setData, post, patch, processing, errors, reset } = useForm(EMPTY);
 
     const openAdd = () => { setEditing('new'); reset(); setData(EMPTY); };
-    const openEdit = (u) => { setEditing(u.id); setData({ name: u.name, email: u.email, password: '', role: u.role, active: u.status !== 'Nonaktif' }); };
+    const openEdit = (u) => {
+        setEditing(u.id);
+        // admin_p3m / admin_jurusan rows edit as the admin_pengelola role with their variant preselected
+        const isPengelolaVariant = u.role === 'admin_p3m' || u.role === 'admin_jurusan';
+        setData({
+            name: u.name,
+            email: u.email,
+            password: '',
+            role: isPengelolaVariant ? 'admin_pengelola' : u.role,
+            pengelola_variant: isPengelolaVariant || u.role === 'admin_pengelola' ? u.role : 'admin_p3m',
+            active: u.status !== 'Nonaktif',
+            user_type: u.user_type ?? '',
+            ...Object.fromEntries(Object.keys(PROFILE_LABELS).map((field) => [field, u[field] ?? ''])),
+        });
+    };
     const save = () => {
         if (editing === 'new') {
             post(route('superadmin.users.store'), { onSuccess: () => setEditing(null) });
@@ -102,9 +138,34 @@ export default function UsersIndex({ auth, users = [] }) {
                             label="Role"
                             value={data.role}
                             onChange={(v) => setData('role', v)}
-                            options={ROLE_KEYS.map((k) => ({ value: k, label: roleLabel(k) }))}
+                            options={CREATABLE_ROLES
+                                .filter((k) => !(editingUser?.role === 'customer' && k === 'admin_pengelola'))
+                                .map((k) => ({ value: k, label: roleLabel(k) }))}
                             error={errors.role}
                         />
+                        {data.role === 'admin_pengelola' && (
+                            <Select label="Jenis pengelola" value={data.pengelola_variant} onChange={(v) => setData('pengelola_variant', v)} options={editing !== 'new' && data.pengelola_variant === 'admin_pengelola' ? [...PENGELOLA_VARIANTS, { value: 'admin_pengelola', label: 'Pengelola unit (akun lama)' }] : PENGELOLA_VARIANTS} error={errors.pengelola_variant} />
+                        )}
+                        {data.role === 'customer' && <Select
+                            label="Tipe pengguna"
+                            value={data.user_type}
+                            onChange={(v) => setData('user_type', v)}
+                            options={[{ value: '', label: '— Tidak diisi —' }, ...(data.user_type && !USER_TYPES.includes(data.user_type) ? [{ value: data.user_type, label: data.user_type }] : []), ...USER_TYPES.map((t) => ({ value: t, label: t }))]}
+                            error={errors.user_type}
+                        />}
+                        {Object.entries(PROFILE_LABELS).filter(([field]) => {
+                            if (field === 'phone') return true;
+                            if (data.role === 'customer') return field === 'nik_npwp' || (CUSTOMER_FIELDS[data.user_type] ?? []).includes(field);
+                            return data.role === 'admin_pengelola' && ['institution', 'nip', 'jurusan', 'prodi'].includes(field);
+                        }).map(([field, label]) => (
+                            <TextInput
+                                key={field}
+                                label={label}
+                                value={data[field] ?? ''}
+                                onChange={(e) => setData(field, e.target.value)}
+                                error={errors[field]}
+                            />
+                        ))}
                         <Switch
                             checked={data.active}
                             onChange={(v) => setData('active', v)}

@@ -23,11 +23,13 @@ export default function KategoriIndex({ auth, parents = [] }) {
         if (editing) {
             router.patch(route('superadmin.kategori.update', editing), form, {
                 preserveScroll: true,
+                onError: (errs) => setError(Object.values(errs)[0] ?? 'Gagal menyimpan kategori.'),
                 onSuccess: () => { setShowForm(false); setEditing(null); setForm({ name: '', parent_id: '', sort_order: 50, is_active: true }); },
             });
         } else {
             router.post(route('superadmin.kategori.store'), form, {
                 preserveScroll: true,
+                onError: (errs) => setError(Object.values(errs)[0] ?? 'Gagal menyimpan kategori.'),
                 onSuccess: () => { setShowForm(false); setForm({ name: '', parent_id: '', sort_order: 50, is_active: true }); },
             });
         }

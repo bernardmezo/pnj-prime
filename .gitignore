@@ -53,7 +53,7 @@ coverage
 # E2E test artifacts
 /tests/e2e/screenshots/
 /tests/e2e/reports/
-
+testing/akun.md
 # Documentation and planning markdown files
 *.md
 !README.md

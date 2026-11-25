@@ -54,7 +54,7 @@ return [
         'server_key' => env('MIDTRANS_SERVER_KEY'),
         'client_key' => env('MIDTRANS_CLIENT_KEY'),
         'is_production' => (bool) env('MIDTRANS_IS_PRODUCTION', false),
-        'ssl_verify' => (bool) env('MIDTRANS_SSL_VERIFY', env('APP_ENV') === 'production'),
+        'ssl_verify' => (bool) env('MIDTRANS_SSL_VERIFY', true),
     ],
 
     /*
@@ -63,8 +63,8 @@ return [
     'rajaongkir' => [
         'key' => env('RAJAONGKIR_API_KEY'),
         'type' => env('RAJAONGKIR_TYPE', 'starter'), // starter, basic, pro
-        'origin_city_id' => env('RAJAONGKIR_ORIGIN_CITY', '152'), // Default Kota Depok
-        'origin_postal_code' => env('RAJAONGKIR_ORIGIN_POSTAL', '16424'), // Default Depok (PNJ)
+        'origin_city_id' => env('RAJAONGKIR_ORIGIN_CITY', '25979'), // Default Kukusan, Beji, Depok (PNJ)
+        'origin_postal_code' => env('RAJAONGKIR_ORIGIN_POSTAL', '16425'), // Default Kukusan (PNJ)
     ],
 
 ];

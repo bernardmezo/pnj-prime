@@ -25,7 +25,7 @@ return new class extends Migration
             $table->unsignedInteger('stok')->nullable();
             $table->boolean('aktif')->default(true);
             $table->unsignedInteger('urutan')->default(0);
-            $table->enum('sumber', ['admin', 'usulan_p3m'])->default('admin');
+            $table->enum('sumber', ['admin', 'usulan_p3m', 'pengelola'])->default('admin');
 
             $table->timestamps();
             $table->softDeletes();

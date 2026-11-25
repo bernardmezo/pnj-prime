@@ -84,6 +84,7 @@ class Opsi extends Model
         'jenis',
         'nama',
         'deskripsi',
+        'foto',
         'harga',
         'satuan',
         'qty_min',

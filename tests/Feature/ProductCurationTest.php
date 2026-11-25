@@ -53,6 +53,136 @@ class ProductCurationTest extends TestCase
         ]);
     }
 
+    public function test_rtpu_badge_counts_only_produk_unggulan_shown_on_page(): void
+    {
+        Product::create([
+            'category_id' => $this->category->id,
+            'owner_id' => $this->pengelola->id,
+            'name' => 'Katalog 1', 'slug' => 'katalog-1', 'base_price' => 100, 'final_price' => 100,
+            'curation_status' => 'pending', 'is_active' => false,
+        ]);
+        Product::create([
+            'category_id' => $this->category->id,
+            'owner_id' => $this->pengelola->id,
+            'name' => 'Katalog 2', 'slug' => 'katalog-2', 'base_price' => 100, 'final_price' => 100,
+            'curation_status' => 'pending', 'is_active' => false,
+        ]);
+        \App\Models\ProdukUnggulan::create([
+            'code' => 'PU-BADGE-1', 'owner_id' => $this->pengelola->id, 'name' => 'Unggulan',
+            'description' => 'D', 'researcher' => 'R', 'team' => 'T', 'category' => 'C', 'price' => 1, 'status' => 'Diajukan',
+        ]);
+
+        $this->actingAs($this->adminRtpu)
+            ->get(route('rtpu.verify.produk'))
+            ->assertOk()
+            ->assertInertia(fn ($page) => $page
+                ->where('pending_counts.menunggu_rtpu_produk', 1)
+                ->where('pending_counts.persetujuan_final_produk', 2)
+                ->where('products.0.code', 'PU-BADGE-1'));
+    }
+
+    public function test_catalog_queue_count_matches_rtpu_layanan_and_is_distinct_from_unggulan(): void
+    {
+        foreach (range(1, 3) as $number) {
+            Product::create([
+                'category_id' => $this->category->id, 'owner_id' => $this->pengelola->id,
+                'name' => "Katalog {$number}", 'slug' => "queue-katalog-{$number}",
+                'base_price' => 100, 'final_price' => 100,
+                'curation_status' => 'pending', 'is_active' => false,
+            ]);
+        }
+
+        $this->actingAs($this->pimpinanRtpu)->get(route('pimpinan.verify.produk'))
+            ->assertOk()->assertInertia(fn ($page) => $page
+                ->where('pending_counts.persetujuan_final_produk', 3)->has('products', 3));
+        $this->actingAs($this->adminRtpu)->get(route('rtpu.verify.produk'))
+            ->assertOk()->assertInertia(fn ($page) => $page
+                ->where('pending_counts.menunggu_rtpu_produk', 0)->has('products', 0));
+        $this->get(route('rtpu.verify.layanan'))
+            ->assertOk()->assertInertia(fn ($page) => $page
+                ->where('pending_counts.menunggu_verifikasi', 3)->has('antrean', 3));
+
+        $buyer = User::factory()->create(['role' => 'customer']);
+        \App\Models\Pengajuan::create([
+            'code' => 'QUEUE-INVOICE', 'buyer_id' => $buyer->id, 'tipe' => 'jasa',
+            'status' => 'Menunggu Invoice', 'total' => 0,
+        ]);
+        $this->get(route('rtpu.verify.layanan'))
+            ->assertOk()->assertInertia(fn ($page) => $page
+                ->where('pending_counts.menunggu_verifikasi', 4)->has('antrean', 4));
+    }
+
+    public function test_cost_price_is_available_to_reviewers_but_hidden_from_default_serialization(): void
+    {
+        $product = Product::create([
+            'category_id' => $this->category->id,
+            'owner_id' => $this->pengelola->id,
+            'name' => 'Produk Uji Harga Modal',
+            'slug' => 'produk-uji-harga-modal',
+            'base_price' => 500000,
+            'cost_price' => 200000,
+            'final_price' => 500000,
+            'curation_status' => 'pending',
+            'is_active' => false,
+        ]);
+
+        $this->assertArrayNotHasKey('cost_price', $product->toArray());
+
+        // Produk katalog hanya diperiksa Pimpinan pada tahap persetujuan final.
+        // RTPU memverifikasi Produk Unggulan, bukan Product katalog, sehingga
+        // cost_price tidak dikirim pada halaman RTPU.
+        $this->actingAs($this->pimpinanRtpu)
+            ->get(route('pimpinan.verify.produk'))
+            ->assertOk()
+            ->assertInertia(fn ($page) => $page->where('products.0.cost_price', 200000));
+    }
+
+    public function test_pimpinan_can_reject_verified_product_step_2(): void
+    {
+        $product = Product::create([
+            'category_id' => $this->category->id,
+            'owner_id' => $this->pengelola->id,
+            'name' => 'Produk Uji Penolakan',
+            'slug' => 'produk-uji-penolakan',
+            'base_price' => 300000,
+            'final_price' => 300000,
+            'curation_status' => 'verified',
+            'is_active' => false,
+        ]);
+
+        $this->actingAs($this->pimpinanRtpu)
+            ->patch(route('pimpinan.verify.produk.reject', $product->id), [
+                'catatan' => 'Deskripsi produk belum lengkap.',
+            ])
+            ->assertSessionHasNoErrors()
+            ->assertRedirect();
+
+        $product->refresh();
+        $this->assertSame('rejected', $product->curation_status);
+        $this->assertFalse((bool) $product->is_active);
+        $this->assertSame('Deskripsi produk belum lengkap.', $product->rejection_reason);
+    }
+
+    public function test_pimpinan_reject_requires_reason(): void
+    {
+        $product = Product::create([
+            'category_id' => $this->category->id,
+            'owner_id' => $this->pengelola->id,
+            'name' => 'Produk Uji Tanpa Alasan',
+            'slug' => 'produk-uji-tanpa-alasan',
+            'base_price' => 300000,
+            'final_price' => 300000,
+            'curation_status' => 'verified',
+            'is_active' => false,
+        ]);
+
+        $this->actingAs($this->pimpinanRtpu)
+            ->patch(route('pimpinan.verify.produk.reject', $product->id), [])
+            ->assertSessionHasErrors('catatan');
+
+        $this->assertSame('verified', $product->fresh()->curation_status);
+    }
+
     public function test_pengelola_can_create_draft_product(): void
     {
         $response = $this->actingAs($this->pengelola)
@@ -96,17 +226,18 @@ class ProductCurationTest extends TestCase
         $this->assertEquals('pending', $product->fresh()->curation_status);
     }
 
-    public function test_rtpu_can_verify_pending_product_step_1(): void
+    public function test_rtpu_can_verify_produk_unggulan_step_1(): void
     {
-        $product = Product::create([
-            'category_id' => $this->category->id,
+        $produk = \App\Models\ProdukUnggulan::create([
+            'code' => 'PU-TEST-001',
             'owner_id' => $this->pengelola->id,
-            'name' => 'Alat Monitoring Cuaca Mikro',
-            'slug' => 'alat-monitoring-cuaca-mikro',
-            'base_price' => 5000000,
-            'final_price' => 5000000,
-            'curation_status' => 'pending',
-            'is_active' => false,
+            'name' => 'Produk Unggulan Uji Verifikasi',
+            'description' => 'Produk unggulan hasil penelitian P3M',
+            'researcher' => 'Dr. Peneliti Utama',
+            'team' => 'Tim Inovasi A',
+            'category' => 'Teknologi',
+            'price' => 5000000,
+            'status' => 'Diajukan',
         ]);
 
         $indexRes = $this->actingAs($this->adminRtpu)
@@ -114,37 +245,36 @@ class ProductCurationTest extends TestCase
         $indexRes->assertStatus(200);
 
         $verifyRes = $this->actingAs($this->adminRtpu)
-            ->patch(route('rtpu.verify.produk.verify', $product), [
-                'notes' => 'Dokumen spesifikasi teknis telah lengkap dan valid.',
+            ->patch(route('rtpu.verify.produk.verify', $produk), [
+                'notes' => 'Dokumen proposal telah lengkap dan valid.',
             ]);
 
         $verifyRes->assertRedirect();
-        $this->assertEquals('verified', $product->fresh()->curation_status);
-        $this->assertFalse((bool) $product->fresh()->is_active);
+        $this->assertEquals('Disetujui', $produk->fresh()->status);
     }
 
-    public function test_rtpu_can_reject_pending_product(): void
+    public function test_rtpu_can_rejectproduk_unggulan(): void
     {
-        $product = Product::create([
-            'category_id' => $this->category->id,
+        $produk = \App\Models\ProdukUnggulan::create([
+            'code' => 'PU-TEST-002',
             'owner_id' => $this->pengelola->id,
-            'name' => 'Baterai Litium Prototipe',
-            'slug' => 'baterai-litium-prototipe',
-            'base_price' => 3000000,
-            'final_price' => 3000000,
-            'curation_status' => 'pending',
-            'is_active' => false,
+            'name' => 'Produk Unggulan Uji Tolak',
+            'description' => 'Produk unggulan untuk testing penolakan',
+            'researcher' => 'Dr. Peneliti Kedua',
+            'team' => 'Tim Inovasi B',
+            'category' => 'Teknologi',
+            'price' => 3000000,
+            'status' => 'Diajukan',
         ]);
 
         $rejectRes = $this->actingAs($this->adminRtpu)
-            ->patch(route('rtpu.verify.produk.reject', $product), [
-                'reason' => 'Sertifikasi keamanan baterai belum dilampirkan.',
+            ->patch(route('rtpu.verify.produk.reject', $produk), [
+                'reason' => 'Dokumen pendukung hasil uji belum dilampirkan.',
             ]);
 
         $rejectRes->assertRedirect();
-        $freshProduct = $product->fresh();
-        $this->assertEquals('rejected', $freshProduct->curation_status);
-        $this->assertEquals('Sertifikasi keamanan baterai belum dilampirkan.', $freshProduct->rejection_reason);
+        $this->assertEquals('Ditolak', $produk->fresh()->status);
+        $this->assertEquals('Dokumen pendukung hasil uji belum dilampirkan.', $produk->fresh()->catatan);
     }
 
     public function test_pimpinan_can_approve_verified_product_step_2(): void

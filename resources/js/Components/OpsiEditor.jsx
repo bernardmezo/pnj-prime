@@ -133,6 +133,41 @@ function OpsiRow({
                 />
             </div>
 
+            {/* Input foto add-on (hanya muncul untuk add-on, bukan termasuk) */}
+            {!isTermasuk && (
+                <div className="space-y-1.5">
+                    <label htmlFor={`opsi-${row._key}-foto`} className="block text-sm font-medium text-[var(--color-ink)]">
+                        Foto Add-on <span className="text-[var(--color-muted)] font-normal">(opsional)</span>
+                    </label>
+                    <input
+                        id={`opsi-${row._key}-foto`}
+                        type="file"
+                        accept="image/jpeg,image/png,image/webp"
+                        disabled={readOnly}
+                        onChange={(e) => {
+                            const file = e.target.files?.[0];
+                            onPatch(row, { foto_file: file ?? null });
+                        }}
+                        className="block w-full text-sm text-[var(--color-muted)]
+                            file:mr-3 file:py-2 file:px-4
+                            file:rounded-lg file:border file:border-[var(--color-border)]
+                            file:text-sm file:font-medium
+                            file:bg-white file:text-[var(--color-ink)]
+                            hover:file:bg-[var(--color-surface)]
+                            file:cursor-pointer file:transition
+                            disabled:opacity-50 disabled:cursor-not-allowed"
+                    />
+                    {row.foto && !row.foto_file && (
+                        <p className="text-xs text-[var(--color-muted)] mt-1">
+                            Foto saat ini: <a href={row.foto} target="_blank" rel="noopener noreferrer" className="underline">Lihat</a>
+                        </p>
+                    )}
+                    {row.foto_file && (
+                        <p className="text-xs text-teal-700 mt-1">File baru dipilih: {row.foto_file.name}</p>
+                    )}
+                </div>
+            )}
+
             <div className="grid gap-3 sm:grid-cols-2">
                 <MoneyInput
                     label="Harga"

@@ -9,8 +9,6 @@ use Database\Seeders\SettingSeeder;
 use Database\Seeders\TaxRateSeeder;
 use Database\Seeders\UsecaseSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
-use Illuminate\Http\UploadedFile;
-use Illuminate\Support\Facades\Storage;
 use Tests\TestCase;
 
 class PengelolaWorkflowTest extends TestCase
@@ -38,35 +36,13 @@ class PengelolaWorkflowTest extends TestCase
         $this->superAdmin = User::factory()->superAdmin()->create();
     }
 
-    public function test_customer_can_submit_pengelola_application(): void
+    public function test_customer_cannot_submit_pengelola_application(): void
     {
-        Storage::fake('local');
-
-        $file = UploadedFile::fake()->create('sk_penunjukan.pdf', 500, 'application/pdf');
-
-        $response = $this->actingAs($this->customer)
-            ->post(route('customer.pengelola.register.store'), [
-                'unit_name' => 'Laboratorium Rekayasa Perangkat Lunak',
-                'pic_name' => 'Budi Santoso',
-                'pic_phone' => '081234567890',
-                'sk_document' => $file,
-            ]);
-
-        $response->assertRedirect(route('customer.pengelola.index'));
-
-        $this->assertDatabaseHas('pengelola_applications', [
-            'user_id' => $this->customer->id,
-            'unit_name' => 'Laboratorium Rekayasa Perangkat Lunak',
-            'pic_name' => 'Budi Santoso',
-            'status' => 'pending',
-        ]);
-
-        $app = PengelolaApplication::where('user_id', $this->customer->id)->first();
-        $this->assertNotNull($app->sk_document_path);
-        Storage::disk('local')->assertExists($app->sk_document_path);
+        $this->actingAs($this->customer)->post('/pengelola-register')->assertGone();
+        $this->assertDatabaseCount('pengelola_applications', 0);
     }
 
-    public function test_superadmin_can_view_and_approve_pengelola_application(): void
+    public function test_superadmin_cannot_approve_customer_pengelola_application(): void
     {
         $app = PengelolaApplication::create([
             'user_id' => $this->customer->id,
@@ -90,16 +66,9 @@ class PengelolaWorkflowTest extends TestCase
                 'notes' => 'SK resmi dan terverifikasi oleh Direktur PNJ.',
             ]);
 
-        $approveRes->assertRedirect();
-
-        $freshApp = $app->fresh();
-        $this->assertEquals('approved', $freshApp->status);
-        $this->assertEquals($this->superAdmin->id, $freshApp->verified_by);
-
-        $freshUser = $this->customer->fresh();
-        $this->assertEquals('admin_pengelola', $freshUser->role);
-        $this->assertEquals('Jurusan Teknik Informatika dan Komputer', $freshUser->unit_name);
-        $this->assertTrue($freshUser->isAdminPengelola());
+        $approveRes->assertUnprocessable();
+        $this->assertSame('pending', $app->fresh()->status);
+        $this->assertSame('customer', $this->customer->fresh()->role);
     }
 
     public function test_superadmin_can_reject_pengelola_application(): void

@@ -20,7 +20,7 @@ export default function PengelolaProdukIndex({ auth, products = [] }) {
     };
 
     return (
-        <DashboardLayout title="Katalog Produk Inovasi" breadcrumb="Pengelola / Produk" activeKey="catalog">
+        <DashboardLayout title="Katalog Produk Inovasi" breadcrumb="Pengelola / Produk" activeKey="produk">
             <Head title="Kelola Produk Inovasi · PNJ Prime" />
             <FadeIn>
                 <PageHeader
@@ -66,9 +66,11 @@ export default function PengelolaProdukIndex({ auth, products = [] }) {
                                 <div className="border-t pt-3 flex items-center justify-between text-xs text-[var(--color-muted)]">
                                     <span className="font-semibold">Rp {Number(item.base_price || item.harga || 0).toLocaleString('id-ID')}</span>
                                     <div className="flex items-center gap-2">
-                                        <Link href={route('pengelola.produk.edit', item.id)} className="text-blue-600 font-semibold hover:underline">
-                                            Ubah
-                                        </Link>
+                                        {(['draft', 'rejected', 'approved'].includes(item.curation_status)) && (
+                                            <Link href={route('pengelola.produk.edit', item.id)} className="text-blue-600 font-semibold hover:underline">
+                                                Ubah
+                                            </Link>
+                                        )}
                                         {(item.curation_status === 'draft' || item.curation_status === 'rejected') && (
                                             <button
                                                 onClick={() => handleSubmit(item.id)}

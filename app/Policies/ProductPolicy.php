@@ -24,7 +24,7 @@ class ProductPolicy
     public function viewAny(User $user): bool
     {
         // All roles can view products list (with their own filters)
-        return in_array($user->role, ['admin_pengelola', 'admin_rtpu', 'pimpinan_rtpu', 'super_admin'], true);
+        return in_array($user->role, ['admin_pengelola', 'admin_jurusan', 'admin_rtpu', 'pimpinan_rtpu', 'super_admin'], true);
     }
 
     /**
@@ -34,7 +34,7 @@ class ProductPolicy
     public function view(User $user, Product $product): bool
     {
         // Admin Pengelola: only own products
-        if ($user->role === 'admin_pengelola') {
+        if (in_array($user->role, ['admin_pengelola', 'admin_jurusan'], true)) {
             return $product->owner_id === $user->id;
         }
 
@@ -51,18 +51,18 @@ class ProductPolicy
      */
     public function create(User $user): bool
     {
-        return $user->role === 'admin_pengelola' && $user->canDo('katalog', 'Tambah');
+        return in_array($user->role, ['admin_pengelola', 'admin_jurusan'], true) && $user->canDo('katalog', 'Tambah');
     }
 
     /**
      * Determine if the user can update the product.
-     * Admin Pengelola only if owner AND product is editable (draft/rejected/negotiation).
+     * Admin Pengelola only if owner and product is editable or approved.
      */
     public function update(User $user, Product $product): bool
     {
-        if ($user->role === 'admin_pengelola') {
+        if (in_array($user->role, ['admin_pengelola', 'admin_jurusan'], true)) {
             return $product->owner_id === $user->id 
-                && $product->isEditableByPengelola() 
+                && ($product->isEditableByPengelola() || $product->curation_status === 'approved') 
                 && $user->canDo('katalog', 'Ubah');
         }
 
@@ -80,7 +80,7 @@ class ProductPolicy
      */
     public function delete(User $user, Product $product): bool
     {
-        if ($user->role === 'admin_pengelola') {
+        if (in_array($user->role, ['admin_pengelola', 'admin_jurusan'], true)) {
             return $product->owner_id === $user->id 
                 && in_array($product->curation_status, ['draft', 'rejected'], true)
                 && $user->canDo('katalog', 'Hapus');
@@ -118,7 +118,7 @@ class ProductPolicy
      */
     public function submit(User $user, Product $product): bool
     {
-        return $user->role === 'admin_pengelola'
+        return in_array($user->role, ['admin_pengelola', 'admin_jurusan'], true)
             && $product->owner_id === $user->id
             && $product->isDraft();
     }

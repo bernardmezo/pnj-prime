@@ -75,6 +75,7 @@ export function toOpsiRow(row, index = 0) {
         jenis,
         nama: row.nama ?? '',
         deskripsi: row.deskripsi ?? '',
+        foto: row.foto ?? null,
         harga: jenis === 'termasuk' ? 0 : Number(row.harga ?? 0),
         satuan: allowed.includes(row.satuan) ? row.satuan : allowed[0],
         qty_min: row.qty_min ?? 1,
@@ -106,5 +107,6 @@ export function serializeOpsi(rows) {
         stok: r.stok == null || r.stok === '' ? null : Number(r.stok),
         aktif: Boolean(r.aktif),
         urutan: r.urutan,
+        // foto tidak di-serialize di sini; file dikirim via FormData terpisah
     }));
 }

@@ -64,21 +64,21 @@ class PengelolaApplicationController extends Controller
         }
 
         DB::transaction(function () use ($application) {
+            $user = $application->user()->lockForUpdate()->first();
+            abort_if(! $user || $user->role === 'customer', 422, 'Akun customer tidak dapat menjadi pengelola.');
+
             $application->update([
                 'status' => 'approved',
                 'verified_by' => Auth::id(),
                 'verified_at' => now(),
             ]);
 
-            $user = $application->user;
-            if ($user) {
-                $user->update([
-                    'role' => 'admin_pengelola',
-                    'account_status' => 'active',
-                    'unit_name' => $application->unit_name,
-                    'institution' => $application->unit_name,
-                ]);
-            }
+            $user->update([
+                'role' => 'admin_pengelola',
+                'account_status' => 'active',
+                'unit_name' => $application->unit_name,
+                'institution' => $application->unit_name,
+            ]);
         });
 
         return back()->with('success', "Permohonan pengelola unit {$application->unit_name} disetujui.");

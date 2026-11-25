@@ -19,7 +19,7 @@ class OrderShipped extends Notification implements ShouldQueue
 
     public function via(object $notifiable): array
     {
-        return ['mail'];
+        return ['mail', 'database'];
     }
 
     public function toMail(object $notifiable): MailMessage
@@ -29,5 +29,15 @@ class OrderShipped extends Notification implements ShouldQueue
             ->line('Nomor resi: '.$this->pengajuan->tracking_number)
             ->line('Lacak pengiriman secara manual di situs resmi kurir.')
             ->action('Lihat pesanan', route('customer.pengajuan.show', $this->pengajuan));
+    }
+
+    public function toArray(object $notifiable): array
+    {
+        return [
+            'title' => 'Pesanan dikirim',
+            'message' => 'Pesanan '.$this->pengajuan->code.' dikirim via '.$this->pengajuan->courier_name.' (resi: '.$this->pengajuan->tracking_number.').',
+            'url' => route('customer.pengajuan.show', $this->pengajuan),
+            'code' => $this->pengajuan->code,
+        ];
     }
 }

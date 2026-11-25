@@ -34,6 +34,7 @@ class ProductCurationController extends Controller
                 'product_detail' => $p->only(['thumbnail', 'images', 'description', 'short_description', 'base_price', 'stock', 'meta']),
                 'unit' => $p->owner?->unit_name ?? $p->owner?->institution,
                 'base_price' => $p->base_price,
+                'cost_price' => $p->cost_price,
                 'final_price' => $p->final_price,
                 'curation_status' => $p->curation_status,
                 'rejection_reason' => $p->rejection_reason,

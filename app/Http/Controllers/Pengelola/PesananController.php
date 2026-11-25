@@ -18,8 +18,8 @@ class PesananController extends Controller
 {
     public function index(Request $request): Response
     {
-        $pesanan = Pengajuan::with(['product:id,name,owner_id,thumbnail', 'buyer:id,name,email,phone', 'order'])
-            ->whereHas('product', fn ($query) => $query->where('owner_id', $request->user()->id))
+        $pesanan = Pengajuan::with(['product' => fn ($query) => $query->withTrashed()->select('id', 'name', 'owner_id', 'thumbnail'), 'buyer:id,name,email,phone', 'order'])
+            ->whereHas('product', fn ($query) => $query->withTrashed()->where('owner_id', $request->user()->id))
             ->whereIn('status', ['Lunas', 'Diproses', 'Dikirim', 'Dijadwalkan', 'Dikerjakan', 'Hasil Diunggah', 'Terjadwal', 'Berjalan', 'Dipinjam', 'Dikembalikan', 'Selesai'])
             ->latest()
             ->get()
@@ -46,25 +46,28 @@ class PesananController extends Controller
                 'rental_started_at' => $p->rental_started_at?->format('d/m/Y H:i'),
                 'rental_returned_at' => $p->rental_returned_at?->format('d/m/Y H:i'),
                 'renter_data' => $p->renter_data,
-                'rental_duration_days' => $p->rentalDurationDays(),
+                'rental_duration_label' => $p->rentalDurationLabel(),
             ]);
 
-        return Inertia::render('Pengelola/Pesanan/Index', ['pesanan' => $pesanan]);
+        return Inertia::render('Pengelola/Pesanan/Index', [
+            'pesanan' => $pesanan,
+            'pesananRoute' => $request->routeIs('rtpu.*') ? 'rtpu.pesanan.update' : 'pengelola.pesanan.update',
+            'ownerLabel' => $request->routeIs('rtpu.*') ? 'Admin RTPU' : 'Admin Pengelola',
+        ]);
     }
 
     public function update(Request $request, Pengajuan $pengajuan, PengajuanWorkflow $workflow): RedirectResponse
     {
         $data = $request->validate([
-            'status' => 'required|in:Diproses,Dikirim,Terjadwal,Berjalan,Dipinjam,Dikembalikan,Selesai,Dijadwalkan,Dikerjakan,Hasil Diunggah',
+            'status' => 'required|in:Diproses,Dikirim,Terjadwal,Berjalan,Dipinjam,Dikembalikan,Selesai,Dijadwalkan,Dikerjakan,Hasil Diunggah,Perkiraan Selesai',
         ]);
 
         DB::transaction(function () use ($request, $pengajuan, $workflow, $data) {
             $locked = Pengajuan::whereKey($pengajuan->id)->lockForUpdate()->firstOrFail();
-            abort_unless($locked->product?->owner_id === $request->user()->id, 404);
+            abort_unless($locked->product()->withTrashed()->where('owner_id', $request->user()->id)->exists(), 404);
 
             if ($locked->isRental()) {
-                $this->handleRentalFulfillment($locked, $data['status'], $request->user()->name, $workflow);
-                return;
+                abort(422, 'Status sewa berjalan otomatis sesuai jadwal dan selesai otomatis setelah jadwal berakhir.');
             }
 
             if ($locked->isJasaWork()) {
@@ -90,35 +93,4 @@ class PesananController extends Controller
         return back()->with('success', 'Status pesanan berhasil diperbarui.');
     }
 
-    private function handleRentalFulfillment(Pengajuan $pengajuan, string $newStatus, string $byName, PengajuanWorkflow $workflow): void
-    {
-        $isAlat = $pengajuan->tipe === 'alat';
-
-        $validTransitions = $isAlat
-            ? ['Lunas' => 'Terjadwal', 'Terjadwal' => 'Dipinjam', 'Dipinjam' => 'Dikembalikan', 'Dikembalikan' => 'Selesai']
-            : ['Lunas' => 'Terjadwal', 'Terjadwal' => 'Berjalan', 'Berjalan' => 'Selesai'];
-
-        $expected = $validTransitions[$pengajuan->status] ?? null;
-        abort_unless($expected === $newStatus, 422, "Transisi status sewa tidak valid: {$pengajuan->status} -> {$newStatus}.");
-
-        $now = now();
-        if (in_array($newStatus, ['Berjalan', 'Dipinjam'], true)) {
-            $pengajuan->rental_started_at = $now;
-        }
-        if ($newStatus === 'Dikembalikan') {
-            $pengajuan->rental_returned_at = $now;
-        }
-        $pengajuan->save();
-
-        $notes = match ($newStatus) {
-            'Terjadwal' => 'Jadwal sewa dikonfirmasi.',
-            'Berjalan'  => 'Pemakaian ruangan dimulai.',
-            'Dipinjam'  => 'Alat diserahkan ke peminjam.',
-            'Dikembalikan' => 'Alat dikembalikan oleh peminjam.',
-            'Selesai'   => 'Sewa selesai.',
-            default     => '',
-        };
-
-        $workflow->transition($pengajuan, $newStatus, $notes, $byName);
-    }
 }

@@ -3,12 +3,14 @@
 namespace App\Http\Controllers\Pengelola;
 
 use App\Http\Controllers\Controller;
+use App\Models\Opsi;
 use App\Models\Product;
 use App\Models\ProductCategory;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Str;
+use Illuminate\Validation\ValidationException;
 use Inertia\Inertia;
 use Inertia\Response;
 
@@ -65,13 +67,18 @@ class ProductController extends Controller
             ]);
         }
 
-        // Jasa dan sewa: buang atribut fisik/ketersediaan yang tersisa dari tipe sebelumnya.
-        $meta = array_diff_key($existing, array_flip(['availability_status', 'preorder_duration', 'weight', 'length', 'width', 'height']));
+        $meta = $existing;
 
         if ($tipe === 'sewa') {
-            $meta['satuan'] = $data['satuan'] ?? 'hari';
-            $meta['capacity'] = $data['capacity'] ?? null;
-            $meta['location'] = $data['location'] ?? null;
+            $meta['satuan'] = $data['satuan'] ?? $meta['satuan'] ?? 'hari';
+            $meta['capacity'] = array_key_exists('capacity', $data) ? $data['capacity'] : ($meta['capacity'] ?? null);
+            $meta['location'] = array_key_exists('location', $data) ? $data['location'] : ($meta['location'] ?? null);
+        }
+
+        if (in_array($tipe, ['sewa', 'jasa'], true)) {
+            $meta['operational_days'] = array_values(array_map('intval', $data['operational_days'] ?? [1, 2, 3, 4, 5]));
+            $meta['operational_start'] = $data['operational_start'] ?? '08:00';
+            $meta['operational_end'] = $data['operational_end'] ?? '16:00';
         }
 
         return $meta;
@@ -117,15 +124,33 @@ class ProductController extends Controller
             'width' => 'nullable|integer|min:1',
             'height' => 'nullable|integer|min:1',
             'base_price' => 'required|integer|min:0',
+            'cost_price' => 'nullable|integer|min:0',
             'short_description' => 'nullable|string|max:500',
             'description' => 'nullable|string|max:5000',
             'stock' => [\Illuminate\Validation\Rule::requiredIf(fn () => $this->tipeKategori($request->input('category_id')) === 'produk' && $request->input('availability_status', 'tersedia') === 'tersedia'), 'nullable', 'integer', 'min:0'],
             'satuan' => [\Illuminate\Validation\Rule::requiredIf(fn () => $this->tipeKategori($request->input('category_id')) === 'sewa'), 'nullable', 'in:hari,jam'],
             'capacity' => 'nullable|integer|min:1',
             'location' => 'nullable|string|max:255',
+            'operational_days' => [\Illuminate\Validation\Rule::requiredIf(fn () => in_array($this->tipeKategori($request->input('category_id')), ['sewa', 'jasa'], true)), 'array', 'min:1'],
+            'operational_days.*' => 'integer|between:1,7',
+            'operational_start' => [\Illuminate\Validation\Rule::requiredIf(fn () => in_array($this->tipeKategori($request->input('category_id')), ['sewa', 'jasa'], true)), 'date_format:H:i'],
+            'operational_end' => [\Illuminate\Validation\Rule::requiredIf(fn () => in_array($this->tipeKategori($request->input('category_id')), ['sewa', 'jasa'], true)), 'date_format:H:i', 'after:operational_start'],
             'thumbnail' => 'nullable|image|max:2048',
             'images.*' => 'nullable|image|max:2048',
             'existing_images' => 'nullable|array',
+            'opsi' => 'sometimes|array|max:40',
+            'opsi.*.id' => 'nullable|integer',
+            'opsi.*.jenis' => 'required|in:termasuk,addon',
+            'opsi.*.nama' => 'required|string|max:255',
+            'opsi.*.deskripsi' => 'nullable|string|max:2000',
+            'opsi.*.foto' => 'nullable|image|max:2048',
+            'opsi.*.harga' => 'nullable|integer|min:0|max:10000000000',
+            'opsi.*.satuan' => 'required|in:flat,per_hari,per_jam,per_orang,per_unit',
+            'opsi.*.qty_min' => 'nullable|integer|min:1',
+            'opsi.*.qty_max' => 'nullable|integer|min:1',
+            'opsi.*.stok' => 'nullable|integer|min:0',
+            'opsi.*.aktif' => 'nullable|boolean',
+            'opsi.*.urutan' => 'nullable|integer|min:0',
             'video_url' => 'nullable|url|max:255',
             'video_file' => 'nullable|mimes:mp4,mov,avi,wmv|max:51200',
             'existing_video_path' => 'nullable|string',
@@ -133,6 +158,20 @@ class ProductController extends Controller
             'video_file.mimes' => 'Format video tidak didukung. Gunakan MP4, MOV, AVI, atau WMV.',
             'video_file.max'   => 'Ukuran video maksimal 50 MB. Kompres video Anda sebelum mengunggah.',
         ]);
+
+        // Validasi harga add-on tidak boleh Rp 0
+        if ($request->has('opsi')) {
+            foreach ($request->input('opsi', []) as $index => $opsi) {
+                if (($opsi['jenis'] ?? '') === 'addon') {
+                    $harga = (int) ($opsi['harga'] ?? 0);
+                    if ($harga < 1000) {
+                        throw ValidationException::withMessages([
+                            "opsi.{$index}.harga" => 'Harga add-on minimal Rp 1.000.',
+                        ]);
+                    }
+                }
+            }
+        }
 
         $thumbnailPath = null;
         if ($request->hasFile('thumbnail')) {
@@ -158,6 +197,7 @@ class ProductController extends Controller
             $slug = $slugBase.'-'.(++$counter);
         }
 
+        $product = \Illuminate\Support\Facades\DB::transaction(function () use ($data, $request, $slug, $thumbnailPath, $imagePaths, $videoPath) {
         $product = Product::create([
             'owner_id' => Auth::id(),
             'category_id' => $data['category_id'],
@@ -165,6 +205,7 @@ class ProductController extends Controller
             'name' => $data['name'],
             'slug' => $slug,
             'base_price' => $data['base_price'],
+            'cost_price' => $data['cost_price'] ?? 0,
             'final_price' => $data['base_price'],
             'short_description' => $data['short_description'] ?? null,
             'description' => $data['description'] ?? null,
@@ -178,6 +219,13 @@ class ProductController extends Controller
             'is_active' => false,
         ]);
 
+        if ($request->has('opsi') || $request->boolean('opsi_present')) {
+            $this->syncOpsi($product, $data['opsi'] ?? [], $request);
+        }
+
+        return $product;
+        });
+
         return redirect()->route('pengelola.produk.index')
             ->with('success', "Draft produk {$product->name} berhasil disimpan.");
     }
@@ -185,9 +233,14 @@ class ProductController extends Controller
     /**
      * Show form for editing an existing product.
      */
-    public function edit(Product $product): Response
+    public function edit(Product $product): Response|RedirectResponse
     {
         $this->authorizeOwner($product);
+
+        if (! in_array($product->curation_status, ['draft', 'rejected', 'approved'], true)) {
+            return redirect()->route('pengelola.produk.index')
+                ->with('error', 'Produk hanya dapat diubah saat berstatus draft, ditolak, atau disetujui.');
+        }
 
         return Inertia::render('Pengelola/Produk/Form', [
             'categories' => ProductCategory::with('parent')
@@ -204,18 +257,35 @@ class ProductController extends Controller
                     'parent_name' => $c->parent?->name,
                     'parent_slug' => $c->parent?->slug,
                 ]),
-            'item' => $product,
+            'item' => [
+                ...$product->toArray(),
+                'cost_price' => $product->cost_price,
+                'opsi' => $product->opsi()->urut()->get()->map(fn (Opsi $o) => [
+                    'id' => $o->id,
+                    'jenis' => $o->jenis,
+                    'nama' => $o->nama,
+                    'deskripsi' => $o->deskripsi,
+                    'foto' => $o->foto,
+                    'harga' => $o->harga,
+                    'satuan' => $o->satuan,
+                    'qty_min' => $o->qty_min,
+                    'qty_max' => $o->qty_max,
+                    'stok' => $o->stok,
+                    'aktif' => (bool) $o->aktif,
+                    'urutan' => $o->urutan,
+                ])->values(),
+            ],
         ]);
     }
 
     /**
-     * Update an existing product (only if draft or rejected).
+     * Update a draft, rejected, or approved product.
      */
     public function update(Request $request, Product $product): RedirectResponse
     {
         $this->authorizeOwner($product);
 
-        if (! in_array($product->curation_status, ['draft', 'rejected'], true)) {
+        if (! in_array($product->curation_status, ['draft', 'rejected', 'approved'], true)) {
             abort(422, 'Produk yang sedang dalam proses kurasi tidak dapat diubah.');
         }
 
@@ -230,15 +300,33 @@ class ProductController extends Controller
             'width' => 'nullable|integer|min:1',
             'height' => 'nullable|integer|min:1',
             'base_price' => 'required|integer|min:0',
+            'cost_price' => 'nullable|integer|min:0',
             'short_description' => 'nullable|string|max:500',
             'description' => 'nullable|string|max:5000',
             'stock' => [\Illuminate\Validation\Rule::requiredIf(fn () => $this->tipeKategori($request->input('category_id')) === 'produk' && $request->input('availability_status', 'tersedia') === 'tersedia'), 'nullable', 'integer', 'min:0'],
             'satuan' => [\Illuminate\Validation\Rule::requiredIf(fn () => $this->tipeKategori($request->input('category_id')) === 'sewa'), 'nullable', 'in:hari,jam'],
             'capacity' => 'nullable|integer|min:1',
             'location' => 'nullable|string|max:255',
+            'operational_days' => [\Illuminate\Validation\Rule::requiredIf(fn () => in_array($this->tipeKategori($request->input('category_id')), ['sewa', 'jasa'], true)), 'array', 'min:1'],
+            'operational_days.*' => 'integer|between:1,7',
+            'operational_start' => [\Illuminate\Validation\Rule::requiredIf(fn () => in_array($this->tipeKategori($request->input('category_id')), ['sewa', 'jasa'], true)), 'date_format:H:i'],
+            'operational_end' => [\Illuminate\Validation\Rule::requiredIf(fn () => in_array($this->tipeKategori($request->input('category_id')), ['sewa', 'jasa'], true)), 'date_format:H:i', 'after:operational_start'],
             'thumbnail' => 'nullable|image|max:2048',
             'images.*' => 'nullable|image|max:2048',
             'existing_images' => 'nullable|array',
+            'opsi' => 'sometimes|array|max:40',
+            'opsi.*.id' => 'nullable|integer',
+            'opsi.*.jenis' => 'required|in:termasuk,addon',
+            'opsi.*.nama' => 'required|string|max:255',
+            'opsi.*.deskripsi' => 'nullable|string|max:2000',
+            'opsi.*.foto' => 'nullable|image|max:2048',
+            'opsi.*.harga' => 'nullable|integer|min:0|max:10000000000',
+            'opsi.*.satuan' => 'required|in:flat,per_hari,per_jam,per_orang,per_unit',
+            'opsi.*.qty_min' => 'nullable|integer|min:1',
+            'opsi.*.qty_max' => 'nullable|integer|min:1',
+            'opsi.*.stok' => 'nullable|integer|min:0',
+            'opsi.*.aktif' => 'nullable|boolean',
+            'opsi.*.urutan' => 'nullable|integer|min:0',
             'video_url' => 'nullable|url|max:255',
             'video_file' => 'nullable|mimes:mp4,mov,avi,wmv|max:51200',
             'existing_video_path' => 'nullable|string',
@@ -252,33 +340,40 @@ class ProductController extends Controller
             $thumbnailPath = $request->file('thumbnail')->store('products', 'public');
         }
 
-        $imagePaths = $data['existing_images'] ?? [];
+        $imagePaths = $data['existing_images'] ?? ($request->boolean('existing_images_present') ? [] : ($product->images ?? []));
         if ($request->hasFile('images')) {
             foreach ($request->file('images') as $img) {
                 $imagePaths[] = $img->store('products', 'public');
             }
         }
 
-        $videoPath = $data['existing_video_path'] ?: null;
+        $videoPath = array_key_exists('existing_video_path', $data) ? $data['existing_video_path'] : $product->video_path;
         if ($request->hasFile('video_file')) {
             $videoPath = $request->file('video_file')->store('products/videos', 'public');
         }
 
+        \Illuminate\Support\Facades\DB::transaction(function () use ($product, $data, $request, $thumbnailPath, $imagePaths, $videoPath) {
         $product->update([
             'category_id' => $data['category_id'],
             'target_audience' => $data['target_audience'] ?? $product->target_audience ?? 'publik',
             'name' => $data['name'],
             'base_price' => $data['base_price'],
+            'cost_price' => $data['cost_price'] ?? $product->cost_price,
             'final_price' => $data['base_price'],
-            'short_description' => $data['short_description'] ?? null,
-            'description' => $data['description'] ?? null,
+            'short_description' => array_key_exists('short_description', $data) ? $data['short_description'] : $product->short_description,
+            'description' => array_key_exists('description', $data) ? $data['description'] : $product->description,
             'thumbnail' => $thumbnailPath ?? ($imagePaths[0] ?? $product->thumbnail),
             'images' => $imagePaths,
-            'video_url' => $data['video_url'] ?? null,
+            'video_url' => array_key_exists('video_url', $data) ? $data['video_url'] : $product->video_url,
             'video_path' => $videoPath,
             'stock' => ($this->tipeKategori($data['category_id']) !== 'produk' || ($data['availability_status'] ?? 'tersedia') === 'preorder') ? 0 : ($data['stock'] ?? 0),
             'meta' => $this->buildMeta($data, $product->meta ?? []),
         ]);
+
+        if ($request->has('opsi') || $request->boolean('opsi_present')) {
+            $this->syncOpsi($product, $data['opsi'] ?? [], $request);
+        }
+        });
 
         return redirect()->route('pengelola.produk.index')
             ->with('success', "Produk {$product->name} berhasil diperbarui.");
@@ -325,4 +420,76 @@ class ProductController extends Controller
         // Use Policy instead of manual check
         $this->authorize('view', $product);
     }
+
+
+    /**
+     * Sync usulan opsi/add-on dari Pengelola. Hapus opsi yang belum tersimpan.
+     */
+    private function syncOpsi(Product $product, array $rows, Request $request): void
+    {
+        $owned = $product->opsi()->get()->keyBy('id');
+        $seen = [];
+        $keep = [];
+        $updates = [];
+        $creates = [];
+
+        foreach ($rows as $index => $row) {
+            $key = $row['jenis'].'|'.$row['nama'];
+            if (isset($seen[$key])) {
+                throw ValidationException::withMessages([
+                    "opsi.{$index}.nama" => 'Nama opsi tidak boleh sama dalam satu jenis.',
+                ]);
+            }
+            $seen[$key] = true;
+
+            $id = (int) ($row['id'] ?? 0);
+            if ($id > 0 && $owned->has($id)) {
+                $updates[] = [$id, $row, $index];
+                $keep[] = $id;
+            } elseif ($id === 0) {
+                $creates[] = [$row, $index];
+            }
+        }
+
+        foreach ($updates as [$id, $row, $index]) {
+            $owned->get($id)->update($this->opsiAttributes($row, $index, $request));
+        }
+
+        $product->opsi()->whereNotIn('id', $keep)->get()->each->delete();
+
+        foreach ($creates as [$row, $index]) {
+            $product->opsi()->create($this->opsiAttributes($row, $index, $request) + ['sumber' => 'pengelola']);
+        }
+    }
+
+    private function opsiAttributes(array $row, int $index, Request $request): array
+    {
+        $jenis = $row['jenis'];
+        
+        // Handle foto upload untuk add-on
+        $fotoPath = null;
+        if ($request->hasFile("opsi.{$index}.foto")) {
+            $fotoPath = $request->file("opsi.{$index}.foto")->store('products/opsi', 'public');
+        }
+        
+        $attributes = [
+            'jenis' => $jenis,
+            'nama' => $row['nama'],
+            'deskripsi' => $row['deskripsi'] ?? null,
+            'harga' => $jenis === 'termasuk' ? 0 : (int) ($row['harga'] ?? 0),
+            'satuan' => $row['satuan'],
+            'qty_min' => (int) ($row['qty_min'] ?? 1),
+            'qty_max' => isset($row['qty_max']) && $row['qty_max'] !== '' && $row['qty_max'] !== null ? (int) $row['qty_max'] : null,
+            'stok' => isset($row['stok']) && $row['stok'] !== '' && $row['stok'] !== null ? (int) $row['stok'] : null,
+            'aktif' => (bool) ($row['aktif'] ?? true),
+            'urutan' => (int) ($row['urutan'] ?? 0),
+        ];
+        
+        if ($fotoPath !== null) {
+            $attributes['foto'] = $fotoPath;
+        }
+        
+        return $attributes;
+    }
+
 }

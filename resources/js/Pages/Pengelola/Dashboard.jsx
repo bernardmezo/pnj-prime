@@ -37,7 +37,7 @@ function StatusBadge({ status }) {
         approved: { label: 'Disetujui', bg: 'bg-emerald-50', text: 'text-emerald-700 border-emerald-200/60' },
         rejected: { label: 'Ditolak', bg: 'bg-red-50', text: 'text-red-700 border-red-200/60' },
     };
-    const s = map[status] || map.draft;
+    const s = map[status] || { ...map.draft, label: status || 'Tidak tersedia' };
     return (
         <span className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-semibold border ${s.bg} ${s.text}`}>
             {s.label}
@@ -87,7 +87,15 @@ export default function PengelolaDashboard({ auth, stats = {}, recentProducts = 
                         <Card className="p-6 rounded-2xl border-[var(--color-border)]">
                             <span className="text-xs font-bold uppercase tracking-wider text-[var(--color-muted)]">Disetujui Publikasi</span>
                             <p className="text-3xl font-extrabold text-[var(--color-ink)] mt-2">{stats?.approved ?? 0}</p>
-                            <span className="text-[11px] text-[var(--color-muted)] mt-1 block">Tayang di katalog umum</span>
+                            <span className="text-[11px] text-[var(--color-muted)] mt-1 block">Status kurasi disetujui</span>
+                        </Card>
+                        <Card className="p-6">
+                            <span className="text-xs font-bold uppercase tracking-wider text-[var(--color-muted)]">Draft</span>
+                            <p className="text-3xl font-extrabold text-[var(--color-ink)] mt-2">{stats?.draft ?? 0}</p>
+                        </Card>
+                        <Card className="p-6">
+                            <span className="text-xs font-bold uppercase tracking-wider text-[var(--color-muted)]">Ditolak</span>
+                            <p className="text-3xl font-extrabold text-[var(--color-ink)] mt-2">{stats?.rejected ?? 0}</p>
                         </Card>
                     </div>
 
@@ -113,9 +121,9 @@ export default function PengelolaDashboard({ auth, stats = {}, recentProducts = 
                                         <div key={p.id} className="py-3.5 flex items-center justify-between">
                                             <div>
                                                 <p className="text-sm font-semibold text-[var(--color-ink)]">{p.name || p.nama}</p>
-                                                <p className="text-xs text-[var(--color-muted)]">{p.category?.name || 'Inovasi'} · Rp {Number(p.base_price || 0).toLocaleString('id-ID')}</p>
+                                                <p className="text-xs text-[var(--color-muted)]">{p.category?.name || 'Kategori tidak tersedia'} · {p.base_price == null ? 'Harga tidak tersedia' : `Rp ${Number(p.base_price).toLocaleString('id-ID')}`}</p>
                                             </div>
-                                            <StatusBadge status={p.curation_status || p.status_kurasi || 'draft'} />
+                                            <StatusBadge status={p.curation_status} />
                                         </div>
                                     ))}
                                 </div>
@@ -130,11 +138,11 @@ export default function PengelolaDashboard({ auth, stats = {}, recentProducts = 
                             <div className="border-t border-[var(--color-border)] pt-4 space-y-2 text-xs text-[var(--color-muted)]">
                                 <div className="flex items-center justify-between">
                                     <span>Status Akun:</span>
-                                    <span className="font-bold text-emerald-600">Aktif & Terverifikasi</span>
+                                    <span className="font-bold text-[var(--color-ink)]">{auth?.user?.account_status || 'Tidak tersedia'}</span>
                                 </div>
                                 <div className="flex items-center justify-between">
                                     <span>Unit / Jurusan:</span>
-                                    <span className="font-bold text-[var(--color-ink)]">{auth?.user?.jurusan || 'Pengelola PNJ'}</span>
+                                    <span className="font-bold text-[var(--color-ink)]">{auth?.user?.jurusan || 'Tidak tersedia'}</span>
                                 </div>
                             </div>
                         </Card>

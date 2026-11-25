@@ -1,4 +1,6 @@
 import { Head, router, useForm, usePage } from '@inertiajs/react';
+import OpsiEditor from '@/Components/OpsiEditor';
+import { serializeOpsi, toOpsiRow } from '@/lib/opsi';
 import { ArrowLeft, ChevronLeft, ChevronRight, Save, X, ZoomIn } from 'lucide-react';
 import { useState } from 'react';
 import DashboardLayout from '@/Layouts/DashboardLayout';
@@ -7,7 +9,6 @@ import AlertBanner from '@/Components/AlertBanner';
 
 export default function PengelolaProdukForm({ auth, categories = [], item = null }) {
     const isEdit = Boolean(item);
-    const pageErrors = usePage().props.errors || {};
     const [modalImageIndex, setModalImageIndex] = useState(null);
     const { data, setData, post, patch, processing, errors } = useForm({
         name: item?.name || '',
@@ -20,12 +21,16 @@ export default function PengelolaProdukForm({ auth, categories = [], item = null
         width: item?.width || item?.meta?.width || 10,
         height: item?.height || item?.meta?.height || 5,
         base_price: item?.base_price || '',
+        cost_price: item?.cost_price || '',
         short_description: item?.short_description || '',
         description: item?.description || '',
-        stock: item?.stock || 10,
+        stock: item?.stock ?? 10,
         satuan: item?.meta?.satuan || 'hari',
         capacity: item?.meta?.capacity || '',
         location: item?.meta?.location || '',
+        operational_days: item?.meta?.operational_days || [1, 2, 3, 4, 5],
+        operational_start: item?.meta?.operational_start || '08:00',
+        operational_end: item?.meta?.operational_end || '16:00',
         thumbnail: null,
         thumbnail_file: null,
         existing_thumbnail: item?.thumbnail || '',
@@ -36,6 +41,11 @@ export default function PengelolaProdukForm({ auth, categories = [], item = null
         existing_video_path: item?.video_path || '',
     });
     const [uploadErrors, setUploadErrors] = useState({});
+    const [opsi, setOpsi] = useState(() =>
+        Array.isArray(item?.opsi) && item.opsi.length > 0
+            ? item.opsi.map((o, i) => toOpsiRow({ ...o, tipe: categories.find((c) => String(c.id) === String(item.category_id))?.parent_slug?.includes('sewa') ? 'ruangan' : 'produk', urutan: o.urutan ?? i }))
+            : []
+    );
     const [videoError, setVideoError] = useState('');
     const maxImageBytes = 2 * 1024 * 1024;
     const maxVideoBytes = 50 * 1024 * 1024; // 50 MB
@@ -100,7 +110,27 @@ export default function PengelolaProdukForm({ auth, categories = [], item = null
     };
     const copy = TIPE_COPY[tipe];
 
-    const formErrors = { ...errors, ...pageErrors, ...uploadErrors };
+    const SUGGESTIONS = {
+        produk: [
+            { nama: 'Kotak kemasan', harga: 0, satuan: 'flat', jenis: 'termasuk' },
+            { nama: 'Instalasi', harga: 100000, satuan: 'flat', jenis: 'addon' },
+            { nama: 'Garansi tambahan', harga: 150000, satuan: 'per_unit', jenis: 'addon' },
+        ],
+        jasa: [
+            { nama: 'Alat pelindung diri', harga: 0, satuan: 'flat', jenis: 'termasuk' },
+            { nama: 'Pengambilan sampel', harga: 100000, satuan: 'flat', jenis: 'addon' },
+            { nama: 'Laporan tambahan', harga: 50000, satuan: 'per_unit', jenis: 'addon' },
+        ],
+        sewa: [
+            { nama: 'Proyektor', harga: 0, satuan: 'flat', jenis: 'termasuk' },
+            { nama: 'Sound system', harga: 150000, satuan: 'flat', jenis: 'addon' },
+            { nama: 'Extra bangku', harga: 5000, satuan: 'per_unit', jenis: 'addon' },
+            { nama: 'Snack peserta', harga: 25000, satuan: 'per_orang', jenis: 'addon' },
+            { nama: 'Petugas kebersihan', harga: 200000, satuan: 'per_hari', jenis: 'addon' },
+        ],
+    };
+
+    const formErrors = { ...errors, ...usePage().props.errors, ...uploadErrors };
 
     const allGalleryUrls = [];
     if (data.thumbnail_file) {
@@ -120,6 +150,7 @@ export default function PengelolaProdukForm({ auth, categories = [], item = null
         formData.append('category_id', data.category_id);
         formData.append('target_audience', data.target_audience || 'publik');
         formData.append('base_price', data.base_price);
+        formData.append('cost_price', data.cost_price || '');
         formData.append('short_description', data.short_description || '');
         formData.append('description', data.description || '');
         if (tipe === 'produk') {
@@ -139,7 +170,31 @@ export default function PengelolaProdukForm({ auth, categories = [], item = null
             formData.append('capacity', data.capacity || '');
             formData.append('location', data.location || '');
         }
+        if (tipe === 'sewa' || tipe === 'jasa') {
+            data.operational_days.forEach((day) => formData.append('operational_days[]', day));
+            formData.append('operational_start', data.operational_start);
+            formData.append('operational_end', data.operational_end);
+        }
         formData.append('video_url', data.video_url || '');
+        const serializedOpsi = serializeOpsi(opsi);
+        if (serializedOpsi.length === 0) {
+            formData.append('opsi_present', '1');
+        } else {
+            serializedOpsi.forEach((row, index) => {
+                Object.entries(row).forEach(([key, value]) => {
+                    if (value !== null && value !== undefined) {
+                        formData.append(`opsi[${index}][${key}]`, typeof value === 'boolean' ? (value ? '1' : '0') : value);
+                    }
+                });
+            });
+        }
+
+        // Foto add-on (file upload terpisah)
+        opsi.forEach((row, index) => {
+            if (row.foto_file) {
+                formData.append(`opsi[${index}][foto]`, row.foto_file);
+            }
+        });
 
         if (data.thumbnail_file) {
             formData.append('thumbnail', data.thumbnail_file);
@@ -153,22 +208,23 @@ export default function PengelolaProdukForm({ auth, categories = [], item = null
             formData.append('images[]', file);
         });
 
+        formData.append('existing_images_present', '1');
         data.existing_images.forEach((img) => {
             formData.append('existing_images[]', img);
         });
 
-        if (isEdit) {
-            router.post(route('pengelola.produk.update', item.id), {
-                _method: 'patch',
-                ...Object.fromEntries(formData),
-            });
-        } else {
-            router.post(route('pengelola.produk.store'), formData);
+        const url = item?.id ? route('pengelola.produk.update', item.id) : route('pengelola.produk.store');
+        if (item?.id) {
+            formData.append('_method', 'PATCH');
         }
+        router.post(url, formData, {
+            forceFormData: true,
+            preserveScroll: true,
+        });
     };
 
     return (
-        <DashboardLayout title={isEdit ? 'Ubah Produk Inovasi' : 'Tambah Produk Inovasi'} breadcrumb="Pengelola / Produk / Form" activeKey="catalog">
+        <DashboardLayout title={isEdit ? 'Ubah Produk Inovasi' : 'Tambah Produk Inovasi'} breadcrumb="Pengelola / Produk / Form" activeKey="produk">
             <Head title={`${isEdit ? 'Ubah' : 'Tambah'} Produk · PNJ Prime`} />
             <FadeIn>
                 <div className="max-w-7xl mx-auto space-y-6 pb-12">
@@ -281,6 +337,21 @@ export default function PengelolaProdukForm({ auth, categories = [], item = null
                                     )}
                                     {formErrors.base_price && <p className="text-xs text-red-500 mt-1">{formErrors.base_price}</p>}
                                 </div>
+                                <div className="space-y-1">
+                                    <label className="block text-xs font-bold uppercase tracking-wider text-[var(--color-muted)] mb-1">Harga Modal <span className="text-[var(--color-muted)]">(internal)</span></label>
+                                    <div className="relative">
+                                        <span className="absolute inset-y-0 left-0 flex items-center pl-3.5 text-xs font-bold text-[var(--color-muted)]">Rp</span>
+                                        <input
+                                            type="number"
+                                            value={data.cost_price}
+                                            onChange={(e) => setData('cost_price', e.target.value)}
+                                            placeholder="Harga modal/beli produk"
+                                            className="w-full rounded-xl border border-[var(--color-border)] focus:border-teal-500 focus:ring-2 focus:ring-teal-500/20 py-2.5 pl-8 pr-3 text-sm font-semibold text-[var(--color-ink)] bg-[var(--color-surface)] placeholder:text-[var(--color-muted)]/60"
+                                        />
+                                    </div>
+                                    <p className="mt-1 text-[11px] text-[var(--color-muted)]">Tidak ditampilkan ke pembeli; hanya untuk internal keuangan.</p>
+                                    {formErrors.cost_price && <p className="text-xs text-red-500 mt-1">{formErrors.cost_price}</p>}
+                                </div>
                                 {tipe === 'produk' && (
                                 <div className="space-y-1">
                                     <label className="block text-xs font-bold uppercase tracking-wider text-[var(--color-muted)] mb-1">Ketersediaan <span className="text-red-500">*</span></label>
@@ -370,6 +441,26 @@ export default function PengelolaProdukForm({ auth, categories = [], item = null
                                 </div>
                             )}
 
+
+                            {(tipe === 'sewa' || tipe === 'jasa') && (
+                                <section className="rounded-2xl border border-[var(--color-border)] p-4 space-y-4">
+                                    <h3 className="text-sm font-semibold text-[var(--color-ink)]">Hari & jam operasional layanan</h3>
+                                    <div className="flex flex-wrap gap-3">
+                                        {[[1, 'Senin'], [2, 'Selasa'], [3, 'Rabu'], [4, 'Kamis'], [5, 'Jumat'], [6, 'Sabtu'], [7, 'Minggu']].map(([day, label]) => (
+                                            <label key={day} className="flex items-center gap-2 text-sm">
+                                                <input type="checkbox" checked={data.operational_days.includes(day)} onChange={(e) => setData('operational_days', e.target.checked ? [...data.operational_days, day].sort() : data.operational_days.filter((d) => d !== day))} />
+                                                {label}
+                                            </label>
+                                        ))}
+                                    </div>
+                                    {formErrors.operational_days && <p className="text-xs text-red-500">{formErrors.operational_days}</p>}
+                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                        <label className="block text-sm">Jam mulai<input required type="time" value={data.operational_start} onChange={(e) => setData('operational_start', e.target.value)} className="mt-1 block w-full rounded-xl border border-[var(--color-border)] p-3" /></label>
+                                        <label className="block text-sm">Jam selesai<input required type="time" value={data.operational_end} onChange={(e) => setData('operational_end', e.target.value)} className="mt-1 block w-full rounded-xl border border-[var(--color-border)] p-3" /></label>
+                                    </div>
+                                    <p className="text-xs text-[var(--color-muted)]">Customer hanya dapat mengajukan jadwal pada hari dan jam ini, di luar tanggal merah akademik.</p>
+                                </section>
+                            )}
 
                             <div className="space-y-1">
                                 <label className="block text-xs font-bold uppercase tracking-wider text-[var(--color-muted)] mb-1">Deskripsi Singkat</label>
@@ -684,6 +775,16 @@ export default function PengelolaProdukForm({ auth, categories = [], item = null
                             />
                             {formErrors.description && <p className="text-xs text-red-500 mt-1">{formErrors.description}</p>}
                         </div>
+
+                        <section className="rounded-2xl border border-[var(--color-border)] bg-[var(--color-surface)] p-5 space-y-4">
+                            <div>
+                                <h3 className="font-display text-base font-bold text-[var(--color-ink)]">Kelengkapan & Add-on</h3>
+                                <p className="text-[13px] text-[var(--color-muted)]">
+                                    Tentukan item yang sudah termasuk dalam harga (mis. proyektor) dan add-on opsional (mis. sound system, extra bangku) yang dapat dipilih customer saat mengajukan.
+                                </p>
+                            </div>
+                            <OpsiEditor value={opsi} onChange={setOpsi} tipe={tipe} suggestions={SUGGESTIONS[tipe] ?? []} />
+                        </section>
 
                         <div className="pt-3 flex items-center justify-between">
                             <PrimaryButton disabled={processing} className="justify-center">

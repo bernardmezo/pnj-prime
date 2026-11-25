@@ -19,7 +19,7 @@ class PickupReady extends Notification implements ShouldQueue
 
     public function via(object $notifiable): array
     {
-        return ['mail'];
+        return ['mail', 'database'];
     }
 
     public function toMail(object $notifiable): MailMessage
@@ -27,5 +27,15 @@ class PickupReady extends Notification implements ShouldQueue
         return (new MailMessage)->subject('Barang siap diambil — '.$this->pengajuan->code)
             ->line('Barang pesanan '.$this->pengajuan->code.' siap diambil di PNJ pada pukul 08.00–16.00 WIB.')
             ->action('Lihat pesanan', route('customer.pengajuan.show', $this->pengajuan));
+    }
+
+    public function toArray(object $notifiable): array
+    {
+        return [
+            'title' => 'Barang siap diambil',
+            'message' => 'Barang pesanan '.$this->pengajuan->code.' siap diambil di PNJ (08.00-16.00 WIB).',
+            'url' => route('customer.pengajuan.show', $this->pengajuan),
+            'code' => $this->pengajuan->code,
+        ];
     }
 }

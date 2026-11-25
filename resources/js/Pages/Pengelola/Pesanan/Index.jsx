@@ -6,11 +6,6 @@ import { Card, EmptyState, FadeIn, PageHeader, StatusBadge } from '@/Components/
 import Modal from '@/Components/ui/Modal';
 import { useConfirm } from '@/Components/ConfirmDialog';
 
-const RENTAL_RUANGAN_NEXT = {
-    Lunas:     { status: 'Terjadwal', label: 'Konfirmasi Jadwal' },
-    Terjadwal: { status: 'Berjalan',  label: 'Mulai Pemakaian' },
-    Berjalan:  { status: 'Selesai',   label: 'Selesaikan Sewa' },
-};
 const JASA_NEXT = {
     Lunas: { status: 'Diproses', label: 'Mulai Proses' },
     Diproses: { status: 'Dijadwalkan', label: 'Tetapkan Jadwal' },
@@ -18,16 +13,9 @@ const JASA_NEXT = {
     Dikerjakan: { status: 'Hasil Diunggah', label: 'Unggah Hasil' },
     'Hasil Diunggah': null, // selesai/revisi diputuskan Customer
 };
-const nextJasaAction = (p) => (p.jasa ? (JASA_NEXT[p.status] ?? null) : null);
+const nextJasaAction = (p) => (p.jasa && !(p.jasa.auto_start && ['Lunas', 'Diproses', 'Dijadwalkan'].includes(p.status)) ? (JASA_NEXT[p.status] ?? null) : null);
 
-const RENTAL_ALAT_NEXT = {
-    Lunas:        { status: 'Terjadwal',    label: 'Konfirmasi Peminjaman' },
-    Terjadwal:    { status: 'Dipinjam',     label: 'Alat Diserahkan' },
-    Dipinjam:     { status: 'Dikembalikan', label: 'Alat Dikembalikan' },
-    Dikembalikan: { status: 'Selesai',      label: 'Selesaikan Sewa' },
-};
-
-export default function PesananProduk({ pesanan = [] }) {
+export default function PesananProduk({ pesanan = [], pesananRoute = 'pengelola.pesanan.update', ownerLabel = 'Admin Pengelola' }) {
     const [selectedId, setSelectedId] = useState(null);
     const [filter, setFilter] = useState('Semua');
     const [processing, setProcessing] = useState(false);
@@ -43,14 +31,14 @@ export default function PesananProduk({ pesanan = [] }) {
     const selected = pesanan.find((p) => p.id === selectedId);
     const rows = filter === 'Semua' ? pesanan : pesanan.filter((p) => p.status === filter);
     const money = (value) => `Rp ${Number(value ?? 0).toLocaleString('id-ID')}`;
-    const nextRentalAction = (p) => {
-        if (!p.is_rental) return null;
-        return (p.tipe === 'alat' ? RENTAL_ALAT_NEXT : RENTAL_RUANGAN_NEXT)[p.status] ?? null;
-    };
     const { confirm: confirmDialog, ConfirmUI } = useConfirm();
     const update = async (status) => {
         const isShipment = Boolean(selected.shipment);
         const isJasa = Boolean(selected.jasa);
+        if (isJasa && status === 'Perkiraan Selesai' && !jadwalSelesai) {
+            setErrors({ jadwal_selesai: 'Perkiraan selesai wajib diisi.' });
+            return;
+        }
         if (isJasa && status === 'Dijadwalkan') {
             const next = {};
             if (!jadwalMulai) next.jadwal_mulai = 'Tanggal mulai pengerjaan wajib diisi.';
@@ -69,7 +57,8 @@ export default function PesananProduk({ pesanan = [] }) {
         }
         const ok = await confirmDialog({
             title: isJasa
-                ? (status === 'Diproses' ? 'Mulai proses pesanan jasa?'
+                ? (status === 'Perkiraan Selesai' ? 'Simpan perkiraan selesai?'
+                    : status === 'Diproses' ? 'Mulai proses pesanan jasa?'
                     : status === 'Dijadwalkan' ? 'Tetapkan jadwal pengerjaan?'
                     : status === 'Dikerjakan' ? 'Mulai pengerjaan sekarang?'
                     : 'Unggah berkas hasil dan tandai hasil tersedia?')
@@ -84,8 +73,9 @@ export default function PesananProduk({ pesanan = [] }) {
         if (!ok) return;
         setProcessing(true);
         setErrors({});
-        router.post(route('pengelola.pesanan.update', selected.id), { _method: 'patch', status,
+        router.post(route(pesananRoute, selected.id), { _method: 'patch', status,
             ...(isJasa && status === 'Dijadwalkan' ? { jadwal_mulai: jadwalMulai, jadwal_selesai: jadwalSelesai } : {}),
+            ...(isJasa && status === 'Perkiraan Selesai' ? { jadwal_selesai: jadwalSelesai } : {}),
             ...(isJasa && status === 'Hasil Diunggah' ? { hasil_files: hasilFiles } : {}), ...(selected.pickup ? { pickup_action: 'ready', collector_name: collectorName, collector_contact: collectorContact, handover_photo: photo } : {}), ...(isShipment && status === 'Dikirim' ? { courier_name: courierName, tracking_number: trackingNumber } : {}) }, {
             forceFormData: true,
             onError: setErrors,
@@ -99,7 +89,7 @@ export default function PesananProduk({ pesanan = [] }) {
         <DashboardLayout title="Pesanan Produk" activeKey="pesanan">
             <Head title="Pesanan Produk · PNJ Prime" />
             <FadeIn>
-                <PageHeader eyebrow="Admin Pengelola" title="Pesanan Produk" desc="Pantau produk yang telah dibayar dan siapkan pesanan sesuai pilihan customer." />
+                <PageHeader eyebrow={ownerLabel} title="Pesanan Produk" desc="Pantau produk yang telah dibayar dan siapkan pesanan sesuai pilihan customer." />
                 <div className="mt-6 grid gap-4 sm:grid-cols-4">
                     {[['Lunas', 'Perlu disiapkan'], ['Terjadwal', 'Jadwal sewa aktif'], ['Diproses', 'Sedang diproses'], ['Selesai', 'Pesanan selesai']].map(([status, label]) => (
                         <Card key={status} className="p-5">
@@ -119,7 +109,7 @@ export default function PesananProduk({ pesanan = [] }) {
                 {rows.length === 0 ? <EmptyState icon={Package} title="Belum ada pesanan" desc="Pesanan produk milik Anda yang sudah dibayar akan muncul di sini." /> : (
                     <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
                         {rows.map((p) => {
-                            const next = nextRentalAction(p) ?? nextJasaAction(p);
+                            const next = nextJasaAction(p);
                             return (
                                 <Card key={p.id} className="p-5">
                                     <div className="flex items-center justify-between gap-2">
@@ -132,7 +122,7 @@ export default function PesananProduk({ pesanan = [] }) {
                                     <h2 className="mt-3 font-display font-bold text-[var(--color-ink)]">{p.product}</h2>
                                     <p className="mt-1 text-sm text-[var(--color-muted)]">
                                         {p.customer?.name}
-                                        {p.is_rental ? ` · ${p.rental_duration_days} hari` : p.quantity ? ` · ${p.quantity} unit` : ''}
+                                        {p.is_rental ? (p.rental_duration_label ? ` · ${p.rental_duration_label}` : '') : p.quantity ? ` · ${p.quantity} unit` : ''}
                                     </p>
                                     {p.is_rental && p.rental_start && (
                                         <p className="mt-1 text-xs text-[var(--color-accent)]">{p.rental_start} — {p.rental_end}</p>
@@ -165,13 +155,13 @@ export default function PesananProduk({ pesanan = [] }) {
                             ...(selected.kebutuhan_detail?.konsultasi_biaya ? [['Konsultasi biaya', selected.kebutuhan_detail.konsultasi_biaya]] : []),
                         ].map(([label, value]) => <div key={label} className="grid gap-1 py-3 text-sm sm:grid-cols-2"><dt className="text-[var(--color-muted)]">{label}</dt><dd className="min-w-0 whitespace-pre-wrap break-words font-medium">{value ?? 'Belum diisi'}</dd></div>)}
                     </dl>
-                    <p className="rounded-xl bg-[var(--color-accent-tint)] p-4 text-sm text-[var(--color-accent)]">Siapkan sesuai pilihan customer. Selesaikan pesanan hanya setelah barang diterima customer.</p>
+                    {selected.is_rental ? <p className="rounded-xl bg-[var(--color-accent-tint)] p-4 text-sm text-[var(--color-accent)]">Pembayaran telah diverifikasi. Masa sewa dimulai otomatis saat jadwal mulai dan selesai otomatis setelah jadwal berakhir.</p> : <p className="rounded-xl bg-[var(--color-accent-tint)] p-4 text-sm text-[var(--color-accent)]">Siapkan sesuai pilihan customer. Selesaikan pesanan hanya setelah barang diterima customer.</p>}
                     {selected.is_rental && (
                         <div className="rounded-xl border border-[var(--color-accent)] bg-[var(--color-accent-tint)] p-4 space-y-3">
                             <h3 className="text-sm font-bold text-[var(--color-accent)] flex items-center gap-2"><CalendarRange className="h-4 w-4" />Informasi Sewa</h3>
                             <div className="grid gap-2 text-sm sm:grid-cols-2">
                                 <div><p className="text-xs text-[var(--color-muted)]">Periode</p><p className="font-semibold">{selected.rental_start} — {selected.rental_end}</p></div>
-                                <div><p className="text-xs text-[var(--color-muted)]">Durasi</p><p className="font-semibold">{selected.rental_duration_days} hari</p></div>
+                                <div><p className="text-xs text-[var(--color-muted)]">Durasi</p><p className="font-semibold">{selected.rental_duration_label || '—'}</p></div>
                                 {selected.rental_started_at && <div><p className="text-xs text-[var(--color-muted)]">Dimulai</p><p className="font-semibold">{selected.rental_started_at}</p></div>}
                                 {selected.rental_returned_at && <div><p className="text-xs text-[var(--color-muted)]">Dikembalikan</p><p className="font-semibold">{selected.rental_returned_at}</p></div>}
                             </div>
@@ -206,7 +196,7 @@ export default function PesananProduk({ pesanan = [] }) {
                             {selected.jasa.rating && (
                                 <p className="text-sm"><span className="text-[var(--color-gold)]">{'★'.repeat(selected.jasa.rating)}{'☆'.repeat(5 - selected.jasa.rating)}</span>{selected.jasa.ulasan ? ` — ${selected.jasa.ulasan}` : ''}</p>
                             )}
-                            {selected.status === 'Diproses' && (
+                            {selected.status === 'Diproses' && !selected.jasa.auto_start && (
                                 <div className="grid gap-3 sm:grid-cols-2">
                                     <label className="block">
                                         Tanggal mulai pengerjaan
@@ -218,6 +208,15 @@ export default function PesananProduk({ pesanan = [] }) {
                                         <input type="datetime-local" value={jadwalSelesai} onChange={(e) => setJadwalSelesai(e.target.value)} className="mt-1 block w-full rounded-lg border p-2" required />
                                         {errors.jadwal_selesai && <p role="alert" className="mt-1 text-red-700">{errors.jadwal_selesai}</p>}
                                     </label>
+                                </div>
+                            )}
+                            {selected.status === 'Dikerjakan' && selected.jasa.auto_start && (
+                                <div>
+                                    <label className="block">Perkiraan selesai
+                                        <input type="datetime-local" value={jadwalSelesai} onChange={(e) => setJadwalSelesai(e.target.value)} className="mt-1 block w-full rounded-lg border p-2" />
+                                    </label>
+                                    {errors.jadwal_selesai && <p role="alert" className="text-red-700">{errors.jadwal_selesai}</p>}
+                                    <button type="button" disabled={processing} onClick={() => update('Perkiraan Selesai')} className="mt-2 rounded-full bg-[var(--color-accent)] px-5 py-2 text-white">Simpan perkiraan selesai</button>
                                 </div>
                             )}
                             {selected.status === 'Dikerjakan' && (
@@ -272,11 +271,7 @@ export default function PesananProduk({ pesanan = [] }) {
                             return <button type="button" disabled={processing} onClick={() => update(jasaNext.status)} className="rounded-full bg-[var(--color-accent)] px-6 py-2.5 text-sm font-semibold text-white disabled:cursor-not-allowed disabled:opacity-60 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-accent)] focus-visible:ring-offset-2">{processing ? 'Menyimpan…' : jasaNext.label}</button>;
                         }
 
-                        if (selected.is_rental) {
-                            const next = nextRentalAction(selected);
-                            if (!next) return null;
-                            return <button type="button" disabled={processing} onClick={() => update(next.status)} className="rounded-full bg-[var(--color-accent)] px-6 py-2.5 text-sm font-semibold text-white disabled:cursor-not-allowed disabled:opacity-60 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-accent)] focus-visible:ring-offset-2">{processing ? 'Menyimpan…' : next.label}</button>;
-                        }
+                        if (selected.is_rental) return null;
                         const isShipment = Boolean(selected.shipment);
                         if (selected.jasa) return null;
                         const nextStatus = selected.pickup ? (selected.pickup.ready ? 'Selesai' : 'Diproses') : isShipment ? (selected.status === 'Lunas' ? 'Diproses' : selected.status === 'Diproses' ? 'Dikirim' : 'Selesai') : (selected.status === 'Lunas' ? 'Diproses' : 'Selesai');

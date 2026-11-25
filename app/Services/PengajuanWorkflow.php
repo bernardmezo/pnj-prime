@@ -43,10 +43,31 @@ class PengajuanWorkflow
             'Dibatalkan',
         ],
         'Lunas' => [
+            'Dikerjakan',
             'Diproses',
+            'Terjadwal',
+            'Berjalan',
+            'Dibatalkan',
+        ],
+        'Terjadwal' => [
+            'Berjalan',
+            'Dipinjam',
+            'Dibatalkan',
+        ],
+        'Berjalan' => [
+            'Selesai',
+            'Dibatalkan',
+        ],
+        'Dipinjam' => [
+            'Dikembalikan',
+            'Dibatalkan',
+        ],
+        'Dikembalikan' => [
+            'Selesai',
             'Dibatalkan',
         ],
         'Diproses' => [
+            'Dikerjakan',
             'Dikirim',
             'Dijadwalkan',
             'Selesai',
@@ -85,7 +106,7 @@ class PengajuanWorkflow
      *
      * @throws ValidationException
      */
-    public function transition(Pengajuan $pengajuan, string $targetStatus, ?string $note = null, ?string $actorName = null): Pengajuan
+    public function transition(Pengajuan $pengajuan, string $targetStatus, ?string $note = null, ?string $actorName = null, ?array $shipping = null): Pengajuan
     {
         $current = $pengajuan->status;
         $allowed = self::ALLOWED_TRANSITIONS[$current] ?? [];
@@ -103,7 +124,7 @@ class PengajuanWorkflow
             ]);
         }
 
-        DB::transaction(function () use ($pengajuan, $targetStatus, $note, $actorName) {
+        DB::transaction(function () use ($pengajuan, $targetStatus, $note, $actorName, $shipping) {
             $locked = Pengajuan::whereKey($pengajuan->id)->lockForUpdate()->firstOrFail();
             if (! in_array($targetStatus, self::ALLOWED_TRANSITIONS[$locked->status] ?? [], true)) {
                 throw ValidationException::withMessages(['status' => 'Status pengajuan telah berubah. Muat ulang halaman.']);
@@ -122,13 +143,19 @@ class PengajuanWorkflow
 
             // When moving to 'Menunggu Pembayaran', generate the Order + OrderItem + Tax snapshot if not already created
             if ($targetStatus === 'Menunggu Pembayaran' && ! $pengajuan->order) {
-                $this->createOrderSnapshot($pengajuan);
+                $order = $this->createOrderSnapshot($pengajuan, $shipping);
+                if ($pengajuan->isShipment() && ! $pengajuan->isPreorder()) {
+                    $pengajuan->total = $order->total;
+                    $pengajuan->save();
+                }
             }
 
             if ($pengajuan->order) {
                 $orderStatusMap = [
                     'Lunas' => 'lunas',
+                    'Dikerjakan' => 'diproses',
                     'Diproses' => 'diproses',
+                    'Berjalan' => 'diproses',
                     'Selesai' => 'selesai',
                     'Dibatalkan' => 'dibatalkan',
                     'Menunggu Pembayaran' => 'menunggu_pembayaran',
@@ -168,16 +195,48 @@ class PengajuanWorkflow
             $invoiceService->notifyReadyStockReceipt($pengajuan);
         }
 
+        // Saat Admin RTPU memverifikasi pesanan (status → Menunggu Pembayaran),
+        // kirim email ke Customer agar tahu harus membayar. Preorder punya
+        // notifikasi invoice sendiri (PreorderInvoiceIssued) sehingga di-skip.
+        if ($targetStatus === 'Menunggu Pembayaran' && ! $pengajuan->isPreorder()) {
+            $pengajuan->buyer?->notify(new \App\Notifications\PesananDiverifikasi($pengajuan));
+        }
+
         return $pengajuan->fresh(['order.items', 'product']);
     }
 
     /**
      * Create immutable order and order_items snapshot for billing.
      */
-    protected function createOrderSnapshot(Pengajuan $pengajuan): Order
+    protected function createOrderSnapshot(Pengajuan $pengajuan, ?array $shipping = null): Order
     {
         $product = $pengajuan->product;
         $subtotal = (int) ($pengajuan->total ?: ($product ? $product->final_price ?? $product->base_price : 0));
+        $isShipment = $pengajuan->isShipment() && ! $pengajuan->isPreorder();
+        $storeShippingSnapshot = ! $pengajuan->isPreorder() && $pengajuan->tipe === 'produk';
+        $shippingAmount = 0;
+
+        if ($isShipment) {
+            if (! $product) {
+                throw ValidationException::withMessages(['shipping_service' => 'Produk tidak tersedia untuk menghitung subtotal.']);
+            }
+            $subtotal = (int) ($product->final_price ?? $product->base_price ?? 0) * PricingService::parseQty($pengajuan->jumlah)
+                + (int) $pengajuan->opsi()->sum('subtotal');
+            if ($shipping === null) {
+                throw ValidationException::withMessages(['shipping_service' => 'Admin RTPU harus memilih layanan JNE tarif live sebelum menyetujui pengiriman.']);
+            }
+            if (($shipping['courier'] ?? null) !== 'jne' || ! is_string($shipping['service'] ?? null)) {
+                throw ValidationException::withMessages(['shipping_service' => 'Pilih layanan JNE tarif live yang tersedia.']);
+            }
+            $rate = collect(app(ShippingService::class)->preorderRates($pengajuan, 'jne'))->firstWhere('service', $shipping['service']);
+            if (! $rate) {
+                throw ValidationException::withMessages(['shipping_service' => 'Layanan JNE tidak tersedia. Perbarui tarif dan pilih kembali.']);
+            }
+            $shipping = ['courier' => 'jne', 'service' => $rate['service'], 'amount' => $rate['amount'], 'etd' => $rate['etd']];
+            $shippingAmount = $rate['amount'];
+        } elseif ($shipping !== null) {
+            throw ValidationException::withMessages(['shipping_service' => 'Ongkir hanya dapat ditetapkan untuk produk yang dikirim.']);
+        }
 
         $taxCalc = $this->taxService->calculate($subtotal, $product?->taxRate, $pengajuan->tipe);
 
@@ -192,7 +251,8 @@ class PengajuanWorkflow
             'tax_rate_snapshot' => $taxCalc['tax_rate_snapshot'],
             'tax_name_snapshot' => $taxCalc['tax_name_snapshot'],
             'tax_amount' => $taxCalc['tax_amount'],
-            'total' => $taxCalc['total'],
+            ...($storeShippingSnapshot ? ['shipping_amount' => $shippingAmount, 'shipping_snapshot' => $shipping] : []),
+            'total' => $taxCalc['total'] + $shippingAmount,
             'status' => 'menunggu_pembayaran',
             'order_type' => $orderType,
             'buyer_notes' => $pengajuan->catatan,
@@ -206,7 +266,7 @@ class PengajuanWorkflow
                 'product_name' => $product->name,
                 'unit_price' => $this->unitPriceForSnapshot($pengajuan, $subtotal, $product),
                 'quantity' => $pengajuan->jumlah ?: 1,
-                'subtotal' => $subtotal,
+                'subtotal' => $isShipment ? (int) ($product->final_price ?? $product->base_price ?? 0) * PricingService::parseQty($pengajuan->jumlah) : $subtotal,
             ]);
         }
 

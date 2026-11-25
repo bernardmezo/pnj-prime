@@ -282,12 +282,20 @@ class AccessMatrixTest extends TestCase
     public function test_superadmin_manages_staff_and_last_admin_guard(): void
     {
         $this->actingAs($this->users['super_admin']);
-        foreach (['admin_rtpu', 'admin_p3m', 'pimpinan_rtpu', 'direktur', 'super_admin'] as $i => $role) {
+        foreach (['admin_rtpu', 'pimpinan_rtpu', 'direktur', 'super_admin'] as $i => $role) {
             $this->post(route('superadmin.users.store'), [
                 'name' => "Staff {$role}", 'email' => "staff{$i}@test.id",
                 'password' => 'password123', 'role' => $role,
             ])->assertRedirect();
         }
+        // admin_p3m is created via the admin_pengelola variant picker, starts pending
+        $this->post(route('superadmin.users.store'), [
+            'name' => 'Staff admin_p3m', 'email' => 'staff4@test.id',
+            'password' => 'password123', 'role' => 'admin_pengelola', 'pengelola_variant' => 'admin_p3m',
+        ])->assertRedirect();
+        $this->assertDatabaseHas('users', ['email' => 'staff4@test.id', 'role' => 'admin_p3m', 'account_status' => 'pending', 'is_active' => false]);
+        User::where('email', 'staff4@test.id')->update(['account_status' => 'active', 'is_active' => true]);
+
         // each new staff can log in and reach dashboard
         foreach (['staff0@test.id', 'staff1@test.id', 'staff2@test.id', 'staff3@test.id', 'staff4@test.id'] as $email) {
             $this->post('/login', ['email' => $email, 'password' => 'password123'])
@@ -314,11 +322,13 @@ class AccessMatrixTest extends TestCase
     }
 
     public function test_permission_toggle_takes_effect(): void
-    {        // revoke customer Lihat on pengajuan -> 403 on the lane
+    {
+        // Revoke all actions: enabled dependent actions require Lihat.
         $this->actingAs($this->users['super_admin']);
         $this->post(route('superadmin.hakakses.save'), [
-            'matriks' => ['customer' => ['pengajuan' => ['Lihat' => false]]],
+            'matriks' => ['customer' => ['pengajuan' => array_fill_keys(Permission::AKSI, false)]],
         ])->assertRedirect();
+        $this->assertDatabaseHas('permissions', ['role' => 'customer', 'fitur_key' => 'pengajuan', 'aksi' => 'Lihat', 'allowed' => false]);
 
         $this->actingAs($this->users['customer']);
         $this->get('/pengajuan')->assertForbidden();
@@ -429,7 +439,8 @@ class AccessMatrixTest extends TestCase
         foreach (['jasa', 'ruangan', 'produk'] as $tipe) {
             $this->post(route('rtpu.layanan.store'), [
                 'tipe' => $tipe, 'name' => "Layanan {$tipe} baru", 'price' => 50000,
-            ])->assertRedirect(route('rtpu.layanan'));
+                'satuan' => 'hari',
+            ])->assertRedirect(route('rtpu.layanan'))->assertSessionHasNoErrors();
         }
         $this->assertSame(3, Product::where('name', 'like', 'Layanan % baru')->count());
 
@@ -483,6 +494,22 @@ class AccessMatrixTest extends TestCase
         $this->get(route('p3m.riwayat'))->assertInertia(fn ($p) => $p->has('riwayat', 0));
     }
 
+    public function test_rtpu_status_page_is_monitoring_only(): void
+    {
+        $p = $this->pengajuan('Diproses');
+
+        $this->actingAs($this->users['admin_rtpu'])
+            ->get(route('rtpu.status'))
+            ->assertOk()
+            ->assertInertia(fn ($page) => $page->where('daftar.0.code', $p->code)->has('daftar.0.owner')->has('daftar.0.order_number'));
+
+        $this->actingAs($this->users['admin_rtpu'])
+            ->patch(route('rtpu.status.update', $p), ['status' => 'Selesai'])
+            ->assertForbidden();
+
+        $this->assertSame('Diproses', $p->fresh()->status);
+    }
+
     public function test_ppn_rate_change_not_retroactive_and_totals_equal(): void
     {
         Storage::fake('public');
@@ -498,8 +525,8 @@ class AccessMatrixTest extends TestCase
         $this->actingAs($this->users['customer']);
         $prod = $this->product();
         $prod->update(['final_price' => 1000000]);
-        $this->post(route('customer.pengajuan.store'), ['tipe' => 'produk', 'product_id' => $prod->id, 'jumlah' => '2']);
-        $p = Pengajuan::latest('id')->first();
+        $this->post(route('customer.pengajuan.store'), ['tipe' => 'jasa', 'product_id' => $prod->id, 'jumlah' => '2'])->assertSessionHasNoErrors();
+        $p = Pengajuan::latest('id')->firstOrFail();
 
         $this->actingAs($this->users['admin_rtpu']);
         $this->patch(route('rtpu.verify.layanan.approve', $p))->assertRedirect();
@@ -520,7 +547,7 @@ class AccessMatrixTest extends TestCase
         // admin changes rate to 12% via the service (clears cache, like the settings screen): paid order untouched, new order uses 12%
         app(SettingService::class)->set('ppn_rate', '12');
         $this->assertSame(2220000, (int) $p->fresh()->order->total);
-        $this->post(route('customer.pengajuan.store'), ['tipe' => 'produk', 'product_id' => $prod->id, 'jumlah' => '1']);
+        $this->post(route('customer.pengajuan.store'), ['tipe' => 'jasa', 'product_id' => $prod->id, 'jumlah' => '1'])->assertSessionHasNoErrors();
         $p2 = Pengajuan::latest('id')->first();
         $this->actingAs($this->users['admin_rtpu']);
         $this->patch(route('rtpu.verify.layanan.approve', $p2))->assertRedirect();
@@ -568,7 +595,7 @@ class AccessMatrixTest extends TestCase
         $this->actingAs($this->users['customer']);
         $prod = $this->product();
         $prod->update(['final_price' => 1000000]);
-        $this->post(route('customer.pengajuan.store'), ['tipe' => 'produk', 'product_id' => $prod->id, 'jumlah' => '1']);
+        $this->post(route('customer.pengajuan.store'), ['tipe' => 'jasa', 'product_id' => $prod->id, 'jumlah' => '1'])->assertSessionHasNoErrors();
         $p = Pengajuan::latest('id')->first();
 
         $this->actingAs($this->users['admin_rtpu']);

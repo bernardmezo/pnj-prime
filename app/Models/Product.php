@@ -21,6 +21,7 @@ use Illuminate\Support\Carbon;
  * @property string|null $description
  * @property string|null $thumbnail
  * @property int $base_price
+ * @property int $cost_price
  * @property int $final_price
  * @property string $curation_status
  * @property string|null $rejection_reason
@@ -91,6 +92,7 @@ class Product extends Model
         'video_url',
         'video_path',
         'base_price',
+        'cost_price',
         'final_price',
         'curation_status',
         'rejection_reason',
@@ -103,10 +105,13 @@ class Product extends Model
         'produk_unggulan_id',
     ];
 
+    protected $hidden = ['cost_price'];
+
     protected function casts(): array
     {
         return [
             'base_price' => 'integer',
+            'cost_price' => 'integer',
             'final_price' => 'integer',
             'is_active' => 'boolean',
             'approved_at' => 'datetime',

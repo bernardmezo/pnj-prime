@@ -140,8 +140,9 @@ class Pengajuan extends Model
         'Menunggu Invoice' => ['Menunggu Pembayaran', 'Ditolak', 'Dibatalkan'],
         'Menunggu Pembayaran' => ['Menunggu Verifikasi Pembayaran', 'Lunas', 'Dibatalkan'],
         'Menunggu Verifikasi Pembayaran' => ['Lunas', 'Diproses', 'Menunggu Pembayaran', 'Ditolak', 'Dibatalkan'],
-        'Lunas' => ['Diproses', 'Dibatalkan'],
+        'Lunas' => ['Diproses', 'Berjalan', 'Dibatalkan'],
         'Diproses' => ['Dikirim', 'Dijadwalkan', 'Selesai', 'Dibatalkan'],
+        'Berjalan' => ['Selesai', 'Dibatalkan'],
         'Dikirim' => ['Selesai', 'Dibatalkan'],
         // Jasa/test lab: Dijadwalkan -> Dikerjakan -> Hasil Diunggah -> Selesai (atau revisi)
         'Dijadwalkan' => ['Dikerjakan', 'Dibatalkan'],
@@ -160,6 +161,7 @@ class Pengajuan extends Model
         'courier_name', 'tracking_number', 'shipped_at', 'shipped_by',
         'hasil_files', 'jadwal_mulai', 'jadwal_selesai', 'revision_count',
         'rating', 'ulasan', 'rating_at', 'selesai_confirmed_at',
+        'reschedule_required', 'reschedule_reason', 'reschedule_requested_at', 'reminder_sent_at',
     ];
 
     protected function casts(): array
@@ -170,11 +172,15 @@ class Pengajuan extends Model
             'renter_data' => 'array', 'kebutuhan_detail' => 'array', 'hasil_files' => 'array',
             'jadwal_mulai' => 'datetime', 'jadwal_selesai' => 'datetime',
             'rating_at' => 'datetime', 'selesai_confirmed_at' => 'datetime',
+            'rental_billing_duration' => 'integer',
             'rental_start' => 'datetime',
             'rental_end' => 'datetime',
             'rental_started_at' => 'datetime',
             'rental_returned_at' => 'datetime',
             'shipped_at' => 'datetime',
+            'reschedule_required' => 'boolean',
+            'reschedule_requested_at' => 'datetime',
+            'reminder_sent_at' => 'datetime',
         ];
     }
 
@@ -228,6 +234,7 @@ class Pengajuan extends Model
         }
 
         return [
+            'auto_start' => (bool) $this->jasa_auto_start,
             'jadwal_mulai' => $this->jadwal_mulai?->format('Y-m-d\TH:i'),
             'jadwal_selesai' => $this->jadwal_selesai?->format('Y-m-d\TH:i'),
             'jadwal_mulai_label' => $this->jadwal_mulai?->locale('id')->translatedFormat('d F Y H:i'),
@@ -345,6 +352,22 @@ class Pengajuan extends Model
             ->first();
 
         return $conflict;
+    }
+
+    public function rentalDurationLabel(): ?string
+    {
+        if (! $this->isRental()) {
+            return null;
+        }
+        if ($this->rental_billing_duration && in_array($this->rental_billing_unit, ['per_jam', 'per_hari'], true)) {
+            return $this->rental_billing_duration.' '.($this->rental_billing_unit === 'per_jam' ? 'jam' : 'hari');
+        }
+
+        $minutes = (int) $this->rental_start->diffInMinutes($this->rental_end);
+        $hours = intdiv($minutes, 60);
+        $remainingMinutes = $minutes % 60;
+
+        return 'Selang waktu: '.($hours ? $hours.' jam' : '').($hours && $remainingMinutes ? ' ' : '').($remainingMinutes ? $remainingMinutes.' menit' : (! $hours ? '0 menit' : ''));
     }
 
     /**

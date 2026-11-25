@@ -3,6 +3,7 @@ import { AnimatePresence, motion, useReducedMotion } from 'framer-motion';
 import {
     Activity,
     Award,
+    CalendarDays,
     Tag,
     ClipboardCheck,
     Eye,
@@ -22,6 +23,7 @@ import {
 } from 'lucide-react';
 import { useState } from 'react';
 import Logo from '@/Components/Logo';
+import NotificationBell from '@/Components/NotificationBell';
 import ToastContainer from '@/Components/ToastContainer';
 import SwooshLine from '@/Components/SwooshLine';
 import { EASE } from '@/Components/ui';
@@ -59,6 +61,7 @@ const MENU_ICONS = {
     links: LayoutGrid,
     settings: LayoutGrid,
     tag: Tag,
+    calendar: CalendarDays,
 };
 
 const menuFor = (role) =>
@@ -72,11 +75,15 @@ const menuFor = (role) =>
  * Exactly one item should be active at a time.
  * Evaluates route prefix and path matching.
  */
-function isItemActive(item, activeKey, currentUrl) {
+export function isItemActive(item, activeKey, currentUrl) {
     const url = currentUrl || (typeof window !== 'undefined' ? window.location.pathname : '');
     const cleanUrl = url.split('?')[0].replace(/\/+$/, '');
 
     // 1. Explicit key match if provided
+    if (cleanUrl === '/pengelola/produk' || cleanUrl.startsWith('/pengelola/produk/') || cleanUrl === '/pengelola/pesanan' || cleanUrl.startsWith('/pengelola/pesanan/')) {
+        const section = cleanUrl.startsWith('/pengelola/produk') ? 'produk' : 'pesanan';
+        return item.key === section;
+    }
     if (activeKey && (item.key === activeKey || item.page === activeKey)) {
         return true;
     }
@@ -416,8 +423,9 @@ export default function DashboardLayout({ title, activeKey, children }) {
                             )}
                         </div>
 
-                        {/* Top right: small avatar circle with initials and name */}
+                        {/* Top right: notifikasi, small avatar circle with initials and name */}
                         <div className="flex items-center gap-2.5">
+                            <NotificationBell />
                             <span className="hidden sm:inline-flex items-center rounded-full border border-[var(--color-accent-tint)] bg-[var(--color-accent-tint)] px-2.5 py-0.5 text-[11px] font-semibold text-[var(--color-accent-hover)]">
                                 {roleLabel(user.role)}
                             </span>

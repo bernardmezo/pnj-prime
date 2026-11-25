@@ -13,6 +13,9 @@ const SOCIALS = [
 
 export default function PublicFooter({ auth }) {
     const { external_links = [] } = usePage().props;
+    const visibleLinks = external_links.filter((link, index, links) =>
+        links.findIndex((other) => other.label.trim().toLowerCase() === link.label.trim().toLowerCase() && other.url.trim().toLowerCase() === link.url.trim().toLowerCase()) === index
+    );
 
     return (
         <footer
@@ -63,7 +66,7 @@ export default function PublicFooter({ auth }) {
                                 </Link>
                             </li>
                         ))}
-                        {external_links.map((link) => (
+                        {visibleLinks.map((link) => (
                             <li key={link.id}>
                                 <a
                                     href={link.url}

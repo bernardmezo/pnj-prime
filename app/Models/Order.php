@@ -78,6 +78,8 @@ class Order extends Model
         'tax_rate_id',
         'tax_rate_snapshot',
         'tax_name_snapshot',
+        'shipping_amount',
+        'shipping_snapshot',
         'tax_amount',
         'total',
         'status',
@@ -92,6 +94,8 @@ class Order extends Model
     {
         return [
             'subtotal' => 'integer',
+            'shipping_amount' => 'integer',
+            'shipping_snapshot' => 'array',
             'tax_amount' => 'integer',
             'total' => 'integer',
             'confirmed_at' => 'datetime',

@@ -15,6 +15,7 @@ enum PengajuanStatus: string
     case Dijadwalkan = 'Dijadwalkan';
     case Dikerjakan = 'Dikerjakan';
     case HasilDiunggah = 'Hasil Diunggah';
+    case Berjalan = 'Berjalan';
     case Selesai = 'Selesai';
     case Dibatalkan = 'Dibatalkan';
     case Ditolak = 'Ditolak';

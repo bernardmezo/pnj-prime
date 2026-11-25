@@ -89,6 +89,42 @@ class UseCaseTraceabilityTest extends TestCase
         ]);
     }
 
+    /**
+     * Jasa/sewa approval is a two-step manual-invoice flow: Admin RTPU must
+     * supply a BLU bank, tax rate and due date. The seeded "Mandiri BLU PNJ"
+     * method is typed "Transfer Bank", which InvoiceService rejects (needs
+     * tipe BLU), so the fixture marks it BLU.
+     *
+     * @return array{bank_id:int, due_date:string, tax_rate:string}
+     */
+    private function invoiceData(): array
+    {
+        $bank = MetodePembayaran::where('nama', 'Mandiri BLU PNJ')->firstOrFail();
+        $bank->update(['tipe' => 'BLU', 'rekening' => '1234567890']);
+
+        return ['bank_id' => $bank->id, 'due_date' => now()->addDays(3)->toDateString(), 'tax_rate' => '10'];
+    }
+
+    /** A jasa pengajuan with a frozen price, as the customer submits it. */
+    private function pengajuanJasa(User $owner): Pengajuan
+    {
+        $p = $this->pengajuan($owner, 'Diajukan');
+        $p->update(['product_id' => $this->product('jasa')->id, 'total' => 100000]);
+
+        return $p->fresh();
+    }
+
+    /** Runs the real RTPU approval so the pengajuan ends in Menunggu Pembayaran with an issued invoice + order. */
+    private function pengajuanSiapBayar(User $owner): Pengajuan
+    {
+        $p = $this->pengajuanJasa($owner);
+        $this->actingAs($this->rtpu)
+            ->patch(route('rtpu.verify.layanan.approve', $p), $this->invoiceData())
+            ->assertSessionHasNoErrors();
+
+        return $p->fresh();
+    }
+
     private function produkUnggulan(User $owner, string $status = 'Diajukan'): ProdukUnggulan
     {
         return ProdukUnggulan::create([
@@ -128,7 +164,7 @@ class UseCaseTraceabilityTest extends TestCase
 
         $this->post('/register', [
             'name' => 'Pendaftar', 'email' => 'daftar@uc.test',
-            'password' => 'password123', 'password_confirmation' => 'password123',
+            'password' => 'Password123!', 'password_confirmation' => 'Password123!',
             'terms' => true, 'role' => 'super_admin',
         ])->assertRedirect(route('dashboard', absolute: false));
 
@@ -175,8 +211,9 @@ class UseCaseTraceabilityTest extends TestCase
     public function test_uc10_to_uc12_pembayaran(): void
     {
         Storage::fake('public');
+        $p = $this->pengajuanSiapBayar($this->customer);
+        $this->assertSame('Menunggu Pembayaran', $p->status);
         $this->actingAs($this->customer);
-        $p = $this->pengajuan($this->customer, 'Menunggu Pembayaran');
 
         $page = $this->get(route('customer.pengajuan.bayar', $p))->assertOk();
         $page->assertInertia(fn (Assert $pg) => $pg->has('metode', 1)->where('metode.0.name', 'Mandiri BLU PNJ'));
@@ -346,12 +383,13 @@ class UseCaseTraceabilityTest extends TestCase
     #[TestDox('UC-25/26/27 Memverifikasi Data — completeness (UI) + reject with note')]
     public function test_uc25_to_uc27_verifikasi_data(): void
     {
-        $p = $this->pengajuan($this->customer, 'Diajukan');
+        $p = $this->pengajuanJasa($this->customer);
         $this->actingAs($this->rtpu);
 
-        // Completeness checklist is a client-side helper: approval needs no
-        // extra payload, proving no server-side completeness gate exists.
-        $this->patch(route('rtpu.verify.layanan.approve', $p))->assertRedirect();
+        // Completeness checklist is a client-side helper: approval needs only
+        // the invoice payload (BLU bank, tax, due date), no completeness
+        // field, proving no server-side completeness gate exists.
+        $this->patch(route('rtpu.verify.layanan.approve', $p), $this->invoiceData())->assertRedirect();
         $this->assertSame('Menunggu Pembayaran', $p->fresh()->status);
 
         // Rejecting REQUIRES a note (Menolak dan Memberi Catatan).
@@ -363,24 +401,26 @@ class UseCaseTraceabilityTest extends TestCase
     #[TestDox('UC-28 Memverifikasi Pengajuan Layanan — Admin RTPU')]
     public function test_uc28_verifikasi_layanan(): void
     {
-        $p = $this->pengajuan($this->customer, 'Diajukan');
+        $p = $this->pengajuanJasa($this->customer);
         $this->actingAs($this->rtpu);
         $this->get(route('rtpu.verify.layanan'))->assertOk();
-        $this->patch(route('rtpu.verify.layanan.approve', $p))->assertRedirect();
+        $this->patch(route('rtpu.verify.layanan.approve', $p), $this->invoiceData())->assertRedirect();
         $this->assertSame('Menunggu Pembayaran', $p->fresh()->status);
         $this->assertNotNull($p->fresh()->order);
+        $this->assertSame('issued', $p->fresh()->invoices()->firstOrFail()->status);
     }
 
     #[TestDox('UC-29 Memverifikasi Pembayaran — Admin RTPU')]
     public function test_uc29_verifikasi_pembayaran(): void
     {
         Storage::fake('public');
+        $p = $this->pengajuanSiapBayar($this->customer);
         $this->actingAs($this->customer);
-        $p = $this->pengajuan($this->customer, 'Menunggu Pembayaran');
         $this->post(route('customer.pengajuan.proof', $p), [
             'metode_id' => MetodePembayaran::firstOrFail()->id,
             'bukti' => UploadedFile::fake()->image('b.jpg'),
-        ]);
+        ])->assertSessionHasNoErrors();
+        $this->assertSame('Menunggu Verifikasi Pembayaran', $p->fresh()->status);
         $proof = $p->fresh()->order->paymentProofs()->firstOrFail();
 
         $this->actingAs($this->rtpu);
@@ -435,7 +475,7 @@ class UseCaseTraceabilityTest extends TestCase
 
         $this->actingAs($this->superadmin);
         $this->post(route('superadmin.users.store'), [
-            'name' => 'Staf', 'email' => 'staf@uc.test', 'password' => 'password123',
+            'name' => 'Staf', 'email' => 'staf@uc.test', 'password' => 'Password123!',
             'role' => 'admin_pengelola', 'pengelola_variant' => 'admin_p3m',
         ])->assertRedirect();
         $this->post(route('superadmin.fitur.store'), [

@@ -9,11 +9,11 @@ use App\Http\Controllers\Auth\SsoController;
 use App\Http\Controllers\Catalog\CatalogController;
 use App\Http\Controllers\Customer\InvoiceController as CustomerInvoiceController;
 use App\Http\Controllers\Customer\PengajuanController as CustomerPengajuanController;
-use App\Http\Controllers\Customer\PengelolaApplicationController as CustomerPengelolaApplicationController;
 use App\Http\Controllers\Customer\RiwayatController as CustomerRiwayatController;
 use App\Http\Controllers\Customer\TenantProfileController as CustomerTenantProfileController;
 use App\Http\Controllers\Direktur\DashboardController as DirekturDashboardController;
 use App\Http\Controllers\Direktur\PemantauanController as DirekturController;
+use App\Http\Controllers\Direktur\MonitoringPesananController;
 use App\Http\Controllers\FileController;
 use App\Http\Controllers\P3M\DashboardController as P3MDashboardController;
 use App\Http\Controllers\P3M\OpsiController as P3MOpsiController;
@@ -46,7 +46,6 @@ use Illuminate\Support\Facades\Route;
 use Inertia\Inertia;
 
 Route::post('/api/shipping/calculate', [ShippingController::class, 'calculate'])->name('api.shipping.calculate');
-Route::post('/api/shipping/calculate-postal', [ShippingController::class, 'calculateByPostalCode'])->name('api.shipping.calculate-postal');
 Route::get('/api/shipping/cities', [ShippingController::class, 'cities'])->name('api.shipping.cities');
 Route::post('/api/rental/check-conflict', RentalConflictController::class)->name('api.rental.check-conflict');
 
@@ -85,6 +84,9 @@ if (app()->environment('local')) {
 }
 
 Route::middleware(['auth', 'verified'])->group(function () {
+    Route::get('/kalender', [\App\Http\Controllers\AcademicCalendarController::class, 'index'])->name('calendar.master')->middleware('role:admin_rtpu,admin_pengelola,admin_jurusan');
+    Route::post('/kalender/tanggal-merah', [\App\Http\Controllers\AcademicCalendarController::class, 'storeClosedDate'])->name('calendar.closed.store')->middleware('role:admin_rtpu');
+    Route::delete('/kalender/tanggal-merah/{academicCalendarDate}', [\App\Http\Controllers\AcademicCalendarController::class, 'destroyClosedDate'])->name('calendar.closed.destroy')->middleware('role:admin_rtpu');
     Route::get('/pickup/{pengajuan}/photo', \App\Http\Controllers\PickupPhotoController::class)->name('pickup.photo');
     Route::get('/dashboard', function () {
         return Inertia::render('Dashboard');
@@ -113,6 +115,7 @@ Route::middleware(['auth', 'verified'])->group(function () {
         Route::get('/{pengajuan}/edit', [CustomerPengajuanController::class, 'edit'])->name('edit')->middleware(['fitur:pengajuan', 'permission:pengajuan,Ubah']);
         Route::patch('/{pengajuan}', [CustomerPengajuanController::class, 'update'])->name('update')->middleware(['fitur:pengajuan', 'permission:pengajuan,Ubah']);
         Route::patch('/{pengajuan}/cancel', [CustomerPengajuanController::class, 'cancel'])->name('cancel')->middleware(['fitur:pengajuan', 'permission:pengajuan,Ubah']);
+        Route::patch('/{pengajuan}/reschedule', [CustomerPengajuanController::class, 'reschedule'])->name('reschedule')->middleware(['fitur:pengajuan', 'permission:pengajuan,Ubah']);
         Route::patch('/{pengajuan}/terima', [CustomerPengajuanController::class, 'confirmReceipt'])->name('confirm-receipt')->middleware(['fitur:pengajuan', 'permission:pengajuan,Ubah']);
         Route::patch('/{pengajuan}/jasa/selesai', [CustomerPengajuanController::class, 'confirmJasa'])->name('jasa.confirm')->middleware(['fitur:pengajuan', 'permission:pengajuan,Ubah']);
         Route::patch('/{pengajuan}/jasa/revisi', [CustomerPengajuanController::class, 'requestRevision'])->name('jasa.revision')->middleware(['fitur:pengajuan', 'permission:pengajuan,Ubah']);
@@ -129,10 +132,8 @@ Route::middleware(['auth', 'verified'])->group(function () {
         Route::get('/tenant-profile', [CustomerTenantProfileController::class, 'show'])->name('customer.tenant.show');
         Route::post('/tenant-profile', [CustomerTenantProfileController::class, 'store'])->name('customer.tenant.store');
         Route::post('/pdp-consent', [CustomerTenantProfileController::class, 'consentPdp'])->name('customer.pdp.consent');
-        Route::get('/pengelola-application', [CustomerPengelolaApplicationController::class, 'index'])->name('customer.pengelola.index');
-        Route::get('/pengelola-register', [CustomerPengelolaApplicationController::class, 'index'])->name('customer.pengelola.register');
-        Route::post('/pengelola-application', [CustomerPengelolaApplicationController::class, 'store'])->name('customer.pengelola.store');
-        Route::post('/pengelola-register', [CustomerPengelolaApplicationController::class, 'store'])->name('customer.pengelola.register.store');
+        Route::match(['get', 'post'], '/pengelola-application', fn () => abort(410));
+        Route::match(['get', 'post'], '/pengelola-register', fn () => abort(410));
     });
 
     // ---- Use-case model: Admin P3M ----
@@ -154,6 +155,9 @@ Route::middleware(['auth', 'verified'])->group(function () {
     // ---- Use-case model: Admin RTPU ----
     Route::middleware('role:admin_rtpu')->prefix('rtpu')->name('rtpu.')->group(function () {
         Route::get('/dashboard', RtpuDashboardController::class)->name('dashboard')->middleware(['fitur:verifikasi', 'permission:verifikasi,Lihat']);
+        Route::get('/verifikasi-akun', [VerifikasiAkunController::class, 'index'])->name('verify.akun')->middleware(['fitur:verifikasi', 'permission:verifikasi,Lihat']);
+        Route::patch('/verifikasi-akun/{user}/approve', [VerifikasiAkunController::class, 'approve'])->name('verify.akun.approve')->middleware(['fitur:verifikasi', 'permission:verifikasi,Verifikasi']);
+        Route::patch('/verifikasi-akun/{user}/reject', [VerifikasiAkunController::class, 'reject'])->name('verify.akun.reject')->middleware(['fitur:verifikasi', 'permission:verifikasi,Verifikasi']);
         Route::get('/verifikasi/layanan', [RtpuVerifikasiController::class, 'layanan'])->name('verify.layanan')->middleware(['fitur:verifikasi', 'permission:verifikasi,Lihat']);
         Route::get('/verifikasi/layanan/{id}', [RtpuVerifikasiController::class, 'layanan'])->name('verify.layanan.show')->where('id', '(?:prod-)?[0-9]+')->middleware(['fitur:verifikasi', 'permission:verifikasi,Lihat']);
         Route::get('/verifikasi/layanan/{pengajuan}/shipping', [RtpuVerifikasiController::class, 'shippingRates'])->name('verify.layanan.shipping')->middleware(['fitur:verifikasi', 'permission:verifikasi,Lihat']);
@@ -167,11 +171,12 @@ Route::middleware(['auth', 'verified'])->group(function () {
         Route::get('/invoices/{invoice}/print', [RtpuInvoiceController::class, 'print'])->name('invoice.print')->middleware(['fitur:pembayaran', 'permission:pembayaran,Lihat']);
         Route::patch('/invoices/{invoice}/cancel', [RtpuInvoiceController::class, 'cancel'])->name('invoice.cancel')->middleware(['fitur:pembayaran', 'permission:pembayaran,Ubah']);
         Route::get('/verifikasi/produk', [RtpuProductCurationController::class, 'index'])->name('verify.produk')->middleware(['fitur:verifikasi', 'permission:verifikasi,Lihat']);
-        Route::get('/verifikasi/produk/{product}', [RtpuProductCurationController::class, 'show'])->name('verify.produk.show')->middleware(['fitur:verifikasi', 'permission:verifikasi,Lihat']);
-        Route::patch('/verifikasi/produk/{product}/verify', [RtpuProductCurationController::class, 'verify'])->name('verify.produk.verify')->middleware(['fitur:verifikasi', 'permission:verifikasi,Verifikasi']);
-        Route::patch('/verifikasi/produk/{product}/reject', [RtpuProductCurationController::class, 'reject'])->name('verify.produk.reject')->middleware(['fitur:verifikasi', 'permission:verifikasi,Verifikasi']);
+        Route::patch('/verifikasi/produk/{produk}/verify', [RtpuProductCurationController::class, 'verify'])->name('verify.produk.verify')->middleware(['fitur:verifikasi', 'permission:verifikasi,Verifikasi']);
+        Route::patch('/verifikasi/produk/{produk}/reject', [RtpuProductCurationController::class, 'reject'])->name('verify.produk.reject')->middleware(['fitur:verifikasi', 'permission:verifikasi,Verifikasi']);
         Route::get('/status', [RtpuStatusController::class, 'index'])->name('status')->middleware(['fitur:pengajuan', 'permission:pengajuan,Lihat']);
         Route::patch('/status/{pengajuan}', [RtpuStatusController::class, 'update'])->name('status.update')->middleware(['fitur:pengajuan', 'permission:pengajuan,Ubah']);
+        Route::get('/pesanan', [\App\Http\Controllers\Pengelola\PesananController::class, 'index'])->name('pesanan.index')->middleware(['fitur:katalog', 'permission:katalog,Lihat']);
+        Route::patch('/pesanan/{pengajuan}', [\App\Http\Controllers\Pengelola\PesananController::class, 'update'])->name('pesanan.update')->middleware(['fitur:katalog', 'permission:katalog,Ubah']);
         Route::get('/layanan', [RtpuLayananController::class, 'index'])->name('layanan')->middleware(['fitur:katalog', 'permission:katalog,Lihat']);
         Route::get('/layanan/create', [RtpuLayananController::class, 'create'])->name('layanan.form')->middleware(['fitur:katalog', 'permission:katalog,Tambah']);
         Route::post('/layanan', [RtpuLayananController::class, 'store'])->name('layanan.store')->middleware(['fitur:katalog', 'permission:katalog,Tambah']);
@@ -200,16 +205,12 @@ Route::middleware(['auth', 'verified'])->group(function () {
         Route::patch('/verifikasi-akun/{user}/reject', [VerifikasiAkunController::class, 'reject'])->name('verify.akun.reject')->middleware(['fitur:produk-unggulan', 'permission:produk-unggulan,Verifikasi']);
         Route::get('/verifikasi-produk', [PimpinanProductCurationController::class, 'index'])->name('verify.produk')->middleware(['fitur:produk-unggulan', 'permission:produk-unggulan,Lihat']);
         Route::get('/verifikasi', [PimpinanController::class, 'index'])->name('verify')->middleware(['fitur:produk-unggulan', 'permission:produk-unggulan,Lihat']);
+        // Persetujuan final produk katalog (dari ProductCurationController, model Product).
         Route::patch('/verifikasi-produk/{product}/approve', [PimpinanProductCurationController::class, 'approve'])->name('verify.produk.approve')->middleware(['fitur:produk-unggulan', 'permission:produk-unggulan,Verifikasi']);
         Route::patch('/verifikasi-produk/{product}/reject', [PimpinanProductCurationController::class, 'reject'])->name('verify.produk.reject')->middleware(['fitur:produk-unggulan', 'permission:produk-unggulan,Verifikasi']);
+        // Verifikasi Produk Unggulan P3M (dari VerifikasiController, model ProdukUnggulan).
         Route::patch('/verifikasi/{produk}/approve', [PimpinanController::class, 'approve'])->name('verify.approve')->middleware(['fitur:produk-unggulan', 'permission:produk-unggulan,Verifikasi']);
         Route::patch('/verifikasi/{produk}/reject', [PimpinanController::class, 'reject'])->name('verify.reject')->middleware(['fitur:produk-unggulan', 'permission:produk-unggulan,Verifikasi']);
-        Route::patch('/verifikasi/{product}/approve', [PimpinanProductCurationController::class, 'approve'])->name('verify.approve')->middleware(['fitur:produk-unggulan', 'permission:produk-unggulan,Verifikasi']);
-        Route::patch('/verifikasi/{product}/reject', [PimpinanProductCurationController::class, 'reject'])->name('verify.reject')->middleware(['fitur:produk-unggulan', 'permission:produk-unggulan,Verifikasi']);
-        Route::patch('/verify/{product}/approve', [PimpinanProductCurationController::class, 'approve'])->name('verify.approve');
-        Route::patch('/verify/{product}/reject', [PimpinanProductCurationController::class, 'reject'])->name('verify.reject');
-        Route::patch('/verify/produk/{product}/approve', [PimpinanProductCurationController::class, 'approve'])->name('verify.produk.approve');
-        Route::patch('/verify/produk/{product}/reject', [PimpinanProductCurationController::class, 'reject'])->name('verify.produk.reject');
         Route::get('/pengajuan', [PimpinanController::class, 'pengajuan'])->name('pengajuan')->middleware(['fitur:pengajuan', 'permission:pengajuan,Lihat']);
         Route::patch('/pengajuan/{pengajuan}/approve', [PimpinanController::class, 'approvePengajuan'])->name('pengajuan.approve')->middleware(['fitur:pengajuan', 'permission:pengajuan,Verifikasi']);
         Route::patch('/pengajuan/{pengajuan}/reject', [PimpinanController::class, 'rejectPengajuan'])->name('pengajuan.reject')->middleware(['fitur:pengajuan', 'permission:pengajuan,Verifikasi']);
@@ -223,6 +224,7 @@ Route::middleware(['auth', 'verified'])->group(function () {
         Route::get('/dashboard', DirekturDashboardController::class)->name('dashboard')->middleware(['fitur:produk-unggulan', 'permission:produk-unggulan,Lihat']);
         Route::get('/dashboard/ekspor', [DirekturDashboardController::class, 'export'])->name('dashboard.export')->middleware(['fitur:produk-unggulan', 'permission:produk-unggulan,Lihat', 'throttle:20,1']);
         Route::get('/pemantauan', [DirekturController::class, 'monitor'])->name('monitor')->middleware(['fitur:produk-unggulan', 'permission:produk-unggulan,Lihat']);
+        Route::get('/monitoring-pesanan', [MonitoringPesananController::class, 'index'])->name('monitoring-pesanan')->middleware(['fitur:pengajuan', 'permission:pengajuan,Lihat']);
         Route::get('/riwayat', [DirekturController::class, 'riwayat'])->name('riwayat')->middleware(['fitur:produk-unggulan', 'permission:produk-unggulan,Lihat']);
         Route::get('/reports', [ReportController::class, 'index'])->name('reports')->middleware(['fitur:laporan', 'permission:laporan,Lihat']);
     });
@@ -262,7 +264,7 @@ Route::middleware(['auth', 'verified'])->group(function () {
         Route::get('/produk/create', [PengelolaProductController::class, 'create'])->name('produk.create')->middleware(['fitur:katalog', 'permission:katalog,Tambah']);
         Route::post('/produk', [PengelolaProductController::class, 'store'])->name('produk.store')->middleware(['fitur:katalog', 'permission:katalog,Tambah']);
         Route::get('/produk/{product}/edit', [PengelolaProductController::class, 'edit'])->name('produk.edit')->middleware(['fitur:katalog', 'permission:katalog,Ubah']);
-        Route::patch('/produk/{product}', [PengelolaProductController::class, 'update'])->name('produk.update')->middleware(['fitur:katalog', 'permission:katalog,Ubah']);
+        Route::match(['put', 'patch'], '/produk/{product}', [PengelolaProductController::class, 'update'])->name('produk.update')->middleware(['fitur:katalog', 'permission:katalog,Ubah']);
         Route::delete('/produk/{product}', [PengelolaProductController::class, 'destroy'])->name('produk.destroy')->middleware(['fitur:katalog', 'permission:katalog,Hapus']);
         Route::post('/produk/{product}/submit', [PengelolaProductController::class, 'submit'])->name('produk.submit')->middleware(['fitur:katalog', 'permission:katalog,Ubah']);
     });
@@ -289,3 +291,9 @@ if (config('services.sso.enabled')) {
 }
 
 require __DIR__.'/auth.php';
+
+Route::middleware('auth')->group(function () {
+    Route::get('/notifications', [\App\Http\Controllers\NotificationController::class, 'index'])->name('notifications.index');
+    Route::post('/notifications/{id}/read', [\App\Http\Controllers\NotificationController::class, 'markAsRead'])->name('notifications.read');
+    Route::post('/notifications/read-all', [\App\Http\Controllers\NotificationController::class, 'markAllAsRead'])->name('notifications.read-all');
+});

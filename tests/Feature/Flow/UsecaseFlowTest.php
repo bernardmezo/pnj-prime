@@ -336,6 +336,9 @@ class UsecaseFlowTest extends TestCase
         $proof2 = $p->fresh()->order->paymentProofs()->latest('id')->first();
         $this->patch(route('rtpu.verify.bayar.accept', $proof2->id))->assertRedirect();
         $this->assertSame('Lunas', $p->fresh()->status);
+        $this->get(route('rtpu.verify.bayar'))->assertInertia(fn ($page) => $page->has('antrean', 0));
+        $this->get(route('rtpu.riwayat'))->assertInertia(fn ($page) => $page->where('riwayat.0.code', $p->code)->where('riwayat.0.status', 'Lunas'));
+        $this->get(route('rtpu.reports'))->assertInertia(fn ($page) => $page->where('summary.total_revenue', $p->order->total)->where('summary.paid_unfulfilled', 1));
         // already-verified cannot be verified again
         $this->patch(route('rtpu.verify.bayar.accept', $proof2->id))->assertForbidden();
         $this->patch(route('rtpu.verify.bayar.reject', $proof2->id), ['catatan' => 'x'])->assertForbidden();

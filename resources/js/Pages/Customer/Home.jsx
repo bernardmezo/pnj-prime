@@ -9,7 +9,7 @@ import { href as navHref } from '@/lib/nav';
 function toCard(p) {
     return {
         id: p.id,
-        type: typeFromCategory(p.category?.slug),
+        type: typeFromCategory(p.category?.parent?.slug ?? p.category?.slug),
         title: p.name,
         category_name: p.category?.name,
         target_audience: p.target_audience ?? 'publik',
@@ -80,7 +80,7 @@ export default function CustomerHome({ auth, featured_products = [], categories 
                                 style={{ borderColor: 'var(--color-border)', color: 'var(--color-ink)' }}
                             >
                                 <Icon className="h-4 w-4 text-[var(--color-accent)] opacity-75 group-hover:opacity-100 transition-opacity" />
-                                <span>{c.name}</span>
+                                <span>{c.display_name ?? c.name}</span>
                             </a>
                         );
                     })}

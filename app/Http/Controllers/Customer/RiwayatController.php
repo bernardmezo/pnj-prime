@@ -13,7 +13,10 @@ class RiwayatController extends Controller
     public function index(): Response
     {
         $rows = Pengajuan::with(['product', 'latestInvoice'])->where('buyer_id', Auth::id())
-            ->whereIn('status', Pengajuan::CLOSED)
+            ->whereIn('status', [
+                ...Pengajuan::CLOSED,
+                'Lunas', 'Diproses', 'Dikirim', 'Dijadwalkan', 'Dikerjakan', 'Hasil Diunggah', 'Berjalan',
+            ])
             ->latest()
             ->get()
             ->map(fn ($p) => [

@@ -170,7 +170,7 @@ export default function CatalogIndex({ auth, categories = [], featured_products 
 
     const backendItems = (featured_products ?? []).slice(0, 4).map((p) => ({
         id: `b-${p.id}`,
-        type: typeFromCategory(p.category?.slug),
+        type: typeFromCategory(p.category?.parent?.slug ?? p.category?.slug),
         title: p.name,
         category_name: p.category?.name,
         target_audience: p.target_audience ?? 'publik',
@@ -397,6 +397,36 @@ export default function CatalogIndex({ auth, categories = [], featured_products 
                                 </div>
                             ))}
                         </div>
+                    </div>
+                </div>
+            </section>
+
+            <section className="landing-section bg-white" aria-labelledby="struktur-rtpu">
+                <div className="landing-container">
+                    <Reveal className="text-center">
+                        <h2 id="struktur-rtpu" className="font-display text-3xl font-bold text-ink sm:text-4xl">Struktur Organisasi RTPU</h2>
+                        <div className="mx-auto mt-4 h-1 w-16 rounded-full bg-gold" />
+                    </Reveal>
+                    <div className="mx-auto mt-10 grid max-w-5xl gap-6 sm:grid-cols-2 lg:grid-cols-3">
+                        {[
+                            { name: 'Dr. Dewi Yanti Liliana, S.Kom, M.Kom.', role: 'Ketua RTPU', photo: '/assets/ketua-rtpu.jpeg' },
+                            { name: 'Asep Taufik Muharram, S.Kom, M.Kom.', role: 'Sekretaris RTPU', photo: '/assets/sekretaris-rtpu.jpeg' },
+                            { name: 'Fitria Ayuningtias, S.Sos.', role: 'Admin RTPU' },
+                        ].map((person) => (
+                            <article key={person.name} className="overflow-hidden rounded-3xl border border-border bg-white shadow-card">
+                                {person.photo ? (
+                                    <img src={person.photo} alt={person.name} loading="lazy" className="aspect-[4/3] w-full object-cover object-top" />
+                                ) : (
+                                    <div className="flex aspect-[4/3] items-center justify-center bg-accent-tint" aria-hidden="true">
+                                        <Building2 className="h-12 w-12 text-accent" />
+                                    </div>
+                                )}
+                                <div className="p-6">
+                                    <p className="text-sm font-semibold text-accent">{person.role}</p>
+                                    <h3 className="mt-2 font-display text-lg font-bold text-ink">{person.name}</h3>
+                                </div>
+                            </article>
+                        ))}
                     </div>
                 </div>
             </section>

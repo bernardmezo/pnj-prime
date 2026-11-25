@@ -124,8 +124,8 @@ export default function PengajuanEdit({ auth, item, layanan = null }) {
                 >
                     {tipe === 'ruangan' ? (
                         <>
-                            <Field label="Tanggal" error={errors.tanggal}>
-                                <input type="date" value={data.tanggal} onChange={(e) => setData('tanggal', e.target.value)} className={inputClass} {...inputStyleProps()} />
+                            <Field label="Tanggal" error={errors.tanggal} htmlFor="edit-tanggal">
+                                <input id="edit-tanggal" type="date" value={data.tanggal} onChange={(e) => setData('tanggal', e.target.value)} className={inputClass} {...inputStyleProps()} />
                             </Field>
                             <div className="grid gap-4 sm:grid-cols-3">
                                 <Field label="Jam mulai" error={errors.jam_mulai}>
@@ -168,8 +168,8 @@ export default function PengajuanEdit({ auth, item, layanan = null }) {
                     </Field>
 
                     {tipe === 'jasa' && (
-                        <Field label="Tanggal diharapkan" error={errors.tanggal}>
-                            <input type="date" value={data.tanggal} onChange={(e) => setData('tanggal', e.target.value)} className={inputClass} {...inputStyleProps()} />
+                        <Field label="Tanggal diharapkan" error={errors.tanggal} htmlFor="edit-tanggal">
+                            <input id="edit-tanggal" type="date" value={data.tanggal} onChange={(e) => setData('tanggal', e.target.value)} className={inputClass} {...inputStyleProps()} />
                         </Field>
                     )}
 

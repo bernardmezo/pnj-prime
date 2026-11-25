@@ -1,4 +1,4 @@
-import { Head, router, useForm } from '@inertiajs/react';
+import { Head, router, useForm, usePage } from '@inertiajs/react';
 import { ArrowLeft, AlertCircle, Building2, CalendarRange, Check, ClipboardList, Minus, Package, Plus, ShieldCheck, Truck } from 'lucide-react';
 import { useEffect, useMemo, useState } from 'react';
 import FileDropzone from '@/Components/FileDropzone';
@@ -38,7 +38,10 @@ function SectionHeading({ number, title }) {
 
 const rupiah = (n) => `Rp ${Number(n ?? 0).toLocaleString('id-ID')}`;
 
-export default function PengajuanCreate({ auth, layanan = [], selected = {} }) {
+export default function PengajuanCreate({ auth, layanan = [], selected = {}, closedDates = [] }) {
+    const pageErrors = usePage().props.errors ?? {};
+    const now = new Date();
+    const today = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
     const locked = Boolean(selected?.product_id);
     const [step, setStep] = useState(locked ? 3 : 1);
     const { restoreDraft, clearDraft } = usePengajuanDraft();
@@ -62,7 +65,7 @@ export default function PengajuanCreate({ auth, layanan = [], selected = {} }) {
     const [docs, setDocs] = useState([]);
     const [selectedOpsi, setSelectedOpsi] = useState({});
 
-    const { data, setData, processing, errors, reset } = useForm({
+    const { data, setData, errors, setError, clearErrors, reset } = useForm({
         tipe: selected?.tipe ?? 'jasa',
         product_id: selected?.product_id ?? '',
         keperluan: '',
@@ -93,31 +96,20 @@ export default function PengajuanCreate({ auth, layanan = [], selected = {} }) {
 
     // Rental conflict state
     const [rentalConflict, setRentalConflict] = useState(null);
+    const [processing, setProcessing] = useState(false);
+    const closedInRental = data.rental_start && data.rental_end
+        ? closedDates.find(({ date }) => date >= data.rental_start.slice(0, 10) && date <= data.rental_end.slice(0, 10))
+        : closedDates.find(({ date }) => date === data.rental_start.slice(0, 10));
 
-    const [cities, setCities] = useState([
-        { city_id: '152', city_name: 'Depok', type: 'Kota' },
-        { city_id: '23', city_name: 'Jakarta Selatan', type: 'Kota' },
-        { city_id: '22', city_name: 'Jakarta Pusat', type: 'Kota' },
-        { city_id: '21', city_name: 'Jakarta Barat', type: 'Kota' },
-        { city_id: '24', city_name: 'Jakarta Timur', type: 'Kota' },
-        { city_id: '25', city_name: 'Jakarta Utara', type: 'Kota' },
-        { city_id: '155', city_name: 'Bogor', type: 'Kota' },
-        { city_id: '78', city_name: 'Bekasi', type: 'Kota' },
-        { city_id: '115', city_name: 'Tangerang', type: 'Kota' },
-        { city_id: '114', city_name: 'Tangerang Selatan', type: 'Kota' },
-        { city_id: '54', city_name: 'Bandung', type: 'Kota' },
-        { city_id: '399', city_name: 'Surabaya', type: 'Kota' },
-        { city_id: '444', city_name: 'Semarang', type: 'Kota' },
-        { city_id: '501', city_name: 'Yogyakarta', type: 'Kota' },
-    ]);
-    const [selectedCity, setSelectedCity] = useState('152');
+    const [cities, setCities] = useState([]);
+    const [selectedCity, setSelectedCity] = useState('');
     const [courier, setCourier] = useState('jne');
     const [shippingCost, setShippingCost] = useState(0);
     const [shippingOptions, setShippingOptions] = useState([]);
+    const [selectedService, setSelectedService] = useState('');
     const [loadingShipping, setLoadingShipping] = useState(false);
     const [shippingAddress, setShippingAddress] = useState('');
     const [shippingError, setShippingError] = useState('');
-    const [postalCode, setPostalCode] = useState('');
 
     useEffect(() => {
         fetch('/api/shipping/cities')
@@ -133,27 +125,15 @@ export default function PengajuanCreate({ auth, layanan = [], selected = {} }) {
     const calculateOngkir = (cityId, chosenCourier) => {
         if (!cityId || !chosenCourier) {
             setShippingCost(0);
+            setShippingOptions([]);
+            setSelectedService('');
             return;
         }
         setLoadingShipping(true);
         setShippingError('');
+        setSelectedService('');
         const itemWeight = Number(current?.weight ?? current?.meta?.weight ?? 1000);
         const totalWeight = itemWeight * (Number(data.jumlah) || 1);
-
-        // Simulasi variasi ongkir berdasarkan kota tujuan agar dinamis & realistis
-        let cityMultiplier = 1;
-        const idNum = Number(cityId);
-        if (idNum === 152 || idNum === 151 || idNum === 78) {
-            cityMultiplier = 1; // Jabodetabek dekat (Depok, Jaksel, Jakpus, Bekasi)
-        } else if (idNum >= 20 && idNum <= 30) {
-            cityMultiplier = 1.2; // Area Jakarta lainnya
-        } else if (idNum === 155 || idNum === 114 || idNum === 115) {
-            cityMultiplier = 1.3; // Bogor, Tangerang
-        } else if (idNum === 54) {
-            cityMultiplier = 1.8; // Bandung
-        } else {
-            cityMultiplier = 2.5; // Luar Jabodetabek / Jawa
-        }
 
         fetch('/api/shipping/calculate', {
             method: 'POST',
@@ -173,74 +153,30 @@ export default function PengajuanCreate({ auth, layanan = [], selected = {} }) {
                 if (res?.success && Array.isArray(res.costs) && res.costs.length > 0) {
                     const costs = res.costs[0]?.costs || [];
                     setShippingOptions(costs);
-                    if (costs.length > 0 && costs[0]?.cost?.[0]?.value) {
-                        const baseVal = costs[0].cost[0].value;
-                        const val = Math.round(baseVal * cityMultiplier);
-                        setShippingCost(val);
-                        setData('catatan', `Pengiriman ke ${cityId} via ${chosenCourier.toUpperCase()} (${costs[0].service}) - Rp ${val.toLocaleString('id-ID')}`);
+                    setShippingCost(0);
+                    if (!costs.length) {
+                        setShippingError('Tidak ada layanan JNE untuk tujuan ini.');
                     }
                 } else {
-                    const fallbackVal = Math.round(15000 * cityMultiplier * Math.max(1, Math.ceil(totalWeight / 1000)));
-                    setShippingCost(fallbackVal);
-                    setData('catatan', `Pengiriman ke ${cityId} via ${chosenCourier.toUpperCase()} (Reguler) - Rp ${fallbackVal.toLocaleString('id-ID')}`);
+                    setShippingOptions([]);
+                    setShippingCost(0);
+                    setShippingError(res?.error || 'Tarif live tidak tersedia.');
                 }
             })
-            .catch((err) => {
+            .catch(() => {
                 setLoadingShipping(false);
-                setShippingError('Gagal menghitung ongkir. Gunakan estimasi manual.');
-                const fallbackVal = Math.round(15000 * cityMultiplier * Math.max(1, Math.ceil(totalWeight / 1000)));
-                setShippingCost(fallbackVal);
+                setShippingOptions([]);
+                setShippingCost(0);
+                setShippingError('Gagal menghitung ongkir.');
             });
     };
 
-    const calculateOngkirByPostalCode = (destinationPostalCode, chosenCourier) => {
-        if (!destinationPostalCode || destinationPostalCode.length !== 5 || !chosenCourier) {
-            return;
-        }
-        setLoadingShipping(true);
-        setShippingError('');
-        const itemWeight = Number(current?.weight ?? current?.meta?.weight ?? 1000);
-        const totalWeight = itemWeight * (Number(data.jumlah) || 1);
-
-        fetch('/api/shipping/calculate-postal', {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-                'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || '',
-            },
-            body: JSON.stringify({
-                destination_postal_code: destinationPostalCode,
-                courier: chosenCourier,
-                weight: totalWeight,
-            }),
-        })
-            .then((res) => res.json())
-            .then((res) => {
-                setLoadingShipping(false);
-                if (res?.success && Array.isArray(res.costs) && res.costs.length > 0) {
-                    const costs = res.costs[0]?.costs || [];
-                    setShippingOptions(costs);
-                    if (costs.length > 0 && costs[0]?.cost?.[0]?.value) {
-                        const val = costs[0].cost[0].value;
-                        setShippingCost(val);
-                        setData('catatan', `Alamat: ${shippingAddress} | Kode Pos: ${destinationPostalCode} | Kurir: ${chosenCourier.toUpperCase()} (${costs[0].service}) - Rp ${val.toLocaleString('id-ID')}`);
-                    }
-                } else if (res?.error) {
-                    // Fallback ke city_id jika postal code gagal (RajaOngkir bukan Pro)
-                    setShippingError(res.error);
-                    if (selectedCity) {
-                        calculateOngkir(selectedCity, chosenCourier);
-                    }
-                }
-            })
-            .catch((err) => {
-                setLoadingShipping(false);
-                setShippingError('Perhitungan ongkir via kode pos gagal. Gunakan pilihan kota di bawah.');
-                // Fallback ke city_id
-                if (selectedCity) {
-                    calculateOngkir(selectedCity, chosenCourier);
-                }
-            });
+    const pickShippingService = (serviceName, cityId, chosenCourier) => {
+        setSelectedService(serviceName);
+        const chosen = shippingOptions.find((s) => s.service === serviceName);
+        const val = chosen?.cost?.[0]?.value ?? 0;
+        setShippingCost(val);
+        setData('catatan', `Alamat: ${shippingAddress} | Kota: ${cityId} | Kurir: ${chosenCourier.toUpperCase()} | Layanan: ${serviceName} | Ongkir: Rp ${val.toLocaleString('id-ID')}`);
     };
 
     useEffect(() => {
@@ -254,6 +190,35 @@ export default function PengajuanCreate({ auth, layanan = [], selected = {} }) {
         ? selected
         : options.find((o) => String(o.id) === String(data.product_id)) ?? null;
     const opsiOptions = current?.opsi ?? [];
+    const hourlyRental = tipe === 'ruangan' && current?.satuan === 'per_jam';
+    const [rentalHours, setRentalHours] = useState('');
+    const updateHourlySchedule = (date, start, hours) => {
+        const minutes = start ? Number(start.slice(0, 2)) * 60 + Number(start.slice(3, 5)) + Number(hours) * 60 : 0;
+        const end = date && start && Number.isInteger(Number(hours)) && Number(hours) > 0 && minutes < 1440
+            ? `${String(Math.floor(minutes / 60)).padStart(2, '0')}:${String(minutes % 60).padStart(2, '0')}` : '';
+        setRentalHours(hours);
+        setRentalConflict(null);
+        setData((prev) => ({ ...prev, tanggal: date, jam_mulai: start, jam_selesai: end,
+            rental_start: date && start ? `${date}T${start}` : '', rental_end: end ? `${date}T${end}` : '' }));
+    };
+    useEffect(() => {
+        if (tipe !== 'ruangan' || !data.rental_start || !data.rental_end || !data.product_id) {
+            setRentalConflict(null);
+            return undefined;
+        }
+        const controller = new AbortController();
+        setRentalConflict('Memeriksa ketersediaan jadwal...');
+        fetch('/api/rental/check-conflict', {
+            method: 'POST', signal: controller.signal,
+            headers: { 'Content-Type': 'application/json', 'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || '' },
+            body: JSON.stringify({ product_id: data.product_id, rental_start: data.rental_start, rental_end: data.rental_end }),
+        }).then(async (response) => {
+            const result = await response.json();
+            if (!response.ok) throw new Error(Object.values(result.errors ?? {}).flat().join(' ') || 'Ketersediaan belum dapat diperiksa.');
+            setRentalConflict(result.conflict ? (result.conflict_message || 'Jadwal sudah dipesan.') : null);
+        }).catch((error) => { if (error.name !== 'AbortError') setRentalConflict(error.message || 'Ketersediaan belum dapat diperiksa.'); });
+        return () => controller.abort();
+    }, [tipe, data.product_id, data.rental_start, data.rental_end]);
     const productId = data.product_id ? Number(data.product_id) : (selected?.product_id ? Number(selected.product_id) : null);
 
     const opsiPayload = useMemo(
@@ -291,6 +256,10 @@ export default function PengajuanCreate({ auth, layanan = [], selected = {} }) {
     const submit = (e) => {
         e?.preventDefault();
         setShippingError('');
+        if (tipe === 'ruangan' && closedInRental) {
+            setRentalConflict(`Tanggal ${closedInRental.date} tidak tersedia: ${closedInRental.title}. Pilih tanggal lain.`);
+            return;
+        }
         if (tipe === 'produk' && data.metode_pengambilan === 'Diantar') {
             if (!shippingAddress.trim()) {
                 setShippingError('Alamat pengiriman lengkap wajib diisi.');
@@ -304,16 +273,23 @@ export default function PengajuanCreate({ auth, layanan = [], selected = {} }) {
                 setShippingError('Kurir ekspedisi pengiriman wajib dipilih.');
                 return;
             }
+            if (!selectedService) {
+                setShippingError('Layanan pengiriman JNE wajib dipilih.');
+                return;
+            }
         }
+        clearErrors();
         router.post(
             route('customer.pengajuan.store'),
             { ...data, dokumen: docs, opsi: opsiPayload },
             {
+                onStart: () => setProcessing(true),
+                onFinish: () => setProcessing(false),
+                onError: (validationErrors) => setError(validationErrors),
                 onSuccess: () => {
                     setDocs([]);
                     reset();
                 },
-                onFinish: () => reset(),
             },
         );
     };
@@ -321,7 +297,7 @@ export default function PengajuanCreate({ auth, layanan = [], selected = {} }) {
     const parsedQty = parseInt(String(data.jumlah || '1'), 10) || 1;
     const currentThumb = resolveImageUrl(current?.thumbnail ?? null);
     const typeLabel = TYPE_LABEL[tipe] ?? 'Layanan';
-    const baseTotal = currentPrice * (tipe === 'produk' ? parsedQty : 1);
+    const baseTotal = quote?.lines?.find((line) => line.kind === 'base')?.subtotal ?? currentPrice * (tipe === 'produk' ? parsedQty : 1);
     const displaySubtotal = (quote?.subtotal != null ? quote.subtotal : baseTotal) + (data.metode_pengambilan === 'Diantar' ? shippingCost : 0);
     const displayPpn = quote?.ppn != null ? quote.ppn : Math.round(displaySubtotal * 0.12);
     const displayTotal = quote?.total != null ? (quote.total + (data.metode_pengambilan === 'Diantar' ? shippingCost : 0)) : displaySubtotal + displayPpn;
@@ -565,41 +541,13 @@ export default function PengajuanCreate({ auth, layanan = [], selected = {} }) {
                                                     value={shippingAddress}
                                                     onChange={(e) => {
                                                         setShippingAddress(e.target.value);
-                                                        setData('catatan', `Alamat: ${e.target.value} | Kode Pos: ${postalCode || '-'} | Kota: ${selectedCity} | Kurir: ${courier ? courier.toUpperCase() : '-'} | Ongkir: Rp ${shippingCost.toLocaleString('id-ID')}`);
+                                                        setData('catatan', `Alamat: ${e.target.value} | Kota: ${selectedCity || '-'} | Kurir: ${courier ? courier.toUpperCase() : '-'} | Layanan: ${selectedService || '-'} | Ongkir: Rp ${shippingCost.toLocaleString('id-ID')}`);
                                                     }}
                                                     rows={2}
                                                     placeholder="Masukkan alamat lengkap penerima..."
                                                     className="w-full rounded-xl border border-[var(--color-border)] p-2.5 text-xs bg-white"
                                                     required={data.metode_pengambilan === 'Diantar'}
                                                 />
-                                            </div>
-
-                                            <div>
-                                                <label className="block text-xs font-semibold text-[var(--color-ink)] mb-1">
-                                                    Kode Pos <span className="text-[var(--color-muted)] font-normal">(5 digit)</span>
-                                                </label>
-                                                <input
-                                                    type="text"
-                                                    value={postalCode}
-                                                    onChange={(e) => {
-                                                        const value = e.target.value.replace(/\D/g, '').slice(0, 5);
-                                                        setPostalCode(value);
-                                                        setData('catatan', `Alamat: ${shippingAddress} | Kode Pos: ${value || '-'} | Kota: ${selectedCity} | Kurir: ${courier ? courier.toUpperCase() : '-'} | Ongkir: Rp ${shippingCost.toLocaleString('id-ID')}`);
-                                                        
-                                                        // Auto-calculate ongkir jika kode pos valid (5 digit)
-                                                        if (value.length === 5 && courier) {
-                                                            calculateOngkirByPostalCode(value, courier);
-                                                        }
-                                                    }}
-                                                    placeholder="Contoh: 16424"
-                                                    maxLength={5}
-                                                    pattern="\d{5}"
-                                                    className="w-full rounded-xl border border-[var(--color-border)] p-2.5 text-xs bg-white"
-                                                    required={data.metode_pengambilan === 'Diantar'}
-                                                />
-                                                <p className="mt-1 text-[10px] text-[var(--color-muted)]">
-                                                    Isi kode pos untuk perhitungan ongkir akurat. Jika tidak tahu, pilih kota tujuan di bawah.
-                                                </p>
                                             </div>
 
                                             <div className="grid gap-3 sm:grid-cols-2">
@@ -629,23 +577,38 @@ export default function PengajuanCreate({ auth, layanan = [], selected = {} }) {
                                                         onChange={(e) => {
                                                             setCourier(e.target.value);
                                                             if (selectedCity && e.target.value) calculateOngkir(selectedCity, e.target.value);
-                                                            else setShippingCost(0);
+                                                            else { setShippingCost(0); setShippingOptions([]); setSelectedService(''); }
                                                         }}
                                                         className="w-full rounded-xl border border-[var(--color-border)] p-2.5 text-xs bg-white"
                                                         required={data.metode_pengambilan === 'Diantar'}
                                                     >
                                                         <option value="">-- Pilih Kurir --</option>
                                                         <option value="jne">JNE</option>
-                                                        <option value="jnt">J&T Express</option>
-                                                        <option value="sicepat">SiCepat</option>
-                                                        <option value="pos">POS Indonesia</option>
                                                     </select>
                                                 </div>
                                             </div>
-                                            {loadingShipping && <p className="text-xs text-[var(--color-accent)] font-semibold animate-pulse">Menghitung ongkir...</p>}
-                                            {shippingCost > 0 && (
+                                            {loadingShipping && <p className="text-xs text-[var(--color-accent)] font-semibold animate-pulse">Memuat layanan JNE...</p>}
+                                            {!loadingShipping && shippingOptions.length > 0 && (
+                                                <div>
+                                                    <label className="block text-xs font-semibold text-[var(--color-ink)] mb-1">Layanan Pengiriman JNE</label>
+                                                    <select
+                                                        value={selectedService}
+                                                        onChange={(e) => pickShippingService(e.target.value, selectedCity, courier)}
+                                                        className="w-full rounded-xl border border-[var(--color-border)] p-2.5 text-xs bg-white"
+                                                        required={data.metode_pengambilan === 'Diantar'}
+                                                    >
+                                                        <option value="">-- Pilih layanan --</option>
+                                                        {shippingOptions.map((s) => (
+                                                            <option key={s.service} value={s.service}>
+                                                                {s.service} · Rp {Number(s.cost?.[0]?.value ?? 0).toLocaleString('id-ID')} · estimasi {s.cost?.[0]?.etd || '-'}
+                                                            </option>
+                                                        ))}
+                                                    </select>
+                                                </div>
+                                            )}
+                                            {shippingCost > 0 && selectedService && (
                                                 <p className="text-xs font-bold text-emerald-700">
-                                                    Estimasi Ongkir Otomatis: Rp {shippingCost.toLocaleString('id-ID')}
+                                                    Ongkir dipilih: {selectedService} · Rp {shippingCost.toLocaleString('id-ID')}
                                                 </p>
                                             )}
                                         </div>
@@ -687,16 +650,21 @@ export default function PengajuanCreate({ auth, layanan = [], selected = {} }) {
                                                 className={inputBaseClass}
                                             />
                                         </Field>
-                                        <Field label="Tanggal Diharapkan" error={errors.tanggal} htmlFor="f-tanggal">
+                                        <Field label="Tanggal Mulai" error={errors.tanggal} htmlFor="f-tanggal">
                                             <input
                                                 id="f-tanggal"
                                                 type="date"
+                                                min={today}
                                                 value={data.tanggal}
                                                 onChange={(e) => setData('tanggal', e.target.value)}
                                                 className={inputBaseClass}
                                             />
                                         </Field>
                                     </div>
+
+                                    <Field label="Jam Mulai" error={errors.jam_mulai} htmlFor="f-jasa-mulai">
+                                        <input id="f-jasa-mulai" type="time" value={data.jam_mulai} onChange={(e) => setData('jam_mulai', e.target.value)} className={inputBaseClass} />
+                                    </Field>
 
                                     {/* Detail kebutuhan pengujian (test lab) & konsultasi biaya */}
                                     <fieldset className="space-y-4 rounded-2xl border border-[var(--color-border)] p-4 sm:p-5">
@@ -778,8 +746,9 @@ export default function PengajuanCreate({ auth, layanan = [], selected = {} }) {
                                             <input
                                                 id="f-tanggal"
                                                 type="date"
+                                                min={today}
                                                 value={data.tanggal}
-                                                onChange={(e) => setData('tanggal', e.target.value)}
+                                                onChange={(e) => hourlyRental ? updateHourlySchedule(e.target.value, data.jam_mulai, rentalHours) : setData('tanggal', e.target.value)}
                                                 className={inputBaseClass}
                                             />
                                         </Field>
@@ -801,11 +770,16 @@ export default function PengajuanCreate({ auth, layanan = [], selected = {} }) {
                                                 id="f-mulai"
                                                 type="time"
                                                 value={data.jam_mulai}
-                                                onChange={(e) => setData('jam_mulai', e.target.value)}
+                                                onChange={(e) => hourlyRental ? updateHourlySchedule(data.tanggal, e.target.value, rentalHours) : setData('jam_mulai', e.target.value)}
                                                 className={inputBaseClass}
                                             />
                                         </Field>
-                                        <Field label="Jam Selesai" error={errors.jam_selesai} htmlFor="f-jam_selesai">
+                                        {hourlyRental ? (
+                                            <Field label="Durasi sewa (jam)" htmlFor="f-duration">
+                                                <input id="f-duration" type="number" min="1" step="1" value={rentalHours}
+                                                    onChange={(e) => updateHourlySchedule(data.tanggal, data.jam_mulai, e.target.value)} className={inputBaseClass} />
+                                            </Field>
+                                        ) : <Field label="Jam Selesai" error={errors.jam_selesai} htmlFor="f-jam_selesai">
                                             <input
                                                 id="f-jam_selesai"
                                                 type="time"
@@ -813,8 +787,9 @@ export default function PengajuanCreate({ auth, layanan = [], selected = {} }) {
                                                 onChange={(e) => setData('jam_selesai', e.target.value)}
                                                 className={inputBaseClass}
                                             />
-                                        </Field>
+                                        </Field>}
                                     </div>
+                                    {hourlyRental && <p className="text-sm text-[var(--color-muted)]">Jam selesai: {data.jam_selesai || '—'} {rentalHours && !data.jam_selesai ? '(durasi melewati hari atau belum valid)' : ''}</p>}
                                     <Field label="Acara / Kegiatan" error={errors.keperluan} htmlFor="f-keperluan">
                                         <textarea
                                             id="f-keperluan"
@@ -832,13 +807,16 @@ export default function PengajuanCreate({ auth, layanan = [], selected = {} }) {
                                             <CalendarRange className="h-4 w-4 text-[var(--color-accent)]" />
                                             Periode Sewa
                                         </h3>
-                                        <div className="grid gap-4 sm:grid-cols-2">
+                                        <p className="text-xs text-[var(--color-muted)]">
+                                            Layanan tersedia pada hari {(current?.operational_days ?? []).map((d) => ['', 'Senin', 'Selasa', 'Rabu', 'Kamis', 'Jumat', 'Sabtu', 'Minggu'][d]).join(', ')} pukul {current?.operational_start}–{current?.operational_end}, kecuali tanggal merah akademik.
+                                        </p>
+                                        {!hourlyRental && <div className="grid gap-4 sm:grid-cols-2">
                                             <Field label="Mulai Sewa" error={errors.rental_start} htmlFor="f-rental-start">
                                                 <input
                                                     id="f-rental-start"
                                                     type="datetime-local"
                                                     value={data.rental_start}
-                                                    min={new Date().toISOString().slice(0, 16)}
+                                                    min={`${today}T00:00`}
                                                     onChange={(e) => {
                                                         setData('rental_start', e.target.value);
                                                         setRentalConflict(null);
@@ -851,45 +829,33 @@ export default function PengajuanCreate({ auth, layanan = [], selected = {} }) {
                                                     id="f-rental-end"
                                                     type="datetime-local"
                                                     value={data.rental_end}
-                                                    min={data.rental_start || new Date().toISOString().slice(0, 16)}
-                                                    onChange={(e) => {
-                                                        const val = e.target.value;
-                                                        setData('rental_end', val);
-                                                        setRentalConflict(null);
-                                                        // Auto-check conflict
-                                                        if (data.rental_start && val && data.product_id) {
-                                                            fetch('/api/rental/check-conflict', {
-                                                                method: 'POST',
-                                                                headers: {
-                                                                    'Content-Type': 'application/json',
-                                                                    'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || '',
-                                                                },
-                                                                body: JSON.stringify({
-                                                                    product_id: data.product_id,
-                                                                    rental_start: data.rental_start,
-                                                                    rental_end: val,
-                                                                }),
-                                                            })
-                                                                .then((r) => r.json())
-                                                                .then((r) => {
-                                                                    if (r.conflict) {
-                                                                        setRentalConflict(r.conflict_message || 'Jadwal sudah dipesan.');
-                                                                    }
-                                                                })
-                                                                .catch(() => {});
-                                                        }
-                                                    }}
+                                                    min={data.rental_start || `${today}T00:00`}
+                                                    onChange={(e) => setData('rental_end', e.target.value)}
                                                     className={inputBaseClass}
                                                 />
                                             </Field>
-                                        </div>
+                                        </div>}
+                                        {closedDates.length > 0 && (
+                                            <div className="rounded-lg border border-rose-200 bg-rose-50 p-3 text-xs text-rose-700" role="note">
+                                                <p className="font-semibold">Tanggal merah — tidak dapat dipesan</p>
+                                                <ul className="mt-1 list-inside list-disc">{closedDates.map(({ date, title }) => <li key={date}>{date} · {title}</li>)}</ul>
+                                            </div>
+                                        )}
+                                        {closedInRental && <p role="alert" className="text-xs font-semibold text-rose-700">Tanggal {closedInRental.date} tidak tersedia: {closedInRental.title}. Pilih tanggal lain.</p>}
+                                        {pageErrors.jadwal && <p role="alert" className="text-xs font-semibold text-rose-700">{pageErrors.jadwal}</p>}
                                         {rentalConflict && (
                                             <div className="rounded-lg bg-rose-50 border border-rose-200 p-3 text-xs text-rose-700 flex items-start gap-2">
                                                 <AlertCircle className="h-4 w-4 shrink-0 mt-0.5" />
                                                 <span>{rentalConflict}</span>
                                             </div>
                                         )}
-                                        {data.rental_start && data.rental_end && !rentalConflict && (
+                                        {(errors.rental_start || errors.rental_end) && (
+                                            <div className="rounded-lg bg-rose-50 border border-rose-200 p-3 text-xs text-rose-700 flex items-start gap-2">
+                                                <AlertCircle className="h-4 w-4 shrink-0 mt-0.5" />
+                                                <span>{[errors.rental_start, errors.rental_end].filter(Boolean).join(' ')}</span>
+                                            </div>
+                                        )}
+                                        {data.rental_start && data.rental_end && !closedInRental && !rentalConflict && !pageErrors.jadwal && !errors.rental_start && !errors.rental_end && (
                                             <div className="rounded-lg bg-teal-50 border border-teal-200 p-3 text-xs text-teal-700 flex items-center gap-2">
                                                 <Check className="h-4 w-4 shrink-0" />
                                                 <span>Jadwal tersedia</span>
@@ -1007,6 +973,9 @@ export default function PengajuanCreate({ auth, layanan = [], selected = {} }) {
                                                     <span className={isChecked ? 'font-medium text-[var(--color-ink)]' : 'text-[var(--color-ink)]'}>
                                                         {o.nama}
                                                     </span>
+                                                    {o.foto && (
+                                                        <span className="text-xs text-[var(--color-muted)] ml-1">(ada foto)</span>
+                                                    )}
                                                 </div>
                                                 <span className="tabular-nums text-[var(--color-muted)]">
                                                     Rp {Number(o.harga ?? 0).toLocaleString('id-ID')}
@@ -1042,6 +1011,9 @@ export default function PengajuanCreate({ auth, layanan = [], selected = {} }) {
                                     </div>
                                 )}
 
+                                {hourlyRental && data.rental_start && data.rental_end && (
+                                    <p className="mt-3 text-xs text-[var(--color-muted)]">{data.tanggal} · {data.jam_mulai}–{data.jam_selesai} · {rentalHours} jam × {rupiah(currentPrice)}</p>
+                                )}
                                 <dl className="mt-4 space-y-2.5 text-sm">
                                     <div className="flex justify-between text-[var(--color-muted)]">
                                         <dt>Tarif dasar</dt>
@@ -1060,7 +1032,7 @@ export default function PengajuanCreate({ auth, layanan = [], selected = {} }) {
                                         </div>
                                     )}
                                     <div className="flex justify-between text-[var(--color-muted)]">
-                                        <dt>PPN (12%)</dt>
+                                        <dt>PPN{quote?.ppn_rate != null ? ` (${quote.ppn_rate}%)` : ''}</dt>
                                         <dd className="tabular-nums text-[var(--color-ink)]">{rupiah(displayPpn)}</dd>
                                     </div>
                                 </dl>
@@ -1072,6 +1044,12 @@ export default function PengajuanCreate({ auth, layanan = [], selected = {} }) {
                                     </span>
                                 </div>
 
+                                {Object.keys(errors).length > 0 && (
+                                    <div role="alert" className="mt-4 rounded-lg border border-rose-200 bg-rose-50 p-3 text-xs text-rose-700">
+                                        <p className="font-semibold">Pengajuan belum dapat dikirim. Periksa kembali:</p>
+                                        <ul className="mt-1 list-inside list-disc">{Object.entries(errors).map(([key, message]) => <li key={key}>{message}</li>)}</ul>
+                                    </div>
+                                )}
                                 <button
                                     type="submit"
                                     disabled={processing}

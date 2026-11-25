@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Customer;
 use App\Http\Controllers\Controller;
 use App\Models\MetodePembayaran;
 use App\Models\Order;
+use App\Models\Payment;
 use App\Models\PaymentProof;
 use App\Models\Pengajuan;
 use App\Models\Product;
@@ -59,6 +60,13 @@ class PengajuanController extends Controller
             'peserta' => $p->peserta,
             'jam_mulai' => $p->jam_mulai,
             'jam_selesai' => $p->jam_selesai,
+            'rental_start' => optional($p->rental_start)?->format('Y-m-d\\TH:i'),
+            'rental_end' => optional($p->rental_end)?->format('Y-m-d\\TH:i'),
+            'reschedule_required' => (bool) $p->reschedule_required,
+            'reschedule_reason' => $p->reschedule_reason,
+            'operational_days' => $p->product?->meta['operational_days'] ?? [1, 2, 3, 4, 5],
+            'operational_start' => $p->product?->meta['operational_start'] ?? '08:00',
+            'operational_end' => $p->product?->meta['operational_end'] ?? '16:00',
             'metode_pengambilan' => $p->metode_pengambilan,
             'catatan' => $p->catatan,
             'total' => $p->total,
@@ -118,6 +126,9 @@ class PengajuanController extends Controller
                 'price' => $p->final_price,
                 'satuan' => $p->layananSatuan(),
                 'weight' => (int) ($p->meta['weight'] ?? 1000),
+                'operational_days' => $p->meta['operational_days'] ?? [1, 2, 3, 4, 5],
+                'operational_start' => $p->meta['operational_start'] ?? '08:00',
+                'operational_end' => $p->meta['operational_end'] ?? '16:00',
                 'opsi' => $this->opsiPayload($p),
             ]);
 
@@ -133,15 +144,21 @@ class PengajuanController extends Controller
             : null;
 
         return Inertia::render('Customer/Pengajuan/Create', [
+            'closedDates' => \App\Models\AcademicCalendarDate::where('type', 'academic_closed')
+                ->whereDate('date', '>=', now()->toDateString())->orderBy('date')->get(['date', 'title'])
+                ->map(fn ($date) => ['date' => $date->date->format('Y-m-d'), 'title' => $date->title]),
             'layanan' => $layanan,
             'selected' => [
                 'product_id' => $selectedProduct?->id,
-                'tipe' => $request->string('tipe')->toString() ?: null,
+                'tipe' => $selectedProduct?->layananTipe() ?? ($request->string('tipe')->toString() ?: null),
                 'name' => $selectedProduct?->name,
                 'price' => $selectedProduct?->final_price,
                 'thumbnail' => $selectedProduct?->thumbnail,
                 'satuan' => $selectedProduct?->layananSatuan(),
                 'weight' => $selectedProduct ? (int) ($selectedProduct->meta['weight'] ?? 1000) : null,
+                'operational_days' => $selectedProduct?->meta['operational_days'] ?? [1, 2, 3, 4, 5],
+                'operational_start' => $selectedProduct?->meta['operational_start'] ?? '08:00',
+                'operational_end' => $selectedProduct?->meta['operational_end'] ?? '16:00',
                 'opsi' => $selectedProduct ? $this->opsiPayload($selectedProduct) : [],
             ],
         ]);
@@ -175,6 +192,21 @@ class PengajuanController extends Controller
     {
         $data = $request->validate($this->storeRules());
 
+        if (in_array($data['tipe'], ['ruangan', 'alat'], true)) {
+            $productForAvailability = Product::findOrFail($data['product_id']);
+            $start = \Illuminate\Support\Carbon::parse($data['rental_start']);
+            $end = \Illuminate\Support\Carbon::parse($data['rental_end']);
+            \App\Services\ServiceAvailability::assertAvailable($productForAvailability, $start, $end);
+            if ($productForAvailability->layananSatuan() === 'per_jam') {
+                if (! $start->isSameDay($end) || $start->diffInMinutes($end) % 60 !== 0) {
+                    throw ValidationException::withMessages(['jadwal' => 'Sewa per jam harus pada hari yang sama dengan durasi dalam jam penuh.']);
+                }
+                $data['tanggal'] = $start->toDateString();
+                $data['jam_mulai'] = $start->format('H:i');
+                $data['jam_selesai'] = $end->format('H:i');
+            }
+        }
+
         $product = null;
         $quote = null;
         if (! empty($data['product_id'])) {
@@ -202,17 +234,18 @@ class PengajuanController extends Controller
         $pengajuan->dokumen = $docs;
         $pengajuan->renter_data = $data['renter_data'] ?? null;
         $pengajuan->kebutuhan_detail = $this->detailKebutuhan($data);
+        if ($pengajuan->tipe === 'jasa' && ! empty($data['tanggal']) && ! empty($data['jam_mulai'])) {
+            $pengajuan->jasa_auto_start = true;
+            $pengajuan->jadwal_mulai = \Illuminate\Support\Carbon::parse($data['tanggal'].' '.$data['jam_mulai']);
+        }
         if ($quote !== null) {
-            $shippingExtra = 0;
-            if (isset($data['metode_pengambilan']) && $data['metode_pengambilan'] === 'Diantar') {
-                // Ekstrak nilai ongkir dari catatan jika ada format "Ongkir: Rp X"
-                if (preg_match('/Ongkir:\s*Rp\s*([\d\.]+)/i', $data['catatan'] ?? '', $matches)) {
-                    $shippingExtra = (int) str_replace('.', '', $matches[1]);
-                } else {
-                    $shippingExtra = 15000; // Default flat jika manual
-                }
+            // Ongkir final dihitung ulang oleh server saat verifikasi RTPU dari RajaOngkir live,
+            // bukan dari teks catatan pelanggan.
+            $pengajuan->total = $quote['subtotal'];
+            if ($pengajuan->isRental()) {
+                $pengajuan->rental_billing_duration = $quote['lines'][0]['multiplier'];
+                $pengajuan->rental_billing_unit = $quote['lines'][0]['satuan'];
             }
-            $pengajuan->total = $quote['subtotal'] + $shippingExtra;
         }
         $pengajuan->code = 'PNJ-'.now()->format('Ymd').'-'.str_pad((string) (Pengajuan::max('id') + 1), 4, '0', STR_PAD_LEFT);
         $pengajuan->setStatus('Diajukan');
@@ -289,7 +322,11 @@ class PengajuanController extends Controller
         return [
             'tipe' => 'required|in:jasa,ruangan,produk',
             'product_id' => ['bail', 'required', 'integer', $this->activeCatalogRule(), function ($attribute, $value, $fail) {
-                $product = Product::with('category')->find($value);
+                $product = Product::with('category.parent')->find($value);
+                if ($product && $product->layananTipe() !== request()->input('tipe')) {
+                    $fail('Jenis pengajuan tidak sesuai dengan layanan yang dipilih.');
+                    return;
+                }
                 if ($product && $product->layananTipe() === 'produk'
                     && ($product->meta['availability_status'] ?? 'tersedia') === 'tersedia'
                     && $product->availableStock() < 1) {
@@ -414,7 +451,8 @@ class PengajuanController extends Controller
             'kebutuhan_detail.uraian_kebutuhan' => 'nullable|string|max:4000',
             'kebutuhan_detail.konsultasi_biaya' => 'nullable|string|max:1000',
             'jumlah' => 'nullable|string|max:100',
-            'tanggal' => 'nullable|date|after_or_equal:today',
+            'tanggal' => $request->input('tanggal') === $pengajuan->tanggal?->format('Y-m-d')
+                ? 'nullable|date' : 'nullable|date|after_or_equal:today',
             'jam_mulai' => 'nullable|date_format:H:i',
             'jam_selesai' => 'nullable|date_format:H:i|after:jam_mulai',
             'peserta' => 'nullable|integer|min:1|max:10000',
@@ -428,6 +466,14 @@ class PengajuanController extends Controller
         $pengajuan->product?->assertAvailableQuantity($data['jumlah'] ?? $pengajuan->jumlah);
         $data['tipe'] = $pengajuan->tipe; // kebutuhan_detail hanya untuk jasa
         $pengajuan->fill(Arr::except($data, ['opsi']));
+        if ($pengajuan->jasa_auto_start && (array_key_exists('tanggal', $data) || array_key_exists('jam_mulai', $data))) {
+            if (! $pengajuan->tanggal || ! $pengajuan->jam_mulai) {
+                throw ValidationException::withMessages([
+                    ! $pengajuan->tanggal ? 'tanggal' : 'jam_mulai' => 'Jadwal otomatis membutuhkan tanggal dan jam mulai.',
+                ]);
+            }
+            $pengajuan->jadwal_mulai = \Illuminate\Support\Carbon::parse($pengajuan->tanggal->format('Y-m-d').' '.$pengajuan->jam_mulai);
+        }
         $pengajuan->kebutuhan_detail = $this->detailKebutuhan($data);
         if ($pengajuan->status === 'Ditolak') {
             $pengajuan->setStatus('Diajukan', 'Diajukan ulang oleh pemohon.');
@@ -515,6 +561,7 @@ class PengajuanController extends Controller
         $this->authorize('confirmJasa', $pengajuan);
 
         $pengajuan->forceFill(['selesai_confirmed_at' => now()])->save();
+        $pengajuan->refresh();
         app(PengajuanWorkflow::class)->transition(
             $pengajuan,
             'Selesai',
@@ -585,10 +632,12 @@ class PengajuanController extends Controller
         $this->own($pengajuan);
         $pengajuan->load(['order', 'opsi', 'payments']);
 
-        $manualInvoice = $pengajuan->isPreorder() ? $pengajuan->invoices()->whereIn('status', ['issued', 'paid'])->latest()->first() : null;
+        $isManualInvoice = $pengajuan->isPreorder() || in_array($pengajuan->tipe, ['ruangan', 'alat', 'jasa'], true);
+        $manualInvoice = $isManualInvoice ? $pengajuan->invoices()->whereIn('status', ['issued', 'paid'])->latest()->first() : null;
         $order = $pengajuan->order;
         $subtotal = (int) ($order?->subtotal ?? $pengajuan->total ?? 0);
         $ppn = (int) ($order?->tax_amount ?? 0);
+        $ongkir = (int) ($order?->shipping_amount ?? 0);
         $latestPayment = $pengajuan->payments()->latest()->first();
 
         $items = [];
@@ -604,15 +653,18 @@ class PengajuanController extends Controller
 
         return Inertia::render('Customer/Pembayaran', [
             'item' => $this->serialize($pengajuan),
-            'manualPreorder' => $pengajuan->isPreorder(),
+            'manualPreorder' => $isManualInvoice,
             'manualInvoice' => $manualInvoice?->load('lines'),
             'tagihan' => [
                 'subtotal' => $subtotal,
                 'ppn' => $ppn,
-                'total' => (int) ($order?->total ?? ($subtotal + $ppn)),
+                'ppn_rate' => $order?->tax_rate_snapshot,
+                'ongkir' => $ongkir,
+                'ongkir_detail' => $order?->shipping_snapshot,
+                'total' => (int) ($order?->total ?? ($subtotal + $ppn + $ongkir)),
                 'items' => $items,
             ],
-            'clientKey' => $pengajuan->isPreorder() ? '' : $this->midtrans->getClientKey(),
+            'clientKey' => $isManualInvoice ? '' : $this->midtrans->getClientKey(),
             'isProduction' => $this->midtrans->isProduction(),
             'snapScriptUrl' => $this->midtrans->getSnapScriptUrl(),
             'metode' => MetodePembayaran::where('aktif', true)
@@ -643,47 +695,17 @@ class PengajuanController extends Controller
     public function paymentStatus(Pengajuan $pengajuan)
     {
         $this->own($pengajuan);
-        abort_if($pengajuan->isPreorder(), 422, 'Pre-order menggunakan verifikasi transfer BLU manual.');
         $latestPayment = $pengajuan->payments()->latest()->first();
+        abort_if(($pengajuan->isPreorder() || $pengajuan->tipe !== 'produk') && ! $latestPayment, 422, 'Pembayaran ini menggunakan verifikasi transfer manual.');
 
         // On localhost/dev, webhooks from Midtrans cannot reach localhost directly.
         // If payment is still pending, proactively query Midtrans status API to sync immediately.
         if ($latestPayment && $latestPayment->status === 'pending') {
             try {
                 $statusRes = $this->midtrans->getTransactionStatus($latestPayment->order_id);
-                $trxStatus = $statusRes['transaction_status'] ?? '';
-                $fraudStatus = $statusRes['fraud_status'] ?? '';
-                $paymentType = $statusRes['payment_type'] ?? null;
-                $trxId = $statusRes['transaction_id'] ?? null;
-                $settlementTime = $statusRes['settlement_time'] ?? $statusRes['transaction_time'] ?? null;
-
-                $targetStatus = match ($trxStatus) {
-                    'capture' => ($fraudStatus === 'accept') ? 'paid' : 'failed',
-                    'settlement' => 'paid',
-                    'pending' => 'pending',
-                    'deny', 'failure' => 'failed',
-                    'expire' => 'expired',
-                    'cancel' => 'failed',
-                    'refund', 'partial_refund' => 'refunded',
-                    default => 'pending',
-                };
-
-                if ($targetStatus === 'paid') {
-                    DB::transaction(function () use ($latestPayment, $pengajuan, $paymentType, $trxId, $statusRes, $settlementTime) {
-                        $latestPayment->update([
-                            'status' => 'paid',
-                            'payment_type' => $paymentType,
-                            'transaction_id' => $trxId,
-                            'raw_response' => $statusRes,
-                            'paid_at' => $settlementTime ? now()->parse($settlementTime) : now(),
-                        ]);
-
-                        app(ConfirmPaidPengajuan::class)->handle($pengajuan);
-                    });
-
-                    $latestPayment->refresh();
-                    $pengajuan->refresh();
-                }
+                app(\App\Services\SyncMidtransPayment::class)->handle($latestPayment, $statusRes);
+                $latestPayment->refresh();
+                $pengajuan->refresh();
             } catch (\Exception $e) {
                 // Ignore API sync errors during polling, fall back to stored DB status
                 Log::warning('Payment status sync check error: '.$e->getMessage());
@@ -708,40 +730,63 @@ class PengajuanController extends Controller
             'bukti' => 'required|file|mimes:jpg,jpeg,png,pdf|max:5120',
         ]);
 
-        if ($pengajuan->isPreorder()) {
+        if ($pengajuan->isPreorder() || in_array($pengajuan->tipe, ['ruangan', 'alat', 'jasa'], true)) {
             app(ManualPreorderPayment::class)->upload($pengajuan, $request->user(), (int) $request->metode_id, $request->file('bukti'));
 
             return redirect()->route('customer.pengajuan.show', $pengajuan)->with('success', 'Bukti transfer BLU dikirim, menunggu verifikasi RTPU.');
         }
         $request->validate(['metode_id' => 'exists:metode_pembayaran,id']);
-        $order = $pengajuan->order()->where('status', 'menunggu_pembayaran')->first();
-        if (! $order) {
-            $order = $pengajuan->order()->create([
-                'order_number' => $this->orderNumber($pengajuan),
-                'buyer_id' => $pengajuan->buyer_id,
-                'subtotal' => $pengajuan->total ?? 0,
-                'total' => $pengajuan->total ?? 0,
-                'status' => 'menunggu_pembayaran',
-            ]);
+        $path = null;
+        try {
+            DB::transaction(function () use ($pengajuan, $request, &$path) {
+                if (DB::getDriverName() === 'sqlite') {
+                    DB::table('pengajuan')->where('id', $pengajuan->id)->update(['id' => DB::raw('id')]);
+                }
+                $locked = Pengajuan::whereKey($pengajuan->id)->lockForUpdate()->firstOrFail();
+                abort_unless($locked->status === 'Menunggu Pembayaran', 403);
+                if ($locked->payments()->whereIn('status', ['pending', 'paid'])->exists()) {
+                    throw \Illuminate\Validation\ValidationException::withMessages(['payment' => 'Pembayaran Midtrans belum diselesaikan. Hubungi RTPU sebelum transfer manual.']);
+                }
+                $order = $locked->order()->where('status', 'menunggu_pembayaran')->first();
+                if (! $order) {
+                    $order = $locked->order()->create([
+                        'order_number' => $this->orderNumber($locked), 'buyer_id' => $locked->buyer_id,
+                        'subtotal' => $locked->total ?? 0, 'total' => $locked->total ?? 0,
+                        'status' => 'menunggu_pembayaran',
+                    ]);
+                }
+                $file = $request->file('bukti');
+                $path = $file->store('bukti', 'local');
+                PaymentProof::create([
+                    'order_id' => $order->id, 'file_path' => $path,
+                    'file_name' => $file->getClientOriginalName(), 'mime_type' => $file->getClientMimeType(),
+                    'notes' => 'Metode ID: '.$request->metode_id,
+                ]);
+                $locked->setStatus('Menunggu Verifikasi Pembayaran');
+                $locked->save();
+                $order->update(['status' => 'menunggu_verifikasi']);
+            });
+        } catch (\Throwable $e) {
+            if ($path) {
+                \Illuminate\Support\Facades\Storage::disk('local')->delete($path);
+            }
+            throw $e;
         }
-
-        $file = $request->file('bukti');
-        $path = $file->store('bukti', 'local');
-
-        PaymentProof::create([
-            'order_id' => $order->id,
-            'file_path' => $path,
-            'file_name' => $file->getClientOriginalName(),
-            'mime_type' => $file->getClientMimeType(),
-            'notes' => 'Metode ID: '.$request->metode_id,
-        ]);
-
-        $pengajuan->setStatus('Menunggu Verifikasi Pembayaran');
-        $pengajuan->save();
-        $order->update(['status' => 'menunggu_verifikasi']);
 
         return redirect()->route('customer.pengajuan.show', $pengajuan)
             ->with('success', 'Bukti pembayaran terkirim, menunggu verifikasi.');
+    }
+
+    public function reschedule(Request $request, Pengajuan $pengajuan)
+    {
+        $this->own($pengajuan);
+        $data = $request->validate([
+            'start' => 'required|date',
+            'end' => 'required|date|after:start',
+        ]);
+        app(\App\Services\ScheduleReschedule::class)->customerReschedule($pengajuan, $data['start'], $data['end']);
+
+        return back()->with('success', 'Jadwal pengganti berhasil disimpan. Pesanan tetap berjalan.');
     }
 
     private function orderNumber(Pengajuan $pengajuan): string

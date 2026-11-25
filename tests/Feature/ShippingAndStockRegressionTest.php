@@ -20,7 +20,7 @@ class ShippingAndStockRegressionTest extends SqlitePreorderBluInvoiceTest
         [$request, $actor, , , , $data] = $this->fixture();
         $invoice = app(InvoiceService::class)->preparePreorder($request, $actor, [...$data, 'shipping_amount' => 1]);
         $this->assertSame(25000, $invoice->shipping_amount);
-        Http::assertSent(fn ($http) => $http['weight'] === 1000 && $http['destination'] === '152' && $http['courier'] === 'jne');
+        Http::assertSent(fn ($http) => $http['weight'] === 1000 && $http['destination'] === 25979 && $http['courier'] === 'jne');
     }
 
     public function test_pickup_ignores_shipping_and_never_calls_provider(): void

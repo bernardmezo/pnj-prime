@@ -9,7 +9,7 @@ import { inputClass, inputStyleProps } from '@/Components/ui';
 function toCard(p) {
     return {
         id: p.id,
-        type: typeFromCategory(p.category?.slug),
+        type: typeFromCategory(p.category?.parent?.slug ?? p.category?.slug),
         title: p.name,
         category_name: p.category?.name,
         target_audience: p.target_audience ?? 'publik',
@@ -127,7 +127,7 @@ export default function CatalogBrowse({ auth, products, categories = [], filters
                     <div className="flex flex-wrap gap-2" aria-label="Kategori katalog">
                         {[{ id: 'all', slug: '', name: 'Semua kategori' }, ...categories].map((c) => (
                             <button type="button" key={c.id} onClick={() => handleFilterApply({ category: c.slug })} aria-pressed={draft.category === c.slug}
-                                className={`rounded-full border px-4 py-2 text-sm font-semibold transition duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-accent)] focus-visible:ring-offset-2 ${draft.category === c.slug ? 'border-[var(--color-accent)] bg-[var(--color-accent)] text-white' : 'border-[var(--color-border)] text-[var(--color-muted)] hover:bg-[var(--color-surface)]'}`}>{c.name}</button>
+                                className={`rounded-full border px-4 py-2 text-sm font-semibold transition duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-accent)] focus-visible:ring-offset-2 ${draft.category === c.slug ? 'border-[var(--color-accent)] bg-[var(--color-accent)] text-white' : 'border-[var(--color-border)] text-[var(--color-muted)] hover:bg-[var(--color-surface)]'}`}>{c.display_name ?? c.name}</button>
                         ))}
                     </div>
                     <div className="mt-4 flex flex-wrap items-end gap-3">

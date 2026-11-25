@@ -9,6 +9,7 @@ use App\Models\ProductCategory;
 use App\Models\RoomBooking;
 use App\Models\Setting;
 use App\Models\User;
+use Illuminate\Http\UploadedFile;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
 
@@ -27,6 +28,7 @@ class SewaDanTestLabTest extends TestCase
     protected function setUp(): void
     {
         parent::setUp();
+        $this->travelTo(\Carbon\Carbon::parse('2026-11-23 09:00:00'));
         $this->withoutVite();
         $this->seed(\Database\Seeders\UsecaseSeeder::class);
         $this->seed(\Database\Seeders\ProductCategorySeeder::class);
@@ -67,6 +69,24 @@ class SewaDanTestLabTest extends TestCase
         ], $override);
     }
 
+    public function test_checkout_uses_parent_category_and_rejects_wrong_submitted_type(): void
+    {
+        $subcategory = ProductCategory::create([
+            'name' => 'Ruangan', 'slug' => 'ruangan-uji', 'parent_id' => $this->ruangan->category_id, 'is_active' => true,
+        ]);
+        $this->ruangan->update(['category_id' => $subcategory->id]);
+
+        $this->actingAs($this->customer)
+            ->get(route('customer.pengajuan.create', ['product_id' => $this->ruangan->id, 'tipe' => 'produk']))
+            ->assertOk()
+            ->assertInertia(fn ($page) => $page->component('Customer/Pengajuan/Create')->where('selected.tipe', 'ruangan'));
+
+        $this->actingAs($this->customer)
+            ->post(route('customer.pengajuan.store'), ['tipe' => 'produk', 'product_id' => $this->ruangan->id, 'metode_pengambilan' => 'Diantar'])
+            ->assertSessionHasErrors('product_id');
+        $this->assertDatabaseCount('pengajuan', 0);
+    }
+
     // ---------- Pengaturan persetujuan ----------
 
     public function test_sewa_approval_by_pimpinan_is_disabled_by_default(): void
@@ -78,15 +98,90 @@ class SewaDanTestLabTest extends TestCase
         $this->assertSame('0', Setting::where('key', 'sewa_perlu_persetujuan_pimpinan')->value('value'));
     }
 
-    public function test_rtpu_approves_rental_directly_to_payment_without_pimpinan(): void
+    public function test_rtpu_approves_rental_and_issues_invoice_in_one_action(): void
     {
+        $this->actingAs($this->customer)->post(route('customer.pengajuan.store'), $this->rentalPayload())->assertSessionHasNoErrors();
+        $p = Pengajuan::firstOrFail();
+        $subtotal = $p->total;
+        Setting::where('key', 'sewa_perlu_persetujuan_pimpinan')->update(['value' => '0']);
+        $bank = \App\Models\MetodePembayaran::create(['nama' => 'BLU', 'tipe' => 'BLU', 'rekening' => '123', 'holder' => 'PNJ', 'aktif' => true]);
+
+        $this->actingAs($this->rtpu)->patch(route('rtpu.verify.layanan.approve', $p->id), [
+            'bank_id' => $bank->id, 'due_date' => now()->addDays(3)->toDateString(), 'tax_rate' => '11',
+        ])->assertRedirect(route('rtpu.verify.layanan'))->assertSessionHasNoErrors();
+
+        $p->refresh();
+        $this->assertSame('Menunggu Pembayaran', $p->status);
+        $this->assertSame('issued', $p->latestInvoice->status);
+        $this->assertEquals($subtotal, $p->latestInvoice->subtotal);
+        $this->assertEquals($p->latestInvoice->total, $p->order->total);
+    }
+
+    public function test_invalid_rental_invoice_data_does_not_change_request(): void
+    {
+        $this->actingAs($this->customer)->post(route('customer.pengajuan.store'), $this->rentalPayload())->assertSessionHasNoErrors();
+        $p = Pengajuan::firstOrFail();
+        Setting::where('key', 'sewa_perlu_persetujuan_pimpinan')->update(['value' => '0']);
+        $this->actingAs($this->rtpu)->patch(route('rtpu.verify.layanan.approve', $p->id), [
+            'tax_rate' => '101', 'due_date' => now()->toDateString(),
+        ])->assertSessionHasErrors(['bank_id', 'tax_rate', 'due_date']);
+        $this->assertSame('Diajukan', $p->fresh()->status);
+        $this->assertSame(0, $p->invoices()->count());
+    }
+
+    public function test_rental_invoice_manual_flow(): void
+    {
+        $this->travelTo(\Carbon\Carbon::parse('2026-11-23 09:00:00'));
+        \Illuminate\Support\Facades\Storage::fake('local');
         $this->actingAs($this->customer)->post(route('customer.pengajuan.store'), $this->rentalPayload())->assertSessionHasNoErrors();
         $p = Pengajuan::firstOrFail();
 
         Setting::where('key', 'sewa_perlu_persetujuan_pimpinan')->update(['value' => '0']);
-        $this->actingAs($this->rtpu)->patch(route('rtpu.verify.layanan.approve', $p->id))->assertSessionHasNoErrors();
+        app(\App\Services\PengajuanWorkflow::class)->transition($p, 'Menunggu Invoice', 'Verifikasi sebelumnya', $this->rtpu->name);
+        $this->assertSame('Menunggu Invoice', $p->fresh()->status);
 
+        $bank = \App\Models\MetodePembayaran::create([
+            'nama' => 'Bank BLU', 'tipe' => 'BLU', 'rekening' => '1234567890',
+            'holder' => 'PNJ BLU', 'aktif' => true,
+        ]);
+
+        $this->actingAs($this->rtpu)->post(route('rtpu.invoice.store', $p->id), [
+            'tax_rate' => '11',
+            'bank_id' => $bank->id,
+            'due_date' => now()->addDays(3)->format('Y-m-d'),
+        ])->assertSessionHasNoErrors();
+
+        $this->assertSame('Menunggu Invoice', $p->fresh()->status);
+        $this->assertSame('draft', $p->fresh()->latestInvoice?->status);
+
+        $this->actingAs($this->rtpu)->patch(route('rtpu.verify.layanan.approve', $p->id))->assertSessionHasNoErrors();
+        $p->refresh();
+        $this->assertSame('Menunggu Pembayaran', $p->status);
+        $this->assertSame('issued', $p->latestInvoice?->status);
+        $this->assertSame($p->order?->id, $p->latestInvoice?->order_id);
+
+        $this->actingAs($this->customer)->get(route('customer.pengajuan.bayar', $p->id))->assertOk();
+
+        $this->assertSame('ruangan', $p->fresh()->tipe);
+        $wrongBank = \App\Models\MetodePembayaran::create(['nama' => 'Other', 'tipe' => 'BLU', 'rekening' => '999', 'holder' => 'PNJ', 'aktif' => true]);
+        $this->actingAs($this->customer)->post(route('customer.pengajuan.proof', $p->id), [
+            'metode_id' => $wrongBank->id,
+            'bukti' => UploadedFile::fake()->image('wrong.jpg'),
+        ])->assertSessionHasErrors('metode_id');
         $this->assertSame('Menunggu Pembayaran', $p->fresh()->status);
+        $this->assertSame(0, $p->fresh()->order->paymentProofs()->count());
+
+        $this->actingAs($this->customer)->post(route('customer.pengajuan.proof', $p->id), [
+            'metode_id' => $bank->id,
+            'bukti' => UploadedFile::fake()->image('bukti.jpg'),
+        ])->assertRedirect()->assertSessionHasNoErrors();
+
+        $this->assertSame('Menunggu Verifikasi Pembayaran', $p->fresh()->status);
+        $proof = $p->fresh()->order?->paymentProofs()->firstOrFail();
+
+        $this->actingAs($this->rtpu)->patch(route('rtpu.verify.bayar.accept', $proof->id))->assertSessionHasNoErrors();
+        $this->assertSame('Lunas', $p->fresh()->status);
+        $this->assertSame('paid', $p->fresh()->latestInvoice?->status);
     }
 
     // ---------- Anti bentrok ----------
@@ -108,8 +203,8 @@ class SewaDanTestLabTest extends TestCase
         $this->actingAs($this->customer)->post(route('customer.pengajuan.store'), $this->rentalPayload())->assertSessionHasNoErrors();
 
         $this->actingAs(User::factory()->customer()->create())->post(route('customer.pengajuan.store'), $this->rentalPayload([
-            'rental_start' => now()->addDays(10)->addHours(12)->format('Y-m-d\TH:i'),
-            'rental_end' => now()->addDays(12)->format('Y-m-d\TH:i'),
+            'rental_start' => now()->addDays(10)->addHours(3)->format('Y-m-d\TH:i'),
+            'rental_end' => now()->addDays(11)->addHours(3)->format('Y-m-d\TH:i'),
         ]))->assertSessionHasErrors();
     }
 
@@ -119,7 +214,7 @@ class SewaDanTestLabTest extends TestCase
 
         $this->actingAs(User::factory()->customer()->create())->post(route('customer.pengajuan.store'), $this->rentalPayload([
             'rental_start' => now()->addDays(11)->format('Y-m-d\TH:i'),
-            'rental_end' => now()->addDays(12)->format('Y-m-d\TH:i'),
+            'rental_end' => now()->addDays(11)->addHours(6)->format('Y-m-d\TH:i'),
         ]))->assertSessionHasNoErrors();
 
         $this->assertSame(2, RoomBooking::where('status', 'ACTIVE')->count());
@@ -186,6 +281,25 @@ class SewaDanTestLabTest extends TestCase
         ])->assertSessionHasErrors(['kebutuhan_detail.jumlah_sampel', 'kebutuhan_detail.konsultasi_biaya']);
     }
 
+    private function jasaInvoicePayload(array $override = []): array
+    {
+        $bank = \App\Models\MetodePembayaran::create(['nama' => 'BLU', 'tipe' => 'BLU', 'rekening' => '123', 'holder' => 'PNJ', 'aktif' => true]);
+
+        return array_merge(['bank_id' => $bank->id, 'due_date' => now()->addDays(3)->toDateString(), 'tax_rate' => '0'], $override);
+    }
+
+    public function test_new_jasa_submission_keeps_selected_start_and_automation_marker(): void
+    {
+        $date = now()->addDays(3)->toDateString();
+        $this->actingAs($this->customer)->post(route('customer.pengajuan.store'), [
+            'tipe' => 'jasa', 'product_id' => $this->jasa->id, 'tanggal' => $date, 'jam_mulai' => '10:00',
+        ])->assertRedirect()->assertSessionHasNoErrors();
+        $p = Pengajuan::firstOrFail();
+        $this->assertTrue((bool) $p->jasa_auto_start);
+        $this->assertSame($date.' 10:00', $p->jadwal_mulai->format('Y-m-d H:i'));
+        $this->assertNull($p->jadwal_selesai);
+    }
+
     public function test_rtpu_sets_tariff_and_order_invoice_total_match(): void
     {
         $this->actingAs($this->customer)->post(route('customer.pengajuan.store'), [
@@ -193,7 +307,7 @@ class SewaDanTestLabTest extends TestCase
         ])->assertSessionHasNoErrors();
         $p = Pengajuan::firstOrFail();
 
-        $this->actingAs($this->rtpu)->patch(route('rtpu.verify.layanan.approve', $p->id), ['tarif_jasa' => 750000])->assertSessionHasNoErrors();
+        $this->actingAs($this->rtpu)->patch(route('rtpu.verify.layanan.approve', $p->id), $this->jasaInvoicePayload(['tarif_jasa' => 750000]))->assertSessionHasNoErrors();
 
         $p->refresh();
         $this->assertSame('Menunggu Pembayaran', $p->status);
@@ -203,7 +317,25 @@ class SewaDanTestLabTest extends TestCase
         $item = $order->items()->firstOrFail();
         $this->assertSame(750000, (int) $item->unit_price);
         $this->assertSame(2250000, (int) $item->subtotal);
+        $this->assertSame(3, (int) $item->quantity);
+        $invoice = $p->latestInvoice;
+        $line = $invoice->lines()->firstOrFail();
+        $this->assertSame(750000, (int) $line->unit_price);
+        $this->assertSame(3, (int) $line->quantity);
+        $this->assertSame(2250000, (int) $line->amount);
+        $this->assertSame((int) $order->subtotal, (int) $invoice->subtotal);
+        $this->assertSame((int) $order->total, (int) $invoice->total);
         $this->assertStringContainsString('Tarif ditetapkan Admin RTPU', json_encode($p->history));
+    }
+
+    public function test_service_tariff_is_recorded_in_history(): void
+    {
+        $this->actingAs($this->customer)->post(route('customer.pengajuan.store'), [
+            'tipe' => 'jasa', 'product_id' => $this->jasa->id, 'jumlah' => '3',
+        ])->assertSessionHasNoErrors();
+        $p = Pengajuan::firstOrFail();
+        $this->actingAs($this->rtpu)->patch(route('rtpu.verify.layanan.approve', $p->id), $this->jasaInvoicePayload(['tarif_jasa' => 750000]))->assertSessionHasNoErrors();
+        $this->assertStringContainsString('Tarif ditetapkan Admin RTPU: Rp 750.000 x 3.', json_encode($p->fresh()->history));
     }
 
     public function test_without_tariff_catalog_price_is_used(): void
@@ -214,7 +346,7 @@ class SewaDanTestLabTest extends TestCase
         $p = Pengajuan::firstOrFail();
         $totalSebelum = (int) $p->total;
 
-        $this->actingAs($this->rtpu)->patch(route('rtpu.verify.layanan.approve', $p->id))->assertSessionHasNoErrors();
+        $this->actingAs($this->rtpu)->patch(route('rtpu.verify.layanan.approve', $p->id), $this->jasaInvoicePayload())->assertSessionHasNoErrors();
 
         $this->assertSame($totalSebelum, (int) $p->fresh()->total);
     }
@@ -224,8 +356,9 @@ class SewaDanTestLabTest extends TestCase
         $this->actingAs($this->customer)->post(route('customer.pengajuan.store'), ['tipe' => 'jasa', 'product_id' => $this->jasa->id])->assertSessionHasNoErrors();
         $p = Pengajuan::firstOrFail();
 
+        $invoicePayload = $this->jasaInvoicePayload();
         foreach ([0, -5, 'abc', 1.5, 2000000000] as $bad) {
-            $this->actingAs($this->rtpu)->patch(route('rtpu.verify.layanan.approve', $p->id), ['tarif_jasa' => $bad])->assertSessionHasErrors('tarif_jasa');
+            $this->actingAs($this->rtpu)->patch(route('rtpu.verify.layanan.approve', $p->id), array_merge($invoicePayload, ['tarif_jasa' => $bad]))->assertSessionHasErrors('tarif_jasa');
         }
         $this->assertSame('Diajukan', $p->fresh()->status);
     }

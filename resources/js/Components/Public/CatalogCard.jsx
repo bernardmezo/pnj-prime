@@ -73,6 +73,14 @@ function stockMeta(item) {
     const status = item.availability_status ?? 'tersedia';
     const stock = item.stock;
 
+    if (item.type === 'sewa' || item.type === 'jasa') {
+        return {
+            label: 'Periksa Jadwal',
+            icon: Clock,
+            className: 'bg-teal-50 text-teal-700 border-teal-100',
+        };
+    }
+
     if (status === 'preorder') {
         return {
             label: 'Pre-order',

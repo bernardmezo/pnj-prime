@@ -41,6 +41,10 @@ export default function PengajuanShow({ auth, item }) {
     const [revisionNote, setRevisionNote] = useState('');
     const [rating, setRating] = useState(5);
     const [ulasan, setUlasan] = useState('');
+    const [rescheduleStart, setRescheduleStart] = useState(p?.rental_start ?? p?.jasa?.jadwal_mulai ?? '');
+    const [rescheduleEnd, setRescheduleEnd] = useState(p?.rental_end ?? p?.jasa?.jadwal_selesai ?? '');
+    const [rescheduleErrors, setRescheduleErrors] = useState({});
+    const [rescheduleProcessing, setRescheduleProcessing] = useState(false);
 
     if (!p) {
         return (
@@ -54,9 +58,18 @@ export default function PengajuanShow({ auth, item }) {
     }
 
     const typeLabel = p.type === 'jasa' ? 'Jasa' : p.type === 'ruangan' ? 'Ruangan' : 'Produk';
+    const isRental = ['ruangan', 'alat'].includes(p.type);
+    const statusHint = (status) => {
+        if (!isRental) return STATUS_HINT[status];
+        return {
+            Lunas: 'Pembayaran telah diterima. Jadwal sewa terkonfirmasi; masa sewa dimulai otomatis saat jadwal mulai.',
+            Berjalan: 'Fasilitas sedang dalam masa sewa. Selesai otomatis setelah jadwal berakhir.',
+            Selesai: 'Masa sewa telah berakhir sesuai jadwal.',
+        }[status] ?? STATUS_HINT[status];
+    };
     const isPickup = /ambil/i.test(p.metode_pengambilan || '');
     const isShipment = Boolean(p.shipment);
-    const flow = ['Diajukan', 'Menunggu Pembayaran', ...(p.status === 'Menunggu Verifikasi Pembayaran' || (p.history ?? []).some((h) => h.status === 'Menunggu Verifikasi Pembayaran') ? ['Menunggu Verifikasi Pembayaran'] : []), 'Lunas', 'Diproses', 'Selesai'];
+    const flow = ['Diajukan', 'Menunggu Pembayaran', ...(p.status === 'Menunggu Verifikasi Pembayaran' || (p.history ?? []).some((h) => h.status === 'Menunggu Verifikasi Pembayaran') ? ['Menunggu Verifikasi Pembayaran'] : []), 'Lunas', ...(isRental ? ['Berjalan'] : ['Diproses']), 'Selesai'];
     if (isPickup) flow.splice(flow.indexOf('Selesai'), 0, 'Siap Diambil');
     if (isShipment) flow.splice(flow.indexOf('Selesai'), 0, 'Dikirim');
     const isJasa = Boolean(p.jasa);
@@ -64,7 +77,7 @@ export default function PengajuanShow({ auth, item }) {
     const currentStatus = p.status === 'Diproses' && p.pickup?.ready ? 'Siap Diambil' : p.status;
     const flowIdx = flow.indexOf(currentStatus);
     const jasaStepLabel = { Dijadwalkan: 'Jadwal pengerjaan', Dikerjakan: 'Sedang dikerjakan', 'Hasil Diunggah': 'Hasil diunggah' };
-    const stepLabel = (status) => status === 'Lunas' ? 'Pembayaran lunas' : status === 'Diproses' ? (isPickup ? 'Penyiapan / pengambilan di PNJ' : isJasa ? 'Penyiapan pesanan jasa' : 'Penyiapan / pengiriman') : status === 'Selesai' ? (isJasa ? 'Selesai — hasil diterima' : 'Selesai — barang diterima') : jasaStepLabel[status] ?? status;
+    const stepLabel = (status) => isRental ? ({ Diajukan: 'Diajukan', 'Menunggu Pembayaran': 'Menunggu pembayaran', 'Menunggu Verifikasi Pembayaran': 'Verifikasi pembayaran', Lunas: 'Jadwal sewa terkonfirmasi', Berjalan: 'Masa sewa berlangsung', Selesai: 'Sewa selesai' }[status] ?? status) : status === 'Lunas' ? 'Pembayaran lunas' : status === 'Diproses' ? (isPickup ? 'Penyiapan / pengambilan di PNJ' : isJasa ? 'Penyiapan pesanan jasa' : 'Penyiapan / pengiriman') : status === 'Selesai' ? (isJasa ? 'Selesai — hasil diterima' : 'Selesai — barang diterima') : jasaStepLabel[status] ?? status;
 
     const historyList = p.history ?? [];
 
@@ -122,6 +135,19 @@ export default function PengajuanShow({ auth, item }) {
                 </div>
 
                 {p.invoice_url && <a href={p.invoice_url} className="mt-4 inline-block text-sm underline">Lihat invoice transaksi</a>}
+                {p.reschedule_required && (
+                    <section className="mt-5 space-y-3 rounded-xl border border-amber-300 bg-amber-50 p-4 text-sm">
+                        <h2 className="font-bold text-amber-900">Jadwal perlu dipilih ulang</h2>
+                        <p className="text-amber-800">{p.reschedule_reason}</p>
+                        <p className="text-xs text-amber-800">Pesanan dan pembayaran tetap berlaku. Pilih tanggal pengganti pada hari operasional layanan.</p>
+                        <form onSubmit={(e) => { e.preventDefault(); setRescheduleErrors({}); setRescheduleProcessing(true); router.patch(route('customer.pengajuan.reschedule', p.id), { start: rescheduleStart, end: rescheduleEnd }, { preserveScroll: true, onError: setRescheduleErrors, onFinish: () => setRescheduleProcessing(false) }); }} className="grid gap-3 sm:grid-cols-2">
+                            <label className="block">Mulai<input required type="datetime-local" value={rescheduleStart} onChange={(e) => setRescheduleStart(e.target.value)} className="mt-1 block w-full rounded-xl border border-[var(--color-border)] bg-white px-3.5 py-2.5 text-sm text-[var(--color-ink)] outline-none transition focus:border-[var(--color-accent)] focus:ring-1 focus:ring-[var(--color-accent)]" /></label>
+                            <label className="block">Selesai<input required type="datetime-local" value={rescheduleEnd} onChange={(e) => setRescheduleEnd(e.target.value)} className="mt-1 block w-full rounded-xl border border-[var(--color-border)] bg-white px-3.5 py-2.5 text-sm text-[var(--color-ink)] outline-none transition focus:border-[var(--color-accent)] focus:ring-1 focus:ring-[var(--color-accent)]" /></label>
+                            {Object.entries(rescheduleErrors).map(([key, message]) => <p key={key} role="alert" className="text-red-700 sm:col-span-2">{message}</p>)}
+                            <button disabled={rescheduleProcessing} className="rounded-full bg-amber-600 px-5 py-2 font-semibold text-white disabled:opacity-50 sm:col-span-2">Simpan jadwal pengganti</button>
+                        </form>
+                    </section>
+                )}
                 {p.shipment?.shipped_at && (
                     <section className="mt-5 space-y-1.5 rounded-xl border border-[var(--color-accent)]/20 bg-[var(--color-accent-tint)]/40 p-4 text-sm">
                         <h2 className="font-bold">Informasi pengiriman</h2>
@@ -209,7 +235,7 @@ export default function PengajuanShow({ auth, item }) {
                         <div className="mb-5 rounded-2xl bg-[var(--color-accent-tint)] p-4" role="status">
                             <p className="text-xs font-semibold uppercase tracking-wide text-[var(--color-accent)]">Posisi pesanan saat ini</p>
                             <h2 className="mt-1 font-display text-lg font-bold text-[var(--color-ink)]">{stepLabel(currentStatus)}</h2>
-                            <p className="mt-2 text-sm leading-relaxed text-[var(--color-muted)]">{p.pickup?.ready && p.status === 'Diproses' ? 'Barang siap diambil di PNJ pada pukul 08.00–16.00 WIB.' : STATUS_HINT[p.status]}</p>
+                            <p className="mt-2 text-sm leading-relaxed text-[var(--color-muted)]">{p.pickup?.ready && p.status === 'Diproses' ? 'Barang siap diambil di PNJ pada pukul 08.00–16.00 WIB.' : statusHint(p.status)}</p>
                             {isPickup && <p className="mt-2 text-sm font-semibold text-[var(--color-accent)]">Jam pengambilan PNJ: 08.00–16.00 WIB. {p.pickup?.ready ? 'Barang telah ditandai siap diambil.' : 'Tunggu pemberitahuan barang siap sebelum datang.'}</p>}
                         </div>
                         <h2 className="text-sm font-semibold text-[var(--color-ink)]">Tahapan pesanan</h2>
@@ -255,9 +281,9 @@ export default function PengajuanShow({ auth, item }) {
                                             )}
 
                                             {/* Explanation sentence under current active step */}
-                                            {isCurrent && STATUS_HINT[p.status] && (
+                                            {isCurrent && statusHint(p.status) && (
                                                 <p className="mt-1 text-xs text-[var(--color-muted)] leading-relaxed">
-                                                    {p.pickup?.ready && p.status === 'Diproses' ? 'Barang siap diambil di PNJ pada pukul 08.00–16.00 WIB.' : STATUS_HINT[p.status]}
+                                                    {p.pickup?.ready && p.status === 'Diproses' ? 'Barang siap diambil di PNJ pada pukul 08.00–16.00 WIB.' : statusHint(p.status)}
                                                 </p>
                                             )}
 

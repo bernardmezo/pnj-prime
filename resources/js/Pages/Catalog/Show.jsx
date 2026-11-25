@@ -39,7 +39,7 @@ export default function CatalogShow({ auth, product, isPreview = false }) {
     const [quoteData, setQuoteData] = useState(null);
     const user = auth?.user;
     const isStaff = isStaffRole(user?.role);
-    const type = typeFromSlug(product.category?.slug);
+    const type = typeFromSlug(product.category?.parent?.slug ?? product.category?.slug);
     const rawPrice = Number(product.final_price ?? 0);
     const priceFormatted = `Rp ${rawPrice.toLocaleString('id-ID')}`;
     const { saveDraft } = usePengajuanDraft();
@@ -370,13 +370,13 @@ export default function CatalogShow({ auth, product, isPreview = false }) {
                             {/* Action Buttons */}
                             <div className="mt-5 space-y-2.5">
                                 {isStaff ? (
-                                    (user.role === 'pimpinan_rtpu' || user.role === 'super_admin') ? null : <Link
-                                        href={route('rtpu.layanan')}
+                                    user.role === 'admin_rtpu' || (['admin_pengelola', 'admin_jurusan'].includes(user.role) && user.id === product.owner_id && ['draft', 'rejected', 'approved'].includes(product.curation_status)) ? <Link
+                                        href={user.role === 'admin_rtpu' ? route('rtpu.layanan.edit', product.id) : route('pengelola.produk.edit', product.id)}
                                         className="inline-flex w-full items-center justify-center gap-1.5 rounded-full border border-[var(--color-border)] bg-white px-4 py-2.5 text-xs font-semibold text-[var(--color-ink)] transition hover:border-[var(--color-accent)] hover:bg-[var(--color-accent-tint)]"
                                     >
                                         <span>Kelola layanan ini</span>
                                         <ArrowRight className="h-3.5 w-3.5" />
-                                    </Link>
+                                    </Link> : null
                                 ) : user ? (
                                     <a
                                         href={navHref('customer.pengajuan.create', { product_id: product.id, tipe: type }, user.role)}

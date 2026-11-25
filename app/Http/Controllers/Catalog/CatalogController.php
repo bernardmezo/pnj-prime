@@ -26,7 +26,7 @@ class CatalogController extends Controller
         $canSeeInternal = $user && $user->isCivitasPnj();
 
         $featuredQuery = Product::with([
-            'category',
+            'category.parent',
             'owner',
             'opsi' => fn ($q) => $q->where('aktif', true)->urut(),
         ])
@@ -41,9 +41,7 @@ class CatalogController extends Controller
         }
 
         $data = [
-            'categories' => ProductCategory::where('is_active', true)
-                ->orderBy('sort_order')
-                ->get(['id', 'name', 'slug', 'icon']),
+            'categories' => $this->categories(),
             'featured_products' => $featuredQuery->latest('approved_at')
                 ->limit(8)
                 ->get(),
@@ -78,7 +76,7 @@ class CatalogController extends Controller
         }
 
         $query = Product::with([
-            'category',
+            'category.parent',
             'owner:id,name,jurusan',
             'opsi' => fn ($q) => $q->where('aktif', true)->urut(),
         ])
@@ -109,7 +107,7 @@ class CatalogController extends Controller
 
         if ($request->filled('category')) {
             $slug = $request->string('category')->toString();
-            $query->whereHas('category', fn ($c) => $c->where('slug', $slug));
+            $query->whereHas('category', fn ($c) => $c->where(fn ($q) => $q->where('slug', $slug)->orWhereHas('parent', fn ($parent) => $parent->where('slug', $slug))));
         }
 
         if (is_numeric($request->input('min_price'))) {
@@ -122,11 +120,26 @@ class CatalogController extends Controller
 
         return Inertia::render('Catalog/Browse', [
             'products' => $query->latest('approved_at')->paginate(12)->withQueryString(),
-            'categories' => ProductCategory::where('is_active', true)
-                ->orderBy('sort_order')
-                ->get(['id', 'name', 'slug', 'icon']),
+            'categories' => $this->categories(),
             'filters' => $request->only(['q', 'category', 'min_price', 'max_price']),
         ]);
+    }
+
+    private function categories(): \Illuminate\Support\Collection
+    {
+        $categories = ProductCategory::with('parent:id,name')
+            ->where('is_active', true)
+            ->orderBy('sort_order')
+            ->get(['id', 'name', 'slug', 'icon', 'parent_id']);
+        $duplicates = $categories->countBy(fn ($category) => mb_strtolower(trim($category->name)));
+
+        return $categories->reject(fn ($category) => mb_strtolower(trim($category->name)) === 'lainnya')->map(function ($category) use ($duplicates) {
+            $category->display_name = $category->parent && $duplicates[mb_strtolower(trim($category->name))] > 1
+                ? $category->name.' — '.$category->parent->name
+                : $category->name;
+
+            return $category;
+        })->values();
     }
 
     public function show(Product $product): Response
@@ -148,7 +161,7 @@ class CatalogController extends Controller
 
         return Inertia::render('Catalog/Show', [
             'product' => $product->load([
-                'category',
+                'category.parent',
                 'owner:id,name,jurusan,unit_name',
                 'opsi' => fn ($q) => $q->where('aktif', true)->urut(),
             ]),

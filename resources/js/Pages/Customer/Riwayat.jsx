@@ -7,7 +7,7 @@ import StatusTimeline from '@/Components/StatusTimeline';
 import { EASE, EmptyState, PageHeader, StatusBadge, Table, Td } from '@/Components/ui';
 import { LAYANAN_FLOW } from '@/lib/statuses';
 
-const TYPE_LABEL = { jasa: 'Jasa', ruangan: 'Ruangan', produk: 'Produk' };
+const TYPE_LABEL = { jasa: 'Jasa', ruangan: 'Ruangan', sewa: 'Sewa', produk: 'Produk' };
 
 export default function Riwayat({ auth, riwayat = [] }) {
     const role = auth?.user?.role;
@@ -23,7 +23,7 @@ export default function Riwayat({ auth, riwayat = [] }) {
                 <PageHeader
                     eyebrow="Customer"
                     title="Riwayat Transaksi Layanan"
-                    desc="Item yang sudah selesai, dibatalkan, atau ditolak final."
+                    desc="Transaksi lunas, termasuk yang sedang diproses, serta transaksi yang telah ditutup."
                 />
                 <CustomerTabs active="riwayat" role={role} />
                 {rows.length === 0 ? (

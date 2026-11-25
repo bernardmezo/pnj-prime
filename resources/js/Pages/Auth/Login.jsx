@@ -181,8 +181,11 @@ export function LoginForm({ status, canResetPassword }) {
                         </p>
                     )}
                 </div>
-                <div className="mt-5 flex items-center justify-start">
+                <div className="mt-5 flex items-center justify-between">
                     <Checkbox name="remember" checked={data.remember} onChange={(v) => setData('remember', v)} label="Ingat saya" />
+                    <Link href={route('password.request')} className="text-sm font-medium underline underline-offset-2" style={{ color: 'var(--color-accent-hover)' }}>
+                        Lupa kata sandi?
+                    </Link>
                 </div>
                 <PrimaryButton className="mt-7 h-12 w-full text-base" disabled={processing}>
                     {processing ? 'Memproses…' : 'Masuk →'}

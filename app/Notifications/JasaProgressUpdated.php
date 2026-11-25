@@ -20,7 +20,7 @@ class JasaProgressUpdated extends Notification implements ShouldQueue
 
     public function via(object $notifiable): array
     {
-        return ['mail'];
+        return ['mail', 'database'];
     }
 
     public function toMail(object $notifiable): MailMessage
@@ -40,5 +40,19 @@ class JasaProgressUpdated extends Notification implements ShouldQueue
         }
 
         return $mail->action('Lihat pesanan', route('customer.pengajuan.show', $p));
+    }
+
+    public function toArray(object $notifiable): array
+    {
+        $p = $this->pengajuan;
+        return [
+            'title' => $this->event === 'scheduled' ? 'Jadwal pengerjaan jasa' : 'Hasil pengerjaan tersedia',
+            'message' => $this->event === 'scheduled'
+                ? 'Pesanan jasa '.$p->code.' telah dijadwalkan.'
+                : 'Hasil pengerjaan untuk pesanan '.$p->code.' sudah diunggah.',
+            'url' => route('customer.pengajuan.show', $p),
+            'code' => $p->code,
+            'event' => $this->event,
+        ];
     }
 }

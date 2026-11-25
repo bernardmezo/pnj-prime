@@ -25,6 +25,17 @@ class JasaFulfillment
         $status = $request->input('status');
         $actor = $request->user()->name;
 
+        if ($p->jasa_auto_start && $status === 'Perkiraan Selesai') {
+            $this->expect($p, 'Dikerjakan', 'Pesanan belum berstatus Dikerjakan. Muat ulang halaman.');
+            $data = $request->validate(['jadwal_selesai' => ['required', 'date', 'after_or_equal:'.$p->jadwal_mulai->format('Y-m-d H:i:s')]]);
+            $p->jadwal_selesai = $data['jadwal_selesai'];
+            $p->save();
+            return;
+        }
+        if ($p->jasa_auto_start && in_array($status, ['Diproses', 'Dijadwalkan', 'Dikerjakan'], true)) {
+            throw ValidationException::withMessages(['status' => 'Pengerjaan dimulai otomatis sesuai jadwal customer.']);
+        }
+
         match ($status) {
             'Diproses' => $this->start($p, $workflow, $actor),
             'Dijadwalkan' => $this->schedule($p, $request, $workflow, $actor),
